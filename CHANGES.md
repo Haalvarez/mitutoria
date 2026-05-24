@@ -12,6 +12,7 @@
 | S7 | Fix wwwroot publish en .csproj | ✅ completo |
 | S8 | Fix .gitignore — incluir wwwroot/css y wwwroot/js | ✅ completo |
 | S9 | Fix Railway build desde subcarpeta | ✅ completo |
+| S10 | Force redeploy Railway | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
