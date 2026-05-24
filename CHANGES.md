@@ -1,3 +1,7 @@
+## [Unreleased]
+### feat
+- Footer: show short Git hash from RAILWAY_GIT_COMMIT_SHA env var
+
 ## main — feature/landing-base
 
 ### Índice de sesiones

@@ -1,7 +1,16 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AddFolderApplicationModelConvention("/", model =>
+        model.Filters.Add(new Microsoft.AspNetCore.Mvc.ServiceFilterAttribute(typeof(miTutoria.Web.Infrastructure.VersionPageFilter))));
+});
+builder.Services.AddScoped<miTutoria.Web.Infrastructure.VersionPageFilter>();
+builder.Services.AddSingleton(sp =>
+    Environment.GetEnvironmentVariable("RAILWAY_GIT_COMMIT_SHA") is { Length: >= 7 } hash
+        ? hash[..7]
+        : "dev");
 
 builder.WebHost.UseContentRoot(AppContext.BaseDirectory);
 
