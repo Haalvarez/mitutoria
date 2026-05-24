@@ -1,3 +1,7 @@
+## [Unreleased]
+### style
+- Landing: inclusive language — "mamá o papá" instead of gendered "padre"
+
 ## main — feature/landing-base
 
 ### Índice de sesiones
