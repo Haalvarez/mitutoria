@@ -14,6 +14,7 @@
 | S9 | Fix Railway build desde subcarpeta | ✅ completo |
 | S10 | Force redeploy Railway | ✅ completo |
 | S11 | Fix ContentRoot y working directory para static files | ✅ completo |
+| S12 | Deshabilitar HTTPS redirect en Production | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
