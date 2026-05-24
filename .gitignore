@@ -7,3 +7,6 @@
 bin/
 obj/
 out/
+
+# Static libraries restored by LibMan
+miTutoria.Web/wwwroot/lib/

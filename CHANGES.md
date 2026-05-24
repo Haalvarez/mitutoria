@@ -10,6 +10,7 @@
 | S5 | Fix static files 404 | ✅ completo |
 | S6 | Fix global.json rollForward para SDK local | ✅ completo |
 | S7 | Fix wwwroot publish en .csproj | ✅ completo |
+| S8 | Fix .gitignore — incluir wwwroot/css y wwwroot/js | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -39,3 +40,7 @@
 ### S7 — wwwroot publish (aplicado)
 - .csproj actualizado para incluir wwwroot en publish
 - Archivos css/site.css y js/site.js verificados
+
+### S8 — .gitignore fix (aplicado)
+- wwwroot/css y wwwroot/js ya no están excluidos
+- wwwroot/lib sigue excluido (libman lo restaura)
