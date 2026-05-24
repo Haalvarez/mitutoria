@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,900;1,400;1,700&family=Instrument+Sans:wght@300;400;500&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div id="cursor" class="cursor"></div>
+    <div id="cursorRing" class="cursor-ring"></div>
+
+    <nav>
+        <div class="logo">mi<b>Tutor</b><i>IA</i></div>
+        <div class="nav-right">
+            <span class="nav-tag">Próximamente</span>
+        </div>
+    </nav>
+
+    @RenderBody()
+
+    <footer>
+        <div class="footer-logo">mi<b>Tutor</b><i>IA</i></div>
+        <span>mitutoria.app · Hecho en Argentina 🧉</span>
+        <span>© 2025</span>
+    </footer>
+
+    <script src="/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

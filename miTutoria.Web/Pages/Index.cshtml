@@ -1,0 +1,154 @@
+﻿@page
+@model IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "miTutorIA — Aprendé con inteligencia";
+}
+
+<section class="hero">
+    <div class="hero-watermark" aria-hidden="true">IA</div>
+
+    <div class="hero-eyebrow">
+        <div class="eyebrow-line"></div>
+        <span class="eyebrow-text">Plataforma educativa · mitutoria.app</span>
+    </div>
+
+    <h1 class="hero-headline">
+        La IA que<br>
+        <span class="italic">enseña a pensar</span>
+        <span class="outline">no a copiar</span>
+    </h1>
+
+    <div class="hero-bottom">
+        <p class="hero-sub">
+            Tus hijos tienen acceso a inteligencia artificial.<br>
+            <strong>La diferencia está en quién configura las reglas.</strong><br><br>
+            miTutorIA le da al padre el control del tutor digital —
+            cuánto ayuda, cómo ayuda, y cuándo dice que no.
+        </p>
+        <div class="hero-actions">
+            <button class="btn-main">Quiero acceso anticipado</button>
+            <a href="#como" class="btn-text">Ver cómo funciona</a>
+        </div>
+    </div>
+
+    <div class="scroll-hint" aria-hidden="true">
+        <div class="scroll-arrow"></div>
+        <span>Seguir leyendo</span>
+    </div>
+</section>
+
+<section class="manifesto">
+    <div class="manifesto-label">El problema real</div>
+    <div class="manifesto-body reveal">
+        ChatGPT no es el problema.<br>
+        El problema es que nadie le dijo cómo <em>usarlo bien.</em><br><br>
+        Un chico solo con IA aprende a pedir respuestas.<br>
+        Un chico con <em>miTutorIA</em> aprende a hacerse mejores preguntas.
+        <span class="aside">
+            Diseñado por un padre. Probado con tres hijos reales — incluyendo una nena con TDAH
+            que necesitaba algo distinto a lo que existe.
+        </span>
+    </div>
+</section>
+
+<section class="features" id="para-quien">
+    <div class="features-header">
+        <h2>Por qué funciona diferente</h2>
+        <div class="feat-count">04</div>
+    </div>
+    <div class="features-scroll">
+        <div class="feat reveal">
+            <div class="feat-num">01</div>
+            <span class="feat-icon">🎛️</span>
+            <h3>Vos configurás el tutor</h3>
+            <p>Cada aula tiene su propio prompt. Como padre definís el tono, el nivel de ayuda y qué tipo de preguntas responde — y cuáles no.</p>
+        </div>
+        <div class="feat reveal reveal-delay-1">
+            <div class="feat-num">02</div>
+            <span class="feat-icon">🔍</span>
+            <h3>Detecta la intención</h3>
+            <p>Hay diferencia entre "no entiendo fracciones" y "dame el resultado del ejercicio 4". El sistema las trata distinto.</p>
+        </div>
+        <div class="feat reveal reveal-delay-2">
+            <div class="feat-num">03</div>
+            <span class="feat-icon">🧒</span>
+            <h3>Un perfil por hijo</h3>
+            <p>Cada chico es diferente. El tutor se adapta a la edad, el grado y las necesidades — incluso para chicos con TDAH u otras dificultades.</p>
+        </div>
+        <div class="feat reveal reveal-delay-3">
+            <div class="feat-num">04</div>
+            <span class="feat-icon">📋</span>
+            <h3>Historial para padres</h3>
+            <p>Podés ver qué preguntaron, cómo respondió el tutor, y cuánto tiempo pasaron estudiando. Sin espiar — con contexto.</p>
+        </div>
+    </div>
+</section>
+
+<section class="how" id="como">
+    <div class="how-header">
+        <h2>Cómo<br>funciona<br><i>en la práctica</i></h2>
+        <p class="how-intro">
+            No es un chatbot genérico puesto en una página.<br>
+            Es un sistema donde el padre es el arquitecto del aprendizaje,
+            y la IA es la herramienta — no al revés.
+        </p>
+    </div>
+    <div class="how-steps">
+        <div class="how-step reveal">
+            <div class="step-n">01</div>
+            <div class="step-title">Creás tu familia en la plataforma</div>
+            <p class="step-desc">Registrás la cuenta con rol de padre. Agregás a cada hijo con su perfil — edad, grado, materias y si tiene necesidades educativas especiales.</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="step-n">02</div>
+            <div class="step-title">Configurás las aulas de cada hijo</div>
+            <p class="step-desc">Creás un aula por materia. Decidís si el tutor da pistas, hace preguntas de vuelta, o directamente no responde ciertos tipos de pedidos.</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="step-n">03</div>
+            <div class="step-title">Ellos estudian, el tutor guía</div>
+            <p class="step-desc">Tus hijos abren la app y tienen su tutor disponible. Pero uno que los empuja a pensar — no uno que les resuelve la tarea.</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="step-n">04</div>
+            <div class="step-title">Vos revisás y ajustás</div>
+            <p class="step-desc">Con el historial de sesiones podés ver cómo va cada hijo, si el tutor está siendo demasiado restrictivo o demasiado permisivo, y ajustar.</p>
+        </div>
+    </div>
+</section>
+
+<section class="tension">
+    <div class="tension-left reveal">
+        <blockquote class="tension-quote">
+            "El problema no es que la IA sea mala para estudiar. El problema es que nadie le puso límites."
+        </blockquote>
+        <p class="tension-attribution">La idea detrás de miTutorIA</p>
+    </div>
+    <div class="tension-right">
+        <div class="tension-card bad reveal">
+            <div class="tension-card-label">❌ Sin miTutorIA</div>
+            <p>Tu hijo le pregunta a ChatGPT "resolveme el ejercicio 3" y lo pega en la carpeta. Aprendió a copiar.</p>
+        </div>
+        <div class="tension-card good reveal reveal-delay-1">
+            <div class="tension-card-label">✓ Con miTutorIA</div>
+            <p>Tu hijo le pregunta lo mismo y el tutor le devuelve: "¿Qué datos te da el enunciado? Empezá por ahí." Aprendió a pensar.</p>
+        </div>
+        <div class="tension-card good reveal reveal-delay-2">
+            <div class="tension-card-label">✓ Vos controlás</div>
+            <p>Si querés que Matemática sea más estricta y que en Historia sí pueda pedir resúmenes, eso lo decidís vos. Aula por aula.</p>
+        </div>
+    </div>
+</section>
+
+<section class="cta" id="acceso">
+    <h2>Sé parte<br>del<br><i>primer círculo</i></h2>
+    <div class="cta-right">
+        <p>Estamos armando el acceso anticipado. Si tenés hijos en edad escolar y querés probar la plataforma antes del lanzamiento, dejá tu mail acá.</p>
+        <div class="email-form">
+            <input type="email" placeholder="tu@email.com" autocomplete="email" />
+            <button type="button">Anotarme</button>
+        </div>
+        <p class="cta-note">Sin spam · Sin costo · Solo te avisamos cuando esté lista</p>
+    </div>
+</section>

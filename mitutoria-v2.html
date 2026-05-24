@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>miTutorIA — Aprendé con inteligencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,900;1,400;1,700&family=Instrument+Sans:wght@300;400;500&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --paper:#F7F3EC;
+  --ink:#191917;
+  --rust:#C94A1F;
+  --sage:#5C7A5E;
+  --dust:#A89880;
+  --warm:#EDE5D8;
+  --line:rgba(25,25,23,0.1);
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  font-family:'Instrument Sans',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  cursor:none;
+}
+
+/* custom cursor */
+.cursor{
+  position:fixed;
+  width:10px;height:10px;
+  background:var(--rust);
+  border-radius:50%;
+  pointer-events:none;
+  z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:transform 0.1s, width 0.2s, height 0.2s;
+  mix-blend-mode:multiply;
+}
+.cursor-ring{
+  position:fixed;
+  width:36px;height:36px;
+  border:1.5px solid var(--rust);
+  border-radius:50%;
+  pointer-events:none;
+  z-index:9998;
+  transform:translate(-50%,-50%);
+  transition:transform 0.18s ease, width 0.25s, height 0.25s, opacity 0.2s;
+  opacity:0.5;
+}
+body:hover .cursor{opacity:1}
+
+/* grain overlay */
+body::after{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23g)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9997;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;
+  z-index:500;
+  padding:1.1rem 3rem;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--line);
+  background:rgba(247,243,236,0.92);
+  backdrop-filter:blur(16px);
+}
+.logo{
+  font-family:'Playfair Display',serif;
+  font-size:1.35rem;
+  letter-spacing:-0.01em;
+  color:var(--ink);
+  font-weight:400;
+}
+.logo b{font-weight:900;color:var(--rust)}
+.logo i{font-style:italic}
+
+nav ul{
+  list-style:none;
+  display:flex;gap:2.5rem;
+  font-size:0.82rem;
+  font-weight:400;
+  letter-spacing:0.04em;
+  color:var(--dust);
+}
+nav ul a{color:inherit;text-decoration:none;transition:color 0.2s}
+nav ul a:hover{color:var(--ink)}
+
+.nav-right{display:flex;align-items:center;gap:1.2rem}
+.nav-tag{
+  font-size:0.75rem;
+  font-weight:500;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--rust);
+  background:rgba(201,74,31,0.08);
+  border:1px solid rgba(201,74,31,0.2);
+  padding:0.3rem 0.8rem;
+  border-radius:3px;
+}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  padding:8rem 3rem 4rem;
+  display:grid;
+  grid-template-rows:auto auto auto;
+  position:relative;
+  overflow:hidden;
+}
+
+/* big number watermark */
+.hero-watermark{
+  position:absolute;
+  right:-2rem;top:3rem;
+  font-family:'Playfair Display',serif;
+  font-size:32vw;
+  font-weight:900;
+  color:rgba(25,25,23,0.03);
+  line-height:1;
+  pointer-events:none;
+  user-select:none;
+  letter-spacing:-0.05em;
+}
+
+.hero-eyebrow{
+  display:flex;align-items:center;gap:1rem;
+  margin-bottom:2.5rem;
+  animation:slideIn 0.7s ease both;
+}
+.eyebrow-line{
+  width:40px;height:1px;
+  background:var(--rust);
+}
+.eyebrow-text{
+  font-size:0.78rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--dust);
+  font-weight:500;
+}
+
+.hero-headline{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(3.2rem,7.5vw,7.5rem);
+  font-weight:900;
+  line-height:0.95;
+  letter-spacing:-0.03em;
+  max-width:900px;
+  animation:slideIn 0.7s 0.08s ease both;
+}
+.hero-headline .italic{
+  font-style:italic;
+  font-weight:400;
+  color:var(--rust);
+  display:block;
+}
+.hero-headline .outline{
+  -webkit-text-stroke:2px var(--ink);
+  color:transparent;
+}
+
+.hero-bottom{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  align-items:end;
+  gap:4rem;
+  margin-top:4rem;
+  padding-top:2.5rem;
+  border-top:1px solid var(--line);
+  animation:slideIn 0.7s 0.18s ease both;
+}
+.hero-sub{
+  font-size:1.05rem;
+  font-weight:300;
+  line-height:1.75;
+  color:#555;
+  max-width:420px;
+}
+.hero-sub strong{color:var(--ink);font-weight:500}
+
+.hero-actions{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:1rem;
+}
+.btn-main{
+  background:var(--ink);
+  color:var(--paper);
+  border:none;
+  padding:1rem 2.4rem;
+  font-family:'Instrument Sans',sans-serif;
+  font-size:0.95rem;
+  font-weight:500;
+  letter-spacing:0.02em;
+  border-radius:3px;
+  cursor:none;
+  transition:background 0.2s,transform 0.15s;
+}
+.btn-main:hover{background:var(--rust);transform:translateY(-1px)}
+
+.btn-text{
+  font-size:0.82rem;
+  color:var(--dust);
+  text-decoration:none;
+  border-bottom:1px solid var(--line);
+  padding-bottom:2px;
+  transition:color 0.2s,border-color 0.2s;
+  cursor:none;
+}
+.btn-text:hover{color:var(--ink);border-color:var(--ink)}
+
+/* scroll hint */
+.scroll-hint{
+  position:absolute;
+  bottom:2.5rem;left:3rem;
+  display:flex;align-items:center;gap:0.6rem;
+  font-size:0.75rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--dust);
+  animation:fadeIn 1s 0.8s ease both;
+}
+.scroll-arrow{
+  width:20px;height:20px;
+  border-right:1px solid var(--dust);
+  border-bottom:1px solid var(--dust);
+  transform:rotate(45deg) translateY(-4px);
+  animation:arrowBounce 1.6s infinite;
+}
+
+/* ── MANIFESTO ── */
+.manifesto{
+  padding:6rem 3rem;
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:1fr 2fr;
+  gap:5rem;
+  align-items:start;
+}
+.manifesto-label{
+  font-size:0.75rem;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  color:var(--dust);
+  padding-top:0.5rem;
+  position:sticky;top:6rem;
+}
+.manifesto-body{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.6rem,2.8vw,2.4rem);
+  font-weight:400;
+  line-height:1.45;
+  color:var(--ink);
+}
+.manifesto-body em{
+  font-style:italic;
+  color:var(--rust);
+}
+.manifesto-body .aside{
+  display:block;
+  margin-top:2rem;
+  font-family:'Instrument Sans',sans-serif;
+  font-size:0.95rem;
+  font-weight:300;
+  color:var(--dust);
+  line-height:1.7;
+  border-left:2px solid var(--rust);
+  padding-left:1.2rem;
+}
+
+/* ── FEATURES — HORIZONTAL CARDS ── */
+.features{
+  border-top:1px solid var(--line);
+  overflow:hidden;
+}
+.features-header{
+  padding:4rem 3rem 2rem;
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+}
+.features-header h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.8rem,3vw,2.8rem);
+  font-weight:900;
+  letter-spacing:-0.02em;
+}
+.feat-count{
+  font-family:'Playfair Display',serif;
+  font-size:4rem;
+  font-weight:900;
+  color:rgba(25,25,23,0.07);
+  line-height:1;
+}
+
+.features-scroll{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  border-top:1px solid var(--line);
+}
+.feat{
+  padding:2.5rem;
+  border-right:1px solid var(--line);
+  transition:background 0.25s;
+  position:relative;
+  overflow:hidden;
+}
+.feat:last-child{border-right:none}
+.feat::before{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:0;
+  background:var(--rust);
+  transition:height 0.3s ease;
+}
+.feat:hover::before{height:3px}
+
+.feat-num{
+  font-family:'Playfair Display',serif;
+  font-size:0.85rem;
+  color:var(--dust);
+  margin-bottom:3rem;
+  font-style:italic;
+}
+.feat-icon{
+  font-size:1.8rem;
+  margin-bottom:1.2rem;
+  display:block;
+}
+.feat h3{
+  font-family:'Playfair Display',serif;
+  font-size:1.25rem;
+  font-weight:700;
+  margin-bottom:0.7rem;
+  letter-spacing:-0.01em;
+}
+.feat p{
+  font-size:0.875rem;
+  color:#666;
+  line-height:1.65;
+  font-weight:300;
+}
+
+/* ── HOW — ALTERNATING ── */
+.how{
+  padding:6rem 3rem;
+  border-top:1px solid var(--line);
+  background:var(--ink);
+  color:var(--paper);
+}
+.how-header{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4rem;
+  align-items:baseline;
+  margin-bottom:4rem;
+  padding-bottom:3rem;
+  border-bottom:1px solid rgba(247,243,236,0.1);
+}
+.how-header h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2rem,4vw,3.5rem);
+  font-weight:900;
+  letter-spacing:-0.02em;
+  line-height:1;
+}
+.how-header h2 i{font-weight:400;color:rgba(247,243,236,0.4)}
+.how-intro{
+  font-size:0.95rem;
+  font-weight:300;
+  line-height:1.75;
+  color:rgba(247,243,236,0.55);
+  align-self:end;
+}
+
+.how-steps{display:flex;flex-direction:column;gap:0}
+.how-step{
+  display:grid;
+  grid-template-columns:80px 1fr 1fr;
+  gap:3rem;
+  align-items:start;
+  padding:2.5rem 0;
+  border-bottom:1px solid rgba(247,243,236,0.08);
+  transition:background 0.2s;
+}
+.how-step:hover{background:rgba(247,243,236,0.02)}
+.how-step:last-child{border-bottom:none}
+
+.step-n{
+  font-family:'Playfair Display',serif;
+  font-size:3rem;
+  font-weight:900;
+  color:rgba(247,243,236,0.12);
+  line-height:1;
+}
+.step-title{
+  font-family:'Playfair Display',serif;
+  font-size:1.3rem;
+  font-weight:700;
+  padding-top:0.5rem;
+}
+.step-desc{
+  font-size:0.875rem;
+  color:rgba(247,243,236,0.5);
+  line-height:1.7;
+  font-weight:300;
+  padding-top:0.5rem;
+}
+
+/* ── QUOTE / TENSION ── */
+.tension{
+  padding:7rem 3rem;
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6rem;
+  align-items:center;
+}
+.tension-left{position:relative}
+.tension-quote{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.8rem,3.5vw,3rem);
+  font-weight:400;
+  font-style:italic;
+  line-height:1.35;
+  color:var(--ink);
+}
+.tension-quote::before{
+  content:'\201C';
+  font-size:8rem;
+  line-height:0;
+  color:rgba(201,74,31,0.12);
+  position:absolute;
+  top:1.5rem;left:-1rem;
+  font-family:'Playfair Display',serif;
+}
+.tension-attribution{
+  margin-top:2rem;
+  font-size:0.82rem;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--dust);
+  padding-left:2rem;
+  position:relative;
+}
+.tension-attribution::before{
+  content:'';
+  position:absolute;
+  left:0;top:50%;
+  width:1.2rem;height:1px;
+  background:var(--rust);
+}
+
+.tension-right{display:flex;flex-direction:column;gap:1.5rem}
+.tension-card{
+  background:var(--warm);
+  border-radius:4px;
+  padding:1.5rem;
+  border-left:3px solid transparent;
+  transition:border-color 0.2s;
+}
+.tension-card:hover{border-left-color:var(--rust)}
+.tension-card-label{
+  font-size:0.72rem;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--dust);
+  margin-bottom:0.5rem;
+}
+.tension-card p{font-size:0.9rem;line-height:1.6;color:#444;font-weight:300}
+.tension-card.good{border-left-color:var(--sage)}
+.tension-card.bad{border-left-color:rgba(201,74,31,0.4)}
+
+/* ── CTA ── */
+.cta{
+  padding:6rem 3rem;
+  border-top:1px solid var(--line);
+  background:var(--rust);
+  color:white;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4rem;
+  align-items:center;
+}
+.cta h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(2.2rem,4vw,3.8rem);
+  font-weight:900;
+  line-height:1;
+  letter-spacing:-0.02em;
+}
+.cta h2 i{font-weight:400;opacity:0.7}
+.cta-right{display:flex;flex-direction:column;gap:1rem}
+.cta p{
+  font-size:0.95rem;
+  font-weight:300;
+  line-height:1.7;
+  opacity:0.8;
+  margin-bottom:0.5rem;
+}
+.email-form{display:flex;gap:0;border-radius:3px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.3)}
+.email-form input{
+  flex:1;
+  padding:0.9rem 1.2rem;
+  background:rgba(255,255,255,0.1);
+  border:none;
+  color:white;
+  font-family:'Instrument Sans',sans-serif;
+  font-size:0.9rem;
+  outline:none;
+}
+.email-form input::placeholder{color:rgba(255,255,255,0.45)}
+.email-form button{
+  background:white;
+  color:var(--rust);
+  border:none;
+  padding:0.9rem 1.4rem;
+  font-family:'Instrument Sans',sans-serif;
+  font-size:0.85rem;
+  font-weight:600;
+  cursor:none;
+  white-space:nowrap;
+  transition:background 0.2s;
+}
+.email-form button:hover{background:var(--ink);color:white}
+.cta-note{font-size:0.75rem;opacity:0.5;letter-spacing:0.04em}
+
+/* ── FOOTER ── */
+footer{
+  padding:2.5rem 3rem;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:0.8rem;
+  color:var(--dust);
+}
+.footer-logo{
+  font-family:'Playfair Display',serif;
+  font-size:1.1rem;
+  font-weight:400;
+  color:var(--ink);
+}
+.footer-logo b{font-weight:900;color:var(--rust)}
+
+/* ── ANIMATIONS ── */
+@keyframes slideIn{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeIn{
+  from{opacity:0}to{opacity:1}
+}
+@keyframes arrowBounce{
+  0%,100%{transform:rotate(45deg) translateY(-4px)}
+  50%{transform:rotate(45deg) translateY(2px)}
+}
+
+/* intersection observer targets */
+.reveal{
+  opacity:0;transform:translateY(28px);
+  transition:opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible{opacity:1;transform:none}
+.reveal-delay-1{transition-delay:0.1s}
+.reveal-delay-2{transition-delay:0.2s}
+.reveal-delay-3{transition-delay:0.3s}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  nav ul{display:none}
+  .hero{padding:6rem 1.5rem 4rem}
+  .hero-bottom{grid-template-columns:1fr;gap:2rem}
+  .hero-actions{align-items:flex-start}
+  .manifesto{grid-template-columns:1fr;gap:2rem;padding:3rem 1.5rem}
+  .manifesto-label{position:static}
+  .features-scroll{grid-template-columns:1fr 1fr}
+  .feat:nth-child(even){border-right:none}
+  .how{padding:4rem 1.5rem}
+  .how-header{grid-template-columns:1fr}
+  .how-step{grid-template-columns:50px 1fr;gap:1.5rem}
+  .step-desc{display:none}
+  .tension{grid-template-columns:1fr;gap:3rem;padding:4rem 1.5rem}
+  .cta{grid-template-columns:1fr;padding:4rem 1.5rem}
+  footer{flex-direction:column;gap:0.5rem;text-align:center;padding:1.5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">mi<b>Tutor</b><i>IA</i></div>
+  <ul>
+    <li><a href="#como">Cómo funciona</a></li>
+    <li><a href="#para-quien">Para quién</a></li>
+    <li><a href="#acceso">Acceso</a></li>
+  </ul>
+  <div class="nav-right">
+    <span class="nav-tag">Próximamente</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-watermark" aria-hidden="true">IA</div>
+
+  <div class="hero-eyebrow">
+    <div class="eyebrow-line"></div>
+    <span class="eyebrow-text">Plataforma educativa · mitutoria.app</span>
+  </div>
+
+  <h1 class="hero-headline">
+    La IA que<br>
+    <span class="italic">enseña a pensar</span>
+    <span class="outline">no a copiar</span>
+  </h1>
+
+  <div class="hero-bottom">
+    <p class="hero-sub">
+      Tus hijos tienen acceso a inteligencia artificial.<br>
+      <strong>La diferencia está en quién configura las reglas.</strong><br><br>
+      miTutorIA le da al padre el control del tutor digital —
+      cuánto ayuda, cómo ayuda, y cuándo dice que no.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-main">Quiero acceso anticipado</button>
+      <a href="#como" class="btn-text">Ver cómo funciona</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint" aria-hidden="true">
+    <div class="scroll-arrow"></div>
+    <span>Seguir leyendo</span>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section class="manifesto">
+  <div class="manifesto-label">El problema real</div>
+  <div class="manifesto-body reveal">
+    ChatGPT no es el problema.<br>
+    El problema es que nadie le dijo cómo <em>usarlo bien.</em><br><br>
+    Un chico solo con IA aprende a pedir respuestas.<br>
+    Un chico con <em>miTutorIA</em> aprende a hacerse mejores preguntas.
+    <span class="aside">
+      Diseñado por un padre. Probado con tres hijos reales — incluyendo una nena con TDAH
+      que necesitaba algo distinto a lo que existe.
+    </span>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="para-quien">
+  <div class="features-header">
+    <h2>Por qué funciona diferente</h2>
+    <div class="feat-count">04</div>
+  </div>
+  <div class="features-scroll">
+    <div class="feat reveal">
+      <div class="feat-num">01</div>
+      <span class="feat-icon">🎛️</span>
+      <h3>Vos configurás el tutor</h3>
+      <p>Cada aula tiene su propio prompt. Como padre definís el tono, el nivel de ayuda y qué tipo de preguntas responde — y cuáles no.</p>
+    </div>
+    <div class="feat reveal reveal-delay-1">
+      <div class="feat-num">02</div>
+      <span class="feat-icon">🔍</span>
+      <h3>Detecta la intención</h3>
+      <p>Hay diferencia entre "no entiendo fracciones" y "dame el resultado del ejercicio 4". El sistema las trata distinto.</p>
+    </div>
+    <div class="feat reveal reveal-delay-2">
+      <div class="feat-num">03</div>
+      <span class="feat-icon">🧒</span>
+      <h3>Un perfil por hijo</h3>
+      <p>Cada chico es diferente. El tutor se adapta a la edad, el grado y las necesidades — incluso para chicos con TDAH u otras dificultades.</p>
+    </div>
+    <div class="feat reveal reveal-delay-3">
+      <div class="feat-num">04</div>
+      <span class="feat-icon">📋</span>
+      <h3>Historial para padres</h3>
+      <p>Podés ver qué preguntaron, cómo respondió el tutor, y cuánto tiempo pasaron estudiando. Sin espiar — con contexto.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="how" id="como">
+  <div class="how-header">
+    <h2>Cómo<br>funciona<br><i>en la práctica</i></h2>
+    <p class="how-intro">
+      No es un chatbot genérico puesto en una página.<br>
+      Es un sistema donde el padre es el arquitecto del aprendizaje,
+      y la IA es la herramienta — no al revés.
+    </p>
+  </div>
+  <div class="how-steps">
+    <div class="how-step reveal">
+      <div class="step-n">01</div>
+      <div class="step-title">Creás tu familia en la plataforma</div>
+      <p class="step-desc">Registrás la cuenta con rol de padre. Agregás a cada hijo con su perfil — edad, grado, materias y si tiene necesidades educativas especiales.</p>
+    </div>
+    <div class="how-step reveal">
+      <div class="step-n">02</div>
+      <div class="step-title">Configurás las aulas de cada hijo</div>
+      <p class="step-desc">Creás un aula por materia. Decidís si el tutor da pistas, hace preguntas de vuelta, o directamente no responde ciertos tipos de pedidos.</p>
+    </div>
+    <div class="how-step reveal">
+      <div class="step-n">03</div>
+      <div class="step-title">Ellos estudian, el tutor guía</div>
+      <p class="step-desc">Tus hijos abren la app y tienen su tutor disponible. Pero uno que los empuja a pensar — no uno que les resuelve la tarea.</p>
+    </div>
+    <div class="how-step reveal">
+      <div class="step-n">04</div>
+      <div class="step-title">Vos revisás y ajustás</div>
+      <p class="step-desc">Con el historial de sesiones podés ver cómo va cada hijo, si el tutor está siendo demasiado restrictivo o demasiado permisivo, y ajustar.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TENSION -->
+<section class="tension">
+  <div class="tension-left reveal">
+    <blockquote class="tension-quote">
+      "El problema no es que la IA sea mala para estudiar. El problema es que nadie le puso límites."
+    </blockquote>
+    <p class="tension-attribution">La idea detrás de miTutorIA</p>
+  </div>
+  <div class="tension-right">
+    <div class="tension-card bad reveal">
+      <div class="tension-card-label">❌ Sin miTutorIA</div>
+      <p>Tu hijo le pregunta a ChatGPT "resolveme el ejercicio 3" y lo pega en la carpeta. Aprendió a copiar.</p>
+    </div>
+    <div class="tension-card good reveal reveal-delay-1">
+      <div class="tension-card-label">✓ Con miTutorIA</div>
+      <p>Tu hijo le pregunta lo mismo y el tutor le devuelve: "¿Qué datos te da el enunciado? Empezá por ahí." Aprendió a pensar.</p>
+    </div>
+    <div class="tension-card good reveal reveal-delay-2">
+      <div class="tension-card-label">✓ Vos controlás</div>
+      <p>Si querés que Matemática sea más estricta y que en Historia sí pueda pedir resúmenes, eso lo decidís vos. Aula por aula.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta" id="acceso">
+  <h2>Sé parte<br>del<br><i>primer círculo</i></h2>
+  <div class="cta-right">
+    <p>Estamos armando el acceso anticipado. Si tenés hijos en edad escolar y querés probar la plataforma antes del lanzamiento, dejá tu mail acá.</p>
+    <div class="email-form">
+      <input type="email" placeholder="tu@email.com" autocomplete="email"/>
+      <button type="button">Anotarme</button>
+    </div>
+    <p class="cta-note">Sin spam · Sin costo · Solo te avisamos cuando esté lista</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">mi<b>Tutor</b><i>IA</i></div>
+  <span>mitutoria.app · Hecho en Argentina 🧉</span>
+  <span>© 2025</span>
+</footer>
+
+<script>
+// custom cursor
+const cursor=document.getElementById('cursor');
+const ring=document.getElementById('cursorRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+function animRing(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing)}
+animRing();
+document.querySelectorAll('button,a,.btn-main,.btn-text').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cursor.style.width='18px';cursor.style.height='18px';ring.style.width='56px';ring.style.height='56px'});
+  el.addEventListener('mouseleave',()=>{cursor.style.width='10px';cursor.style.height='10px';ring.style.width='36px';ring.style.height='36px'});
+});
+
+// scroll reveal
+const reveals=document.querySelectorAll('.reveal');
+const obs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}});
+},{threshold:0.12});
+reveals.forEach(r=>obs.observe(r));
+</script>
+</body>
+</html>
