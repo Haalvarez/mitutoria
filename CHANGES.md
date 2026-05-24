@@ -7,6 +7,7 @@
 | S2 | Railway config — Procfile + railway.json | ✅ completo |
 | S3 | .gitignore para .NET + VS | ✅ completo |
 | S4 | global.json para forzar .NET 8 en Railway | ✅ completo |
+| S5 | Fix static files 404 | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -24,3 +25,7 @@
 ### S4 — global.json (aplicado)
 - global.json creado en raíz
 - Fuerza .NET 8 SDK en Railway (evita que tome .NET 6)
+
+### S5 — Static files (aplicado)
+- UseStaticFiles() confirmado en Program.cs
+- wwwroot incluido explícitamente en publish
