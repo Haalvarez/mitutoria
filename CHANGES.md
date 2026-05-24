@@ -8,6 +8,7 @@
 | S3 | .gitignore para .NET + VS | ✅ completo |
 | S4 | global.json para forzar .NET 8 en Railway | ✅ completo |
 | S5 | Fix static files 404 | ✅ completo |
+| S6 | Fix global.json rollForward para SDK local | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -29,3 +30,7 @@
 ### S5 — Static files (aplicado)
 - UseStaticFiles() confirmado en Program.cs
 - wwwroot incluido explícitamente en publish
+
+### S6 — global.json (aplicado)
+- rollForward cambiado a latestMajor
+- Permite cualquier SDK 8.x local y Railway toma el más reciente
