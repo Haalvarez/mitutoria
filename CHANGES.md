@@ -9,6 +9,7 @@
 | S4 | global.json para forzar .NET 8 en Railway | ✅ completo |
 | S5 | Fix static files 404 | ✅ completo |
 | S6 | Fix global.json rollForward para SDK local | ✅ completo |
+| S7 | Fix wwwroot publish en .csproj | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -34,3 +35,7 @@
 ### S6 — global.json (aplicado)
 - rollForward cambiado a latestMajor
 - Permite cualquier SDK 8.x local y Railway toma el más reciente
+
+### S7 — wwwroot publish (aplicado)
+- .csproj actualizado para incluir wwwroot en publish
+- Archivos css/site.css y js/site.js verificados
