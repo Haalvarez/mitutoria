@@ -13,6 +13,7 @@
 | S8 | Fix .gitignore — incluir wwwroot/css y wwwroot/js | ✅ completo |
 | S9 | Fix Railway build desde subcarpeta | ✅ completo |
 | S10 | Force redeploy Railway | ✅ completo |
+| S11 | Fix ContentRoot y working directory para static files | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -50,3 +51,7 @@
 ### S9 — Railway publish (aplicado)
 - railway.json actualizado para publicar desde miTutoria.Web
 - nixpacks.toml creado con dotnet publish del proyecto web
+
+### S11 — ContentRoot fix (aplicado)
+- UseContentRoot(AppContext.BaseDirectory) en Program.cs
+- startCommand cambiado a cd out && dotnet

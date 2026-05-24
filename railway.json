@@ -5,7 +5,7 @@
     "buildCommand": "dotnet publish miTutoria.Web/miTutoria.Web.csproj -c Release -o out"
   },
   "deploy": {
-    "startCommand": "dotnet out/miTutoria.Web.dll --urls http://0.0.0.0:$PORT",
+    "startCommand": "cd out && dotnet miTutoria.Web.dll --urls http://0.0.0.0:$PORT",
     "restartPolicyType": "ON_FAILURE"
   }
 }
