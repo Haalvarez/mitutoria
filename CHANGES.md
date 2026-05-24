@@ -11,6 +11,7 @@
 | S6 | Fix global.json rollForward para SDK local | ✅ completo |
 | S7 | Fix wwwroot publish en .csproj | ✅ completo |
 | S8 | Fix .gitignore — incluir wwwroot/css y wwwroot/js | ✅ completo |
+| S9 | Fix Railway build desde subcarpeta | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -44,3 +45,7 @@
 ### S8 — .gitignore fix (aplicado)
 - wwwroot/css y wwwroot/js ya no están excluidos
 - wwwroot/lib sigue excluido (libman lo restaura)
+
+### S9 — Railway publish (aplicado)
+- railway.json actualizado para publicar desde miTutoria.Web
+- nixpacks.toml creado con dotnet publish del proyecto web
