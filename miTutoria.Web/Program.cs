@@ -1,7 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using miTutoria.Web.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.WebHost.UseContentRoot(AppContext.BaseDirectory);
 

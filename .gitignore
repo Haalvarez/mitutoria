@@ -10,3 +10,6 @@ out/
 
 # Static libraries restored by LibMan
 miTutoria.Web/wwwroot/lib/
+
+# Secrets — never commit
+miTutoria.Web/appsettings.Development.json
