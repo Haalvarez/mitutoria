@@ -1,4 +1,8 @@
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
@@ -11,8 +15,6 @@ builder.Services.AddSingleton(sp =>
     Environment.GetEnvironmentVariable("RAILWAY_GIT_COMMIT_SHA") is { Length: >= 7 } hash
         ? hash[..7]
         : "dev");
-
-builder.WebHost.UseContentRoot(AppContext.BaseDirectory);
 
 var app = builder.Build();
 
