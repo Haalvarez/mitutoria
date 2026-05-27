@@ -21,6 +21,7 @@
 | S16 | Pin stable .NET 8 SDK para Railway | ✅ completo |
 | S17 | global.json recreado en utf8NoBOM para nixpacks | ✅ completo |
 | S18 | Dockerfile propio en lugar de nixpacks | ✅ completo |
+| S19 | Procfile removido tras migración a Dockerfile | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -92,3 +93,7 @@
 - `Dockerfile` creado en raíz para build/runtime con imágenes oficiales .NET 8
 - `railway.json` actualizado para quitar el builder `NIXPACKS`
 - `nixpacks.toml` reemplazado por comentario apuntando al Dockerfile raíz
+
+### S19 — Procfile removido (aplicado)
+- `Procfile` eliminado de la raíz del repo
+- Railway queda configurado para usar el `ENTRYPOINT` del `Dockerfile` sin conflicto
