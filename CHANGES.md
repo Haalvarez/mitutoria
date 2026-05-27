@@ -17,6 +17,7 @@
 | S12 | Deshabilitar HTTPS redirect en Production | ✅ completo |
 | S13 | TokenEvent + esquema billing + migración | ✅ completo |
 | S14 | Merge auth-db a develop y main | ✅ completo |
+| S15 | Compatibilidad Railway SDK en AppDbContext | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -70,3 +71,7 @@
 - `develop` promovida a `main` con merge commit no-ff
 - `CONTEXT.md` y `CHANGES.md` actualizados al estado post-merge
 - Commit final de documentación creado en `main` para dejar trazado el estado post-merge
+
+### S15 — AppDbContext compatibility fix (aplicado)
+- Primary constructor removido de `miTutoria.Web/Data/AppDbContext.cs`
+- Constructor tradicional `AppDbContext(DbContextOptions<AppDbContext> options)` agregado para compatibilidad con Railway SDK preview

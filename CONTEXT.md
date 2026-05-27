@@ -64,6 +64,7 @@ y chatean en su aula desde mitutoria.app.
 | ConnectionString público Railway para dev local | DATABASE_URL interno no es accesible desde máquina local |
 | Npgsql 8.0.11 + EF Design 8.0.27 | Versiones compatibles con .NET 8 |
 | Esquema billing para token_events | Separación de responsabilidades financieras |
+| Sin primary constructors en DbContext | Railway usa SDK preview 8.0.100-preview.5 que no los soporta |
 
 ---
 
