@@ -13,19 +13,20 @@ y chatear en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 2
+- **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** por crear → `feature/auth-db`
-- **Último commit:** fix: set content root + disable https redirect in production
+- **Branch activo:** `main`
+- **Último commit:** chore: update project.md post-merge to main
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
 - ✅ Deploy automático: push → Railway en ~2 min
-- ✅ Landing page publicada (mitutoria-v2.html → Index.cshtml)
+- ✅ Landing rediseñada publicada en producción
+- ✅ `feat/design-identity-v1` mergeada a `develop` y `main`
 - ✅ .gitignore, global.json, railway.json, nixpacks.toml configurados
 
 ## No funciona / pendiente
-- ⬜ CSS/JS desde wwwroot (404 pendiente de verificar post último fix)
+- ⬜ Verificar render final en mitutoria.app (Chrome Extension)
 - ⬜ Base de datos PostgreSQL
 - ⬜ Auth / Login
 - ⬜ Dashboard padre
@@ -35,16 +36,16 @@ y chatear en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Verificar que CSS/JS cargan en mitutoria.app
-2. Crear branch `feature/auth-db`
-3. PostgreSQL en Railway + modelos EF Core
+1. Verificar render en mitutoria.app
+2. Mergear `feature/auth-db` y `feature/version-footer` a `develop`
+3. MVP core: prompt maestro v1
 
 ---
 
 ## Decisiones técnicas tomadas
 | Decisión | Motivo |
 |---|---|
-| UseContentRoot(AppContext.BaseDirectory) | wwwroot no se encontraba en Railway |
+| No cambiar ContentRoot después de `WebApplication.CreateBuilder(args)` | En .NET 8 eso lanza `NotSupportedException`; se usa el content root por defecto |
 | Sin UseHttpsRedirection en Production | Railway maneja SSL en su proxy |
 | Puerto 8080 en Railway Networking | App bindea a 8080 por defecto |
 | global.json rollForward: latestMajor | SDK 8.0.0 exacto no disponible localmente |
@@ -92,7 +93,7 @@ mitutoria/
 | Rama | Propósito |
 |---|---|
 | `main` | Production → Railway auto-deploy |
-| `develop` | Integración — pendiente de crear |
+| `develop` | Integración activa |
 | `feature/auth-db` | Próxima rama activa |
 
 ---
@@ -122,4 +123,4 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 1*
+*Actualizado al cierre de Sesión 3*
