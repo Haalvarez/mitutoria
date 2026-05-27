@@ -22,6 +22,7 @@
 | S17 | global.json recreado en utf8NoBOM para nixpacks | ✅ completo |
 | S18 | Dockerfile propio en lugar de nixpacks | ✅ completo |
 | S19 | Procfile removido tras migración a Dockerfile | ✅ completo |
+| S20 | railway.json delegado totalmente al Dockerfile | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -97,3 +98,7 @@
 ### S19 — Procfile removido (aplicado)
 - `Procfile` eliminado de la raíz del repo
 - Railway queda configurado para usar el `ENTRYPOINT` del `Dockerfile` sin conflicto
+
+### S20 — railway.json simplificado (aplicado)
+- `railway.json` quedó solo con `$schema` y `restartPolicyType`
+- `buildCommand` y `startCommand` eliminados para dejar el control completo al `Dockerfile`
