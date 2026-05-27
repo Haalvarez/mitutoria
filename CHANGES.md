@@ -69,3 +69,4 @@
 - `feature/auth-db` mergeada a `develop` con merge commit no-ff
 - `develop` promovida a `main` con merge commit no-ff
 - `CONTEXT.md` y `CHANGES.md` actualizados al estado post-merge
+- Commit final de documentación creado en `main` para dejar trazado el estado post-merge

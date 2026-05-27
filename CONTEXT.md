@@ -17,7 +17,7 @@ y chatean en su aula desde mitutoria.app.
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
-- **Último commit:** feat: promote develop to main — auth-db complete
+- **Último commit:** chore: update CONTEXT.md post-merge auth-db
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
