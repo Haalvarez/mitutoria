@@ -113,7 +113,7 @@ nav ul a:hover{color:var(--ink)}
   position:absolute;
   right:-2rem;top:3rem;
   font-family:'Playfair Display',serif;
-  font-size:32vw;
+  font-size:20vw;
   font-weight:900;
   color:rgba(25,25,23,0.03);
   line-height:1;
@@ -325,9 +325,10 @@ nav ul a:hover{color:var(--ink)}
   font-style:italic;
 }
 .feat-icon{
-  font-size:1.8rem;
+  font-size:1.5rem;
   margin-bottom:1.2rem;
   display:block;
+  color:var(--rust);
 }
 .feat h3{
   font-family:'Playfair Display',serif;
