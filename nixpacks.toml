@@ -1,2 +1,5 @@
+[variables]
+NIXPACKS_DOTNET_VERSION = "8.0"
+
 [phases.build]
 cmds = ["dotnet publish miTutoria.Web/miTutoria.Web.csproj -c Release -o out"]

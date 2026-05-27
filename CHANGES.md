@@ -18,6 +18,7 @@
 | S13 | TokenEvent + esquema billing + migración | ✅ completo |
 | S14 | Merge auth-db a develop y main | ✅ completo |
 | S15 | Compatibilidad Railway SDK en AppDbContext | ✅ completo |
+| S16 | Pin stable .NET 8 SDK para Railway | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -75,3 +76,8 @@
 ### S15 — AppDbContext compatibility fix (aplicado)
 - Primary constructor removido de `miTutoria.Web/Data/AppDbContext.cs`
 - Constructor tradicional `AppDbContext(DbContextOptions<AppDbContext> options)` agregado para compatibilidad con Railway SDK preview
+
+### S16 — Stable SDK pin para Railway (aplicado)
+- `nixpacks.toml` actualizado con `NIXPACKS_DOTNET_VERSION = "8.0"`
+- `global.json` fijado en `8.0.0` con `rollForward: latestFeature`
+- Se evita que Railway use SDK preview incompatible con EF Core en runtime
