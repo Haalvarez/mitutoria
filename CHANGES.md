@@ -19,6 +19,7 @@
 | S14 | Merge auth-db a develop y main | ✅ completo |
 | S15 | Compatibilidad Railway SDK en AppDbContext | ✅ completo |
 | S16 | Pin stable .NET 8 SDK para Railway | ✅ completo |
+| S17 | global.json recreado en utf8NoBOM para nixpacks | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -81,3 +82,7 @@
 - `nixpacks.toml` actualizado con `NIXPACKS_DOTNET_VERSION = "8.0"`
 - `global.json` fijado en `8.0.0` con `rollForward: latestFeature`
 - Se evita que Railway use SDK preview incompatible con EF Core en runtime
+
+### S17 — global.json utf8NoBOM (aplicado)
+- `global.json` recreado desde terminal sin usar el editor
+- Codificación corregida a UTF-8 sin BOM para compatibilidad con nixpacks
