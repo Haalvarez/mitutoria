@@ -20,6 +20,7 @@
 | S15 | Compatibilidad Railway SDK en AppDbContext | ✅ completo |
 | S16 | Pin stable .NET 8 SDK para Railway | ✅ completo |
 | S17 | global.json recreado en utf8NoBOM para nixpacks | ✅ completo |
+| S18 | Dockerfile propio en lugar de nixpacks | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -86,3 +87,8 @@
 ### S17 — global.json utf8NoBOM (aplicado)
 - `global.json` recreado desde terminal sin usar el editor
 - Codificación corregida a UTF-8 sin BOM para compatibilidad con nixpacks
+
+### S18 — Dockerfile Railway (aplicado)
+- `Dockerfile` creado en raíz para build/runtime con imágenes oficiales .NET 8
+- `railway.json` actualizado para quitar el builder `NIXPACKS`
+- `nixpacks.toml` reemplazado por comentario apuntando al Dockerfile raíz

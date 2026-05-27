@@ -66,6 +66,7 @@ y chatean en su aula desde mitutoria.app.
 | Esquema billing para token_events | Separación de responsabilidades financieras |
 | Sin primary constructors en DbContext | Railway usa SDK preview 8.0.100-preview.5 que no los soporta |
 | NIXPACKS_DOTNET_VERSION=8.0 + rollForward:latestFeature | Railway usaba SDK preview 8.0.100-preview.5 — incompatible con EF Core en runtime |
+| Dockerfile propio en lugar de nixpacks | Preview SDK 8.0.100-preview.5 de nixpacks es incompatible con EF Core 8.x en runtime |
 
 ---
 
