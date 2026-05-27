@@ -1,9 +1,3 @@
-## [Unreleased]
-### feat
-- Data layer: EF Core + PostgreSQL with auth and academic schemas
-- Entities: Family, User, Subject, Classroom, Message
-- AppDbContext with schema separation
-
 ## main — feature/landing-base
 
 ### Índice de sesiones
