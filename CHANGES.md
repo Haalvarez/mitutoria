@@ -15,6 +15,7 @@
 | S10 | Force redeploy Railway | ✅ completo |
 | S11 | Fix ContentRoot y working directory para static files | ✅ completo |
 | S12 | Deshabilitar HTTPS redirect en Production | ✅ completo |
+| S13 | TokenEvent + esquema billing + migración | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -56,3 +57,9 @@
 ### S11 — ContentRoot fix (aplicado)
 - UseContentRoot(AppContext.BaseDirectory) en Program.cs
 - startCommand cambiado a cd out && dotnet
+
+### S13 — TokenEvent billing (aplicado)
+- Entidad `TokenEvent` creada en `miTutoria.Web/Data/Entities/Billing/TokenEvent.cs`
+- `AppDbContext` recreado y actualizado con `DbSet<TokenEvent>` y tabla `billing.token_events`
+- Capa EF base recreada en `miTutoria.Web/Data/` para alinear el source con el snapshot existente
+- Migración `AddTokenEvents` generada y aplicada con `dotnet ef database update`
