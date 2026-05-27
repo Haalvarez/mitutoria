@@ -15,6 +15,7 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
+- **Branch activo:** `feature/auth-db`
 - **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-db`
 - **Último commit:** fix: WebApplicationOptions + EF design-time factory
 
@@ -27,6 +28,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ PostgreSQL en Railway con esquemas `auth` y `academic`
 - ✅ EF Core + modelos: Family, User, Subject, Classroom, Message
 - ✅ Migración inicial aplicada — tablas creadas en Railway
+- ✅ TokenEvent entity + migración aplicada
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
@@ -39,7 +41,7 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Mergear `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-db` → main
+1. merge `feature/auth-db` → `develop` → `main`
 2. Auth / Login — registro y login de padre/madre + hijos
 3. Dashboard padre/madre — crear/ver aulas
 
@@ -60,6 +62,7 @@ y chatean en su aula desde mitutoria.app.
 | appsettings.Development.json en .gitignore | Connection string nunca va al repo |
 | ConnectionString público Railway para dev local | DATABASE_URL interno no es accesible desde máquina local |
 | Npgsql 8.0.11 + EF Design 8.0.27 | Versiones compatibles con .NET 8 |
+| Esquema billing para token_events | Separación de responsabilidades financieras |
 
 ---
 
@@ -75,10 +78,12 @@ mitutoria/
 │   │   │   ├── Auth/
 │   │   │   │   ├── Family.cs
 │   │   │   │   └── User.cs
-│   │   │   └── Academic/
+│   │   │   ├── Academic/
 │   │   │       ├── Subject.cs
 │   │   │       ├── Classroom.cs
 │   │   │       └── Message.cs
+│   │   │   └── Billing/
+│   │   │       └── TokenEvent.cs
 │   │   └── Migrations/
 │   ├── Infrastructure/
 │   │   └── VersionPageFilter.cs
@@ -110,7 +115,7 @@ mitutoria/
 3. Prompt incluye siempre: crear rama al inicio + commit al final + actualizar CHANGES.md
 4. Claude in Chrome → verificar comportamiento en vivo
 5. Un prompt = un commit con prefijo feat/fix/chore/style/docs
-6. Ramas: feature/xxx → develop → main (nunca directo a main)
+6. Ramas: feature/xxx → develop → main (nunca directo a main). Copilot Agent SIEMPRE actualiza CONTEXT.md en el POST-CAMBIO de cada commit. No es opcional.
 7. Al cerrar sesión → actualizar CONTEXT.md + CHANGES.md
 ```
 

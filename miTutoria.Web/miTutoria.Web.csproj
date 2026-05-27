@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\Entities\Auth\" />
     <Folder Include="Infrastructure\" />
   </ItemGroup>
 
