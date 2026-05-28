@@ -15,9 +15,9 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `main`
-- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
-- **Último commit:** chore: update CONTEXT.md post-merge auth-db
+- **Branch activo:** `develop`
+- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-magic-link`
+- **Último commit:** feat: merge auth magic link into develop
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -35,6 +35,7 @@ y chatean en su aula desde mitutoria.app.
 ## No funciona / pendiente
 - ⬜ Mergear features pendientes a main
 - ⬜ Auth / Login
+- ⬜ Dashboard padre (próximo paso post-auth)
 - ⬜ Dashboard padre/madre
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
@@ -42,9 +43,9 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Crear `feature/auth-magic-link`
-2. Auth mínima: Family login con magic link
-3. Proteger rutas con cookie de sesión
+1. Mergear `develop` → `main`
+2. Verificar flujo login en mitutoria.app/login
+3. Crear página Dashboard padre
 
 ---
 
@@ -69,6 +70,8 @@ y chatean en su aula desde mitutoria.app.
 | Dockerfile propio en lugar de nixpacks | Preview SDK 8.0.100-preview.5 de nixpacks es incompatible con EF Core 8.x en runtime |
 | Sin Procfile | Con Dockerfile propio Railway usa ENTRYPOINT — Procfile causa conflicto |
 | railway.json sin buildCommand ni startCommand | Con Dockerfile Railway usa ENTRYPOINT directamente |
+| Magic link con Resend | Sin contraseñas — token expira en 15 min |
+| Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 
 ---
 

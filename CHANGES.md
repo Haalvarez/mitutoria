@@ -23,6 +23,7 @@
 | S18 | Dockerfile propio en lugar de nixpacks | ✅ completo |
 | S19 | Procfile removido tras migración a Dockerfile | ✅ completo |
 | S20 | railway.json delegado totalmente al Dockerfile | ✅ completo |
+| S21 | Auth magic link con Resend | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -102,3 +103,9 @@
 ### S20 — railway.json simplificado (aplicado)
 - `railway.json` quedó solo con `$schema` y `restartPolicyType`
 - `buildCommand` y `startCommand` eliminados para dejar el control completo al `Dockerfile`
+### S21 — Auth magic link (aplicado)
+- Paquete `Resend` agregado a `miTutoria.Web`
+- `Family` extendida con `Email`, `MagicToken` y `MagicTokenExpiry`
+- Migración `AddMagicTokenToFamily` generada y aplicada
+- `Program.cs` actualizado con `AppDbContext`, Resend y sesión vía `AddSession`
+- Páginas `Login` y `Auth/Verify` creadas para envío y validación del magic link
