@@ -1,6 +1,8 @@
 ## [Unreleased]
 ### style
 - Landing: inclusive language — "mamá o papá" instead of gendered "padre"
+### feat
+- Footer: show short Git hash from RAILWAY_GIT_COMMIT_SHA env var
 
 ## main — feature/landing-base
 

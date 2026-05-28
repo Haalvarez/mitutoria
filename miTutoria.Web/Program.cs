@@ -3,10 +3,23 @@ using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using Resend;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    options.Conventions.AddFolderApplicationModelConvention("/", model =>
+        model.Filters.Add(new Microsoft.AspNetCore.Mvc.ServiceFilterAttribute(typeof(miTutoria.Web.Infrastructure.VersionPageFilter))));
+});
+builder.Services.AddScoped<miTutoria.Web.Infrastructure.VersionPageFilter>();
+builder.Services.AddSingleton(sp =>
+    Environment.GetEnvironmentVariable("RAILWAY_GIT_COMMIT_SHA") is { Length: >= 7 } hash
+        ? hash[..7]
+        : "dev");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection no configurada")));
@@ -26,7 +39,6 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-
 
 var app = builder.Build();
 
