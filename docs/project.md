@@ -1,13 +1,11 @@
 # miTutorIA
 
 ## Estado actual
-Landing page rediseñada: copy alineado con frame de acompañamiento
-(no control), referencias a TDAH removidas del copy público, numeración
-decorativa eliminada de features, iconos Tabler reemplazando emojis.
-Base visual (paleta, tipografía, grain, cursor) conservada intacta.
+Landing rediseñada deployada en producción (Railway).
+feat/design-identity-v1 mergeada a develop y main.
 
 ## Rama activa
-feat/design-identity-v1 — base: main
+main — en producción
 
 ## Arquitectura / decisiones clave
 - ASP.NET Core 8 Razor Pages, Railway hosting
@@ -16,9 +14,9 @@ feat/design-identity-v1 — base: main
 - Tabler icons via CDN jsdelivr (webfont v3.19.0)
 
 ## Pendiente
-- [ ] Verificar render de Tabler icons en prod (Railway)
-- [ ] Revisar hero-watermark "pensar" en mobile (20vw puede quedar grande)
-- [ ] MVP core: prompt maestro v1, loop importar→chat, token_events
+- [ ] Verificar render en mitutoria.app (Chrome Extension)
+- [ ] Pendiente merge de feature/auth-db y feature/version-footer a develop
+- [ ] MVP core: prompt maestro v1
 - [ ] Auth mínima: magic link, cuenta = familia
 - [ ] Schema DB: accounts, students, sessions, messages, token_events, plans
 

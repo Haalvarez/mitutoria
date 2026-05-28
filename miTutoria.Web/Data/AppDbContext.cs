@@ -5,8 +5,11 @@ using miTutoria.Web.Data.Entities.Billing;
 
 namespace miTutoria.Web.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options) { }
+
     public DbSet<Family> Families => Set<Family>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Subject> Subjects => Set<Subject>();

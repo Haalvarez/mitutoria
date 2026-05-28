@@ -16,6 +16,13 @@
 | S11 | Fix ContentRoot y working directory para static files | ✅ completo |
 | S12 | Deshabilitar HTTPS redirect en Production | ✅ completo |
 | S13 | TokenEvent + esquema billing + migración | ✅ completo |
+| S14 | Merge auth-db a develop y main | ✅ completo |
+| S15 | Compatibilidad Railway SDK en AppDbContext | ✅ completo |
+| S16 | Pin stable .NET 8 SDK para Railway | ✅ completo |
+| S17 | global.json recreado en utf8NoBOM para nixpacks | ✅ completo |
+| S18 | Dockerfile propio en lugar de nixpacks | ✅ completo |
+| S19 | Procfile removido tras migración a Dockerfile | ✅ completo |
+| S20 | railway.json delegado totalmente al Dockerfile | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -63,3 +70,35 @@
 - `AppDbContext` recreado y actualizado con `DbSet<TokenEvent>` y tabla `billing.token_events`
 - Capa EF base recreada en `miTutoria.Web/Data/` para alinear el source con el snapshot existente
 - Migración `AddTokenEvents` generada y aplicada con `dotnet ef database update`
+
+### S14 — Merge auth-db (aplicado)
+- `feature/auth-db` mergeada a `develop` con merge commit no-ff
+- `develop` promovida a `main` con merge commit no-ff
+- `CONTEXT.md` y `CHANGES.md` actualizados al estado post-merge
+- Commit final de documentación creado en `main` para dejar trazado el estado post-merge
+
+### S15 — AppDbContext compatibility fix (aplicado)
+- Primary constructor removido de `miTutoria.Web/Data/AppDbContext.cs`
+- Constructor tradicional `AppDbContext(DbContextOptions<AppDbContext> options)` agregado para compatibilidad con Railway SDK preview
+
+### S16 — Stable SDK pin para Railway (aplicado)
+- `nixpacks.toml` actualizado con `NIXPACKS_DOTNET_VERSION = "8.0"`
+- `global.json` fijado en `8.0.0` con `rollForward: latestFeature`
+- Se evita que Railway use SDK preview incompatible con EF Core en runtime
+
+### S17 — global.json utf8NoBOM (aplicado)
+- `global.json` recreado desde terminal sin usar el editor
+- Codificación corregida a UTF-8 sin BOM para compatibilidad con nixpacks
+
+### S18 — Dockerfile Railway (aplicado)
+- `Dockerfile` creado en raíz para build/runtime con imágenes oficiales .NET 8
+- `railway.json` actualizado para quitar el builder `NIXPACKS`
+- `nixpacks.toml` reemplazado por comentario apuntando al Dockerfile raíz
+
+### S19 — Procfile removido (aplicado)
+- `Procfile` eliminado de la raíz del repo
+- Railway queda configurado para usar el `ENTRYPOINT` del `Dockerfile` sin conflicto
+
+### S20 — railway.json simplificado (aplicado)
+- `railway.json` quedó solo con `$schema` y `restartPolicyType`
+- `buildCommand` y `startCommand` eliminados para dejar el control completo al `Dockerfile`

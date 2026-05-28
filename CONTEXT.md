@@ -1,4 +1,4 @@
-# CONTEXT.md — miTutorIA
+﻿# CONTEXT.md — miTutorIA
 > Pegar este archivo al inicio de cada sesión con Claude.
 > Actualizar al cierre de cada sesión.
 
@@ -15,9 +15,9 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `feature/auth-db`
-- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-db`
-- **Último commit:** fix: WebApplicationOptions + EF design-time factory
+- **Branch activo:** `main`
+- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
+- **Último commit:** chore: update CONTEXT.md post-merge auth-db
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -25,10 +25,11 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Landing page publicada con lenguaje inclusivo (mamá o papá)
 - ✅ Footer muestra git hash desde RAILWAY_GIT_COMMIT_SHA
 - ✅ .gitignore, global.json, railway.json, nixpacks.toml configurados
-- ✅ PostgreSQL en Railway con esquemas `auth` y `academic`
+- ✅ PostgreSQL en Railway con esquemas `auth`, `academic` y `billing`
 - ✅ EF Core + modelos: Family, User, Subject, Classroom, Message
 - ✅ Migración inicial aplicada — tablas creadas en Railway
 - ✅ TokenEvent entity + migración aplicada
+- ✅ `feature/auth-db` mergeada a `develop` y `main`
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
@@ -41,9 +42,9 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. merge `feature/auth-db` → `develop` → `main`
-2. Auth / Login — registro y login de padre/madre + hijos
-3. Dashboard padre/madre — crear/ver aulas
+1. Crear `feature/auth-magic-link`
+2. Auth mínima: Family login con magic link
+3. Proteger rutas con cookie de sesión
 
 ---
 
@@ -63,6 +64,11 @@ y chatean en su aula desde mitutoria.app.
 | ConnectionString público Railway para dev local | DATABASE_URL interno no es accesible desde máquina local |
 | Npgsql 8.0.11 + EF Design 8.0.27 | Versiones compatibles con .NET 8 |
 | Esquema billing para token_events | Separación de responsabilidades financieras |
+| Sin primary constructors en DbContext | Railway usa SDK preview 8.0.100-preview.5 que no los soporta |
+| NIXPACKS_DOTNET_VERSION=8.0 + rollForward:latestFeature | Railway usaba SDK preview 8.0.100-preview.5 — incompatible con EF Core en runtime |
+| Dockerfile propio en lugar de nixpacks | Preview SDK 8.0.100-preview.5 de nixpacks es incompatible con EF Core 8.x en runtime |
+| Sin Procfile | Con Dockerfile propio Railway usa ENTRYPOINT — Procfile causa conflicto |
+| railway.json sin buildCommand ni startCommand | Con Dockerfile Railway usa ENTRYPOINT directamente |
 
 ---
 
@@ -79,9 +85,9 @@ mitutoria/
 │   │   │   │   ├── Family.cs
 │   │   │   │   └── User.cs
 │   │   │   ├── Academic/
-│   │   │       ├── Subject.cs
-│   │   │       ├── Classroom.cs
-│   │   │       └── Message.cs
+│   │   │   │   ├── Subject.cs
+│   │   │   │   ├── Classroom.cs
+│   │   │   │   └── Message.cs
 │   │   │   └── Billing/
 │   │   │       └── TokenEvent.cs
 │   │   └── Migrations/
@@ -128,7 +134,6 @@ mitutoria/
 | `develop` | Integración |
 | `feature/landing-inclusive` | Pendiente de mergear — lenguaje inclusivo landing |
 | `feature/version-footer` | Pendiente de mergear — git hash en footer |
-| `feature/auth-db` | Pendiente de mergear — EF Core + DB |
 
 ---
 
@@ -138,7 +143,7 @@ mitutoria/
 | Host interno | postgres.railway.internal:5432 |
 | Host público (dev local) | zephyr.proxy.rlwy.net:21740 |
 | Database | railway |
-| Esquemas | auth, academic, public (__EFMigrations) |
+| Esquemas | auth, academic, billing, public (__EFMigrations) |
 | Cliente recomendado | TablePlus |
 
 ---
@@ -169,4 +174,4 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 2*
+*Actualizado al cierre de Sesión 3*

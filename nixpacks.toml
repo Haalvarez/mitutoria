@@ -1,2 +1,1 @@
-[phases.build]
-cmds = ["dotnet publish miTutoria.Web/miTutoria.Web.csproj -c Release -o out"]
+# Replaced by Dockerfile — see root Dockerfile
