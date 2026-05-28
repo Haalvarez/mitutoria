@@ -25,6 +25,7 @@
 | S20 | railway.json delegado totalmente al Dockerfile | ✅ completo |
 | S21 | Auth magic link con Resend | ✅ completo |
 | S22 | Merge auth magic link a develop y main | ✅ completo |
+| S23 | Fix login flow — forwarded headers, RESEND_FROM y redirect verify | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -115,3 +116,9 @@
 - `feature/auth-magic-link` mergeada a `develop` con merge commit no-ff
 - `develop` promovida a `main` con merge commit no-ff
 - `CONTEXT.md` y `CHANGES.md` preparados para el estado post-merge auth
+
+### S23 — Fix login flow (aplicado)
+- `Program.cs` actualizado con `UseForwardedHeaders` antes del pipeline de routing para respetar `X-Forwarded-Proto` en Railway
+- `Program.cs` ahora lee `RESEND_FROM` desde configuración con fallback a `noreply@mitutoria.app`
+- `Pages/Login.cshtml.cs` usa `IConfiguration` para el remitente del mail en lugar de hardcodearlo
+- `Pages/Auth/Verify.cshtml.cs` redirige a `Index` en lugar de `Dashboard`, que todavía no existe

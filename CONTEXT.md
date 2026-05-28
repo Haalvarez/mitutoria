@@ -15,9 +15,9 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `main`
+- **Branch activo:** `feature/fix-login-flow`
 - **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
-- **Último commit:** chore: update CONTEXT.md post-merge auth
+- **Último commit:** fix: forwarded headers, RESEND_FROM config, verify redirect
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -32,6 +32,8 @@ y chatean en su aula desde mitutoria.app.
 - ✅ `feature/auth-db` mergeada a `develop` y `main`
 - ✅ Auth magic link — Login + Verify pages
 - ✅ Resend integrado con mitutoria.app
+- ✅ Forwarded headers habilitados para respetar `https` detrás del proxy de Railway
+- ✅ Remitente de Resend configurable vía `RESEND_FROM`
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -74,6 +76,8 @@ y chatean en su aula desde mitutoria.app.
 | Sin Procfile | Con Dockerfile propio Railway usa ENTRYPOINT — Procfile causa conflicto |
 | railway.json sin buildCommand ni startCommand | Con Dockerfile Railway usa ENTRYPOINT directamente |
 | Magic link con Resend | Sin contraseñas — token expira en 15 min |
+| UseForwardedHeaders con X-Forwarded-For/X-Forwarded-Proto | Railway termina TLS en proxy y el magic link debe salir con `https` |
+| `RESEND_FROM` configurable con fallback | Evita hardcodear el remitente y permite variar el sender por entorno |
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 
 ---

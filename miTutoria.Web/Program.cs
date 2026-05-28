@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using Resend;
@@ -15,6 +16,8 @@ builder.Services.Configure<ResendClientOptions>(o =>
     o.ApiToken = builder.Configuration["RESEND_API_KEY"]
         ?? throw new InvalidOperationException("RESEND_API_KEY no configurada");
 });
+var resendFrom = builder.Configuration["RESEND_FROM"]
+    ?? "noreply@mitutoria.app";
 builder.Services.AddTransient<IResend, ResendClient>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -28,6 +31,12 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                     | ForwardedHeaders.XForwardedProto
+});
+
 if (!app.Environment.IsDevelopment())
 {
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.

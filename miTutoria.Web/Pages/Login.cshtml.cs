@@ -9,11 +9,13 @@ namespace miTutoria.Web.Pages;
 
 public class LoginModel : PageModel
 {
+    private readonly IConfiguration _configuration;
     private readonly AppDbContext _dbContext;
     private readonly IResend _resend;
 
-    public LoginModel(AppDbContext dbContext, IResend resend)
+    public LoginModel(IConfiguration configuration, AppDbContext dbContext, IResend resend)
     {
+        _configuration = configuration;
         _dbContext = dbContext;
         _resend = resend;
     }
@@ -59,7 +61,7 @@ public class LoginModel : PageModel
         var url = $"{Request.Scheme}://{Request.Host}/auth/verify?token={token}";
         var message = new EmailMessage
         {
-            From = "noreply@mitutoria.app",
+            From = _configuration["RESEND_FROM"] ?? "noreply@mitutoria.app",
             Subject = "Tu acceso a miTutorIA",
             HtmlBody = $"Hacé click aquí para entrar: <a href='{url}'>{url}</a>"
         };
