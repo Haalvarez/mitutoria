@@ -1,0 +1,34 @@
+@page
+@model miTutoria.Web.Pages.LoginModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Login";
+}
+
+<section class="manifesto">
+    <div class="manifesto-label">Acceso</div>
+    <div class="manifesto-body">
+        <h1>Entrá a miTutorIA</h1>
+        <p>Ingresá tu email y te enviamos un link de acceso.</p>
+
+        @if (Model.Sent)
+        {
+            <p>Te enviamos un link de acceso a tu email.</p>
+        }
+
+        @if (Model.Expired)
+        {
+            <p>Tu link expiró. Pedí uno nuevo.</p>
+        }
+
+        <form method="post">
+            <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" value="@Model.Email" required />
+            </div>
+            <div>
+                <button type="submit" class="btn-main">Recibir link de acceso</button>
+            </div>
+        </form>
+    </div>
+</section>

@@ -16,7 +16,7 @@ y chatean en su aula desde mitutoria.app.
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/auth-db`
-- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-db`
+- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-magic-link`
 - **Último commit:** fix: WebApplicationOptions + EF design-time factory
 
 ## Funciona hoy
@@ -34,6 +34,7 @@ y chatean en su aula desde mitutoria.app.
 ## No funciona / pendiente
 - ⬜ Mergear features pendientes a main
 - ⬜ Auth / Login
+- ⬜ Dashboard padre (próximo paso post-auth)
 - ⬜ Dashboard padre/madre
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
