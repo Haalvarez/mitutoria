@@ -15,9 +15,9 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `feature/fix-landing-login-link`
+- **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** feat: add login link, merge pending landing and footer features
+- **Último commit:** fix: add try/catch to login OnPost for visible errors
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -36,6 +36,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Resend integrado con mitutoria.app
 - ✅ Forwarded headers habilitados para respetar `https` detrás del proxy de Railway
 - ✅ Remitente de Resend configurable vía `RESEND_FROM`
+- ✅ Hotfix directo en `main`: `Login.OnPostAsync` ahora muestra errores visibles en pantalla si falla save/send
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 

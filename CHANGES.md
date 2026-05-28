@@ -33,6 +33,7 @@
 | S22 | Merge auth magic link a develop y main | ✅ completo |
 | S23 | Fix login flow — forwarded headers, RESEND_FROM y redirect verify | ✅ completo |
 | S24 | Merge landing-inclusive + version-footer y link a Login | ✅ completo |
+| S25 | Try/catch en OnPost del login para visibilidad de errores | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -135,3 +136,8 @@
 - `feature/version-footer` mergeada en `feature/fix-landing-login-link`
 - `Pages/Index.cshtml` actualizado con link a `/Login`
 - Documentación corregida para reflejar que la ruta real es `Pages/Login.cshtml` y no `Pages/Auth/Login.cshtml`
+
+### S25 — Login OnPost try/catch (aplicado)
+- `Pages/Login.cshtml.cs` envuelve desde `SaveChangesAsync` hasta `EmailSendAsync` en `try/catch`
+- En caso de excepción, la página muestra `Error: {Tipo} — {Mensaje}` vía `ModelState`
+- Hotfix aplicado directo en `main` para dar visibilidad inmediata al error en `/Login`

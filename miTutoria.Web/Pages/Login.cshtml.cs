@@ -56,19 +56,27 @@ public class LoginModel : PageModel
         family.MagicToken = token;
         family.MagicTokenExpiry = DateTime.UtcNow.AddMinutes(15);
 
-        await _dbContext.SaveChangesAsync();
-
-        var url = $"{Request.Scheme}://{Request.Host}/auth/verify?token={token}";
-        var message = new EmailMessage
+        try
         {
-            From = _configuration["RESEND_FROM"] ?? "noreply@mitutoria.app",
-            Subject = "Tu acceso a miTutorIA",
-            HtmlBody = $"Hacé click aquí para entrar: <a href='{url}'>{url}</a>"
-        };
-        message.To.Add(normalizedEmail);
+            await _dbContext.SaveChangesAsync();
 
-        await _resend.EmailSendAsync(message);
+            var url = $"{Request.Scheme}://{Request.Host}/auth/verify?token={token}";
+            var message = new EmailMessage
+            {
+                From = _configuration["RESEND_FROM"] ?? "noreply@mitutoria.app",
+                Subject = "Tu acceso a miTutorIA",
+                HtmlBody = $"Hacé click aquí para entrar: <a href='{url}'>{url}</a>"
+            };
+            message.To.Add(normalizedEmail);
 
-        return Redirect("/Login?sent=true");
+            await _resend.EmailSendAsync(message);
+
+            return Redirect("/Login?sent=true");
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError(string.Empty, $"Error: {ex.GetType().Name} — {ex.Message}");
+            return Page();
+        }
     }
 }
