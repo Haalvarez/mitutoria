@@ -24,6 +24,7 @@
 | S19 | Procfile removido tras migración a Dockerfile | ✅ completo |
 | S20 | railway.json delegado totalmente al Dockerfile | ✅ completo |
 | S21 | Auth magic link con Resend | ✅ completo |
+| S22 | Merge auth magic link a develop y main | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -109,3 +110,8 @@
 - Migración `AddMagicTokenToFamily` generada y aplicada
 - `Program.cs` actualizado con `AppDbContext`, Resend y sesión vía `AddSession`
 - Páginas `Login` y `Auth/Verify` creadas para envío y validación del magic link
+
+### S22 — Merge auth magic link (aplicado)
+- `feature/auth-magic-link` mergeada a `develop` con merge commit no-ff
+- `develop` promovida a `main` con merge commit no-ff
+- `CONTEXT.md` y `CHANGES.md` preparados para el estado post-merge auth

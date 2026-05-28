@@ -15,9 +15,9 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `develop`
-- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`, `feature/auth-magic-link`
-- **Último commit:** feat: merge auth magic link into develop
+- **Branch activo:** `main`
+- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
+- **Último commit:** chore: update CONTEXT.md post-merge auth
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -30,6 +30,9 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Migración inicial aplicada — tablas creadas en Railway
 - ✅ TokenEvent entity + migración aplicada
 - ✅ `feature/auth-db` mergeada a `develop` y `main`
+- ✅ Auth magic link — Login + Verify pages
+- ✅ Resend integrado con mitutoria.app
+- ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
@@ -43,9 +46,9 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Mergear `develop` → `main`
-2. Verificar flujo login en mitutoria.app/login
-3. Crear página Dashboard padre
+1. Verificar flujo login en mitutoria.app/login
+2. Crear página Dashboard padre
+3. Agregar protección de rutas
 
 ---
 
