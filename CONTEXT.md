@@ -15,15 +15,17 @@ y chatean en su aula desde mitutoria.app.
 ## Estado actual
 - **Sesión:** 3
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `feature/fix-login-flow`
-- **Branches pendientes de mergear a main:** `feature/landing-inclusive`, `feature/version-footer`
-- **Último commit:** fix: forwarded headers, RESEND_FROM config, verify redirect
+- **Branch activo:** `feature/fix-landing-login-link`
+- **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
+- **Último commit:** feat: add login link, merge pending landing and footer features
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
 - ✅ Deploy automático: push → Railway en ~2 min
 - ✅ Landing page publicada con lenguaje inclusivo (mamá o papá)
 - ✅ Footer muestra git hash desde RAILWAY_GIT_COMMIT_SHA
+- ✅ Landing tiene link directo a `/Login`
+- ✅ La página real de login está en `Pages/Login.cshtml` (no en `Pages/Auth/Login.cshtml`)
 - ✅ .gitignore, global.json, railway.json, nixpacks.toml configurados
 - ✅ PostgreSQL en Railway con esquemas `auth`, `academic` y `billing`
 - ✅ EF Core + modelos: Family, User, Subject, Classroom, Message
@@ -105,6 +107,8 @@ mitutoria/
 │   │   └── VersionPageFilter.cs
 │   ├── Pages/
 │   │   ├── Index.cshtml
+│   │   ├── Login.cshtml
+│   │   ├── Auth/Verify.cshtml
 │   │   └── Shared/_Layout.cshtml
 │   ├── wwwroot/
 │   │   ├── css/site.css
@@ -142,8 +146,10 @@ mitutoria/
 |---|---|
 | `main` | Production → Railway auto-deploy |
 | `develop` | Integración |
-| `feature/landing-inclusive` | Pendiente de mergear — lenguaje inclusivo landing |
-| `feature/version-footer` | Pendiente de mergear — git hash en footer |
+| `feature/fix-login-flow` | Pendiente de mergear — fix magic link/login flow |
+| `feature/fix-landing-login-link` | Integra landing inclusivo + footer versionado + link a Login |
+| `feature/landing-inclusive` | Mergeada en `feature/fix-landing-login-link` |
+| `feature/version-footer` | Mergeada en `feature/fix-landing-login-link` |
 
 ---
 

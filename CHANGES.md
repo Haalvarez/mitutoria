@@ -32,6 +32,7 @@
 | S21 | Auth magic link con Resend | ✅ completo |
 | S22 | Merge auth magic link a develop y main | ✅ completo |
 | S23 | Fix login flow — forwarded headers, RESEND_FROM y redirect verify | ✅ completo |
+| S24 | Merge landing-inclusive + version-footer y link a Login | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -128,3 +129,9 @@
 - `Program.cs` ahora lee `RESEND_FROM` desde configuración con fallback a `noreply@mitutoria.app`
 - `Pages/Login.cshtml.cs` usa `IConfiguration` para el remitente del mail en lugar de hardcodearlo
 - `Pages/Auth/Verify.cshtml.cs` redirige a `Index` en lugar de `Dashboard`, que todavía no existe
+
+### S24 — Landing merge + login link (aplicado)
+- `feature/landing-inclusive` mergeada en `feature/fix-landing-login-link`
+- `feature/version-footer` mergeada en `feature/fix-landing-login-link`
+- `Pages/Index.cshtml` actualizado con link a `/Login`
+- Documentación corregida para reflejar que la ruta real es `Pages/Login.cshtml` y no `Pages/Auth/Login.cshtml`
