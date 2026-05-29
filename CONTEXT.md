@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 3
+- **Sesión:** 4
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** fix: add try/catch to login OnPost for visible errors
+- **Último commit:** fix: show model errors on login page
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -37,6 +37,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Forwarded headers habilitados para respetar `https` detrás del proxy de Railway
 - ✅ Remitente de Resend configurable vía `RESEND_FROM`
 - ✅ Hotfix directo en `main`: `Login.OnPostAsync` ahora muestra errores visibles en pantalla si falla save/send
+- ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -191,4 +192,11 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 3*
+## POST-CAMBIO
+- Commit aplicado directo en `main`: `fix: show model errors on login page`
+- `Pages/Login.cshtml` ahora muestra todos los errores de `ViewData.ModelState` antes del formulario para hacer visible el fallo capturado en `OnPostAsync`
+- `CHANGES.md` actualizado con la sesión S26 y este hotfix queda trazado en documentación
+
+---
+
+*Actualizado al cierre de Sesión 4*

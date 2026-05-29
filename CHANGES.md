@@ -1,4 +1,6 @@
 ## [Unreleased]
+### fix
+- Login: mostrar errores de `ModelState` arriba del formulario en `/Login`
 ### style
 - Landing: inclusive language — "mamá o papá" instead of gendered "padre"
 ### feat
@@ -34,6 +36,7 @@
 | S23 | Fix login flow — forwarded headers, RESEND_FROM y redirect verify | ✅ completo |
 | S24 | Merge landing-inclusive + version-footer y link a Login | ✅ completo |
 | S25 | Try/catch en OnPost del login para visibilidad de errores | ✅ completo |
+| S26 | Mostrar errores de ModelState en la vista de Login | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -141,3 +144,7 @@
 - `Pages/Login.cshtml.cs` envuelve desde `SaveChangesAsync` hasta `EmailSendAsync` en `try/catch`
 - En caso de excepción, la página muestra `Error: {Tipo} — {Mensaje}` vía `ModelState`
 - Hotfix aplicado directo en `main` para dar visibilidad inmediata al error en `/Login`
+
+### S26 — Login muestra errores de ModelState (aplicado)
+- `Pages/Login.cshtml` ahora renderiza los errores de `ViewData.ModelState` dentro de `.manifesto`, antes del `<form>`
+- El usuario ve en pantalla los mensajes agregados por `Login.OnPostAsync` cuando falla el envío del magic link

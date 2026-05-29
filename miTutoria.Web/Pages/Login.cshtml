@@ -21,6 +21,17 @@
             <p>Tu link expiró. Pedí uno nuevo.</p>
         }
 
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div style="color:red">
+                @foreach (var error in ViewData.ModelState.Values
+                    .SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
+        }
+
         <form method="post">
             <div>
                 <label for="email">Email</label>
