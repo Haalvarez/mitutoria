@@ -93,6 +93,7 @@ y chatean en su aula desde mitutoria.app.
 | Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
 | `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
 | `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
+| `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
 
 ---
 
