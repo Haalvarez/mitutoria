@@ -1,5 +1,6 @@
 ## [Unreleased]
 ### fix
+- Login: usar `APP_BASE_URL` para construir el magic link y corregir casing de `/Auth/Verify`
 - Login: mostrar errores de `ModelState` arriba del formulario en `/Login`
 ### style
 - Landing: inclusive language — "mamá o papá" instead of gendered "padre"
@@ -37,6 +38,7 @@
 | S24 | Merge landing-inclusive + version-footer y link a Login | ✅ completo |
 | S25 | Try/catch en OnPost del login para visibilidad de errores | ✅ completo |
 | S26 | Mostrar errores de ModelState en la vista de Login | ✅ completo |
+| S27 | APP_BASE_URL para magic link y ruta Verify con casing correcto | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -148,3 +150,7 @@
 ### S26 — Login muestra errores de ModelState (aplicado)
 - `Pages/Login.cshtml` ahora renderiza los errores de `ViewData.ModelState` dentro de `.manifesto`, antes del `<form>`
 - El usuario ve en pantalla los mensajes agregados por `Login.OnPostAsync` cuando falla el envío del magic link
+
+### S27 — APP_BASE_URL + Verify route casing (aplicado)
+- `Pages/Login.cshtml.cs` ahora prioriza `APP_BASE_URL` para construir el magic link del email
+- La URL enviada apunta a `/Auth/Verify?token=...` con el casing real de la página Razor

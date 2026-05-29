@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 4
+- **Sesión:** 5
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** fix: show model errors on login page
+- **Último commit:** fix: use APP_BASE_URL for magic link, fix verify route casing
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -38,6 +38,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Remitente de Resend configurable vía `RESEND_FROM`
 - ✅ Hotfix directo en `main`: `Login.OnPostAsync` ahora muestra errores visibles en pantalla si falla save/send
 - ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
+- ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -82,6 +83,7 @@ y chatean en su aula desde mitutoria.app.
 | Magic link con Resend | Sin contraseñas — token expira en 15 min |
 | UseForwardedHeaders con X-Forwarded-For/X-Forwarded-Proto | Railway termina TLS en proxy y el magic link debe salir con `https` |
 | `RESEND_FROM` configurable con fallback | Evita hardcodear el remitente y permite variar el sender por entorno |
+| `APP_BASE_URL` configurable con fallback al request actual | Permite generar links correctos detrás de proxy/domino y evita depender de `Request.Host` |
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 
 ---
@@ -193,10 +195,11 @@ mitutoria/
 ---
 
 ## POST-CAMBIO
-- Commit aplicado directo en `main`: `fix: show model errors on login page`
-- `Pages/Login.cshtml` ahora muestra todos los errores de `ViewData.ModelState` antes del formulario para hacer visible el fallo capturado en `OnPostAsync`
-- `CHANGES.md` actualizado con la sesión S26 y este hotfix queda trazado en documentación
+- Commit aplicado directo en `main`: `fix: use APP_BASE_URL for magic link, fix verify route casing`
+- `Pages/Login.cshtml.cs` ahora prioriza `APP_BASE_URL` para construir el magic link y hace fallback a `${Request.Scheme}://${Request.Host}`
+- La URL enviada en el mail apunta a `/Auth/Verify?token=...` con el casing real de la página Razor
+- `CHANGES.md` actualizado con la sesión S27 y este hotfix queda trazado en documentación
 
 ---
 
-*Actualizado al cierre de Sesión 4*
+*Actualizado al cierre de Sesión 5*

@@ -60,7 +60,8 @@ public class LoginModel : PageModel
         {
             await _dbContext.SaveChangesAsync();
 
-            var url = $"{Request.Scheme}://{Request.Host}/auth/verify?token={token}";
+            var baseUrl = _configuration["APP_BASE_URL"] ?? $"{Request.Scheme}://{Request.Host}";
+            var url = $"{baseUrl}/Auth/Verify?token={token}";
             var message = new EmailMessage
             {
                 From = _configuration["RESEND_FROM"] ?? "noreply@mitutoria.app",
