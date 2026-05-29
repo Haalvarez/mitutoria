@@ -1,0 +1,33 @@
+@page "/Dashboard"
+@model miTutoria.Web.Pages.Dashboard.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Dashboard";
+}
+
+<main>
+    <header>
+        <h1>Bienvenido, @Model.FamilyName</h1>
+    </header>
+
+    <section>
+        <h2>Hijos</h2>
+
+        @if (Model.Students.Count == 0)
+        {
+            <p>Todavía no hay estudiantes en tu familia.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var student in Model.Students)
+                {
+                    <li>
+                        <strong>@student.FullName</strong>
+                        <span>@student.Email</span>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</main>

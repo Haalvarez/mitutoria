@@ -1,5 +1,6 @@
 ## [Unreleased]
 ### feat
+- Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
 - Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
 ### fix
 - Login: usar `APP_BASE_URL` para construir el magic link y corregir casing de `/Auth/Verify`
@@ -41,6 +42,7 @@
 | S26 | Mostrar errores de ModelState en la vista de Login | ✅ completo |
 | S27 | APP_BASE_URL para magic link y ruta Verify con casing correcto | ✅ completo |
 | S28 | Confirmación visual después de enviar el magic link | ✅ completo |
+| S29 | Dashboard padre con protección de ruta por sesión | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -160,3 +162,9 @@
 ### S28 — Confirmación post-envío en Login (aplicado)
 - `Pages/Login.cshtml.cs` ahora lee `sent=true` desde `Request.Query` en `OnGet`
 - `Pages/Login.cshtml` muestra un mensaje de confirmación y oculta el formulario cuando el magic link ya fue enviado
+
+### S29 — Dashboard padre protegido por sesión (aplicado)
+- `Pages/Dashboard/Index.cshtml.cs` valida `FamilyId` en sesión y redirige a `/Login` si no existe
+- `Pages/Dashboard/Index.cshtml.cs` carga la `Family` actual y expone solo usuarios con rol `Student`
+- `Pages/Dashboard/Index.cshtml` crea la ruta `/Dashboard` y muestra nombre de familia y lista de hijos
+- Queda pendiente cambiar el redirect post-verify para que apunte a `/Dashboard` en lugar de `/Index`

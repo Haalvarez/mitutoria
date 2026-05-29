@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 6
+- **Sesión:** 7
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `main`
+- **Branch activo:** `feature/dashboard-parent`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** feat: show confirmation message after magic link sent
+- **Último commit:** feat: add parent dashboard with route protection
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -40,23 +40,24 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
 - ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
 - ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
+- ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
 - ⬜ Mergear features pendientes a main
 - ⬜ Auth / Login
-- ⬜ Dashboard padre (próximo paso post-auth)
 - ⬜ Dashboard padre/madre
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
+- ⬜ Cambiar redirect post-verify de `/Index` a `/Dashboard`
 
 ---
 
 ## Próximos 3 pasos (Fase 1)
 1. Verificar flujo login en mitutoria.app/login
-2. Crear página Dashboard padre
-3. Agregar protección de rutas
+2. Cambiar redirect post-verify a `/Dashboard`
+3. Crear aula estudiante
 
 ---
 
@@ -87,6 +88,7 @@ y chatean en su aula desde mitutoria.app.
 | `APP_BASE_URL` configurable con fallback al request actual | Permite generar links correctos detrás de proxy/domino y evita depender de `Request.Host` |
 | `sent=true` leído desde `Request.Query` en `OnGet` | Garantiza que la vista muestre el estado de confirmación después del redirect post-envío |
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
+| Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
 
 ---
 
@@ -115,6 +117,7 @@ mitutoria/
 │   │   ├── Index.cshtml
 │   │   ├── Login.cshtml
 │   │   ├── Auth/Verify.cshtml
+│   │   ├── Dashboard/Index.cshtml
 │   │   └── Shared/_Layout.cshtml
 │   ├── wwwroot/
 │   │   ├── css/site.css
@@ -152,6 +155,7 @@ mitutoria/
 |---|---|
 | `main` | Production → Railway auto-deploy |
 | `develop` | Integración |
+| `feature/dashboard-parent` | Dashboard padre con protección por sesión |
 | `feature/fix-login-flow` | Pendiente de mergear — fix magic link/login flow |
 | `feature/fix-landing-login-link` | Integra landing inclusivo + footer versionado + link a Login |
 | `feature/landing-inclusive` | Mergeada en `feature/fix-landing-login-link` |
@@ -197,11 +201,12 @@ mitutoria/
 ---
 
 ## POST-CAMBIO
-- Commit aplicado directo en `main`: `feat: show confirmation message after magic link sent`
-- `Pages/Login.cshtml.cs` ahora toma `sent=true` desde `Request.Query` para persistir el estado luego del redirect
-- `Pages/Login.cshtml` muestra un mensaje de confirmación y oculta el formulario cuando el envío del magic link fue exitoso
-- `CHANGES.md` actualizado con la sesión S28 y este cambio queda trazado en documentación
+- Commit en `feature/dashboard-parent`: `feat: add parent dashboard with route protection`
+- `Pages/Dashboard/Index.cshtml.cs` protege la ruta leyendo `FamilyId` desde sesión y carga la familia actual con sus estudiantes
+- `Pages/Dashboard/Index.cshtml` expone el dashboard padre en `/Dashboard` con bienvenida y lista de hijos
+- Sigue pendiente cambiar el redirect post-verify para que vaya a `/Dashboard` en lugar de `/Index`
+- `CHANGES.md` actualizado con la sesión S29 y este cambio queda trazado en documentación
 
 ---
 
-*Actualizado al cierre de Sesión 6*
+*Actualizado al cierre de Sesión 7*
