@@ -94,6 +94,7 @@ y chatean en su aula desde mitutoria.app.
 | `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
 | `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
 | `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
+| Migraciones creadas manualmente | Incompatibilidad de SDK local (8.0.0 requerido, solo 9.x/10.x disponible) — los archivos `.cs` se escriben a mano siguiendo el patrón existente |
 
 ---
 
