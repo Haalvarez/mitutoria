@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 5
+- **Sesión:** 6
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** fix: use APP_BASE_URL for magic link, fix verify route casing
+- **Último commit:** feat: show confirmation message after magic link sent
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -39,6 +39,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Hotfix directo en `main`: `Login.OnPostAsync` ahora muestra errores visibles en pantalla si falla save/send
 - ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
 - ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
+- ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -84,6 +85,7 @@ y chatean en su aula desde mitutoria.app.
 | UseForwardedHeaders con X-Forwarded-For/X-Forwarded-Proto | Railway termina TLS en proxy y el magic link debe salir con `https` |
 | `RESEND_FROM` configurable con fallback | Evita hardcodear el remitente y permite variar el sender por entorno |
 | `APP_BASE_URL` configurable con fallback al request actual | Permite generar links correctos detrás de proxy/domino y evita depender de `Request.Host` |
+| `sent=true` leído desde `Request.Query` en `OnGet` | Garantiza que la vista muestre el estado de confirmación después del redirect post-envío |
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 
 ---
@@ -195,11 +197,11 @@ mitutoria/
 ---
 
 ## POST-CAMBIO
-- Commit aplicado directo en `main`: `fix: use APP_BASE_URL for magic link, fix verify route casing`
-- `Pages/Login.cshtml.cs` ahora prioriza `APP_BASE_URL` para construir el magic link y hace fallback a `${Request.Scheme}://${Request.Host}`
-- La URL enviada en el mail apunta a `/Auth/Verify?token=...` con el casing real de la página Razor
-- `CHANGES.md` actualizado con la sesión S27 y este hotfix queda trazado en documentación
+- Commit aplicado directo en `main`: `feat: show confirmation message after magic link sent`
+- `Pages/Login.cshtml.cs` ahora toma `sent=true` desde `Request.Query` para persistir el estado luego del redirect
+- `Pages/Login.cshtml` muestra un mensaje de confirmación y oculta el formulario cuando el envío del magic link fue exitoso
+- `CHANGES.md` actualizado con la sesión S28 y este cambio queda trazado en documentación
 
 ---
 
-*Actualizado al cierre de Sesión 5*
+*Actualizado al cierre de Sesión 6*

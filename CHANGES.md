@@ -1,10 +1,11 @@
 ## [Unreleased]
+### feat
+- Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
 ### fix
 - Login: usar `APP_BASE_URL` para construir el magic link y corregir casing de `/Auth/Verify`
 - Login: mostrar errores de `ModelState` arriba del formulario en `/Login`
 ### style
 - Landing: inclusive language — "mamá o papá" instead of gendered "padre"
-### feat
 - Footer: show short Git hash from RAILWAY_GIT_COMMIT_SHA env var
 
 ## main — feature/landing-base
@@ -39,6 +40,7 @@
 | S25 | Try/catch en OnPost del login para visibilidad de errores | ✅ completo |
 | S26 | Mostrar errores de ModelState en la vista de Login | ✅ completo |
 | S27 | APP_BASE_URL para magic link y ruta Verify con casing correcto | ✅ completo |
+| S28 | Confirmación visual después de enviar el magic link | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -154,3 +156,7 @@
 ### S27 — APP_BASE_URL + Verify route casing (aplicado)
 - `Pages/Login.cshtml.cs` ahora prioriza `APP_BASE_URL` para construir el magic link del email
 - La URL enviada apunta a `/Auth/Verify?token=...` con el casing real de la página Razor
+
+### S28 — Confirmación post-envío en Login (aplicado)
+- `Pages/Login.cshtml.cs` ahora lee `sent=true` desde `Request.Query` en `OnGet`
+- `Pages/Login.cshtml` muestra un mensaje de confirmación y oculta el formulario cuando el magic link ya fue enviado

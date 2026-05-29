@@ -24,9 +24,9 @@ public class LoginModel : PageModel
     public bool Expired { get; private set; }
     public string Email { get; private set; } = string.Empty;
 
-    public void OnGet(bool sent = false, bool expired = false)
+    public void OnGet(bool expired = false)
     {
-        Sent = sent;
+        Sent = Request.Query["sent"] == "true";
         Expired = expired;
     }
 

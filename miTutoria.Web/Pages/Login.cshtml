@@ -13,7 +13,25 @@
 
         @if (Model.Sent)
         {
-            <p>Te enviamos un link de acceso a tu email.</p>
+            <div>
+                <h2>¡Listo! Revisá tu email</h2>
+                <p>Te enviamos un link de acceso. Si no aparece, revisá spam.</p>
+            </div>
+        }
+        else
+        {
+            <form method="post">
+                <div>
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email"
+                           value="@Model.Email" required />
+                </div>
+                <div>
+                    <button type="submit" class="btn-main">
+                        Recibir link de acceso
+                    </button>
+                </div>
+            </form>
         }
 
         @if (Model.Expired)
@@ -32,14 +50,5 @@
             </div>
         }
 
-        <form method="post">
-            <div>
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" value="@Model.Email" required />
-            </div>
-            <div>
-                <button type="submit" class="btn-main">Recibir link de acceso</button>
-            </div>
-        </form>
     </div>
 </section>
