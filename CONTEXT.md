@@ -198,6 +198,9 @@ mitutoria/
 - [ ] Marketplace de aulas / plantillas por materia
 - [ ] Idioma portugués para mercado Brasil
 - [ ] Docker local para dev aislado (bloqueado — Docker Desktop no arranca)
+- [ ] Auth estudiante via slug memorable: mitutoria.app/u/{apodo}
+  → "Hola {nombre}, ingresá tu email" → magic link → sesión estudiante
+  → Fase 2 — el padre solo comunica la URL, sin contraseñas ni emails recordados
 
 ---
 
