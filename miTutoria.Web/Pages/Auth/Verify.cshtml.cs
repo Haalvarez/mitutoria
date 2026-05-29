@@ -33,6 +33,6 @@ public class VerifyModel : PageModel
 
         HttpContext.Session.SetInt32("FamilyId", family.Id);
 
-        return RedirectToPage("/Index");
+        return RedirectToPage("/Dashboard/Index");
     }
 }

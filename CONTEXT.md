@@ -41,6 +41,7 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
 - ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
 - ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
+- ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -50,14 +51,13 @@ y chatean en su aula desde mitutoria.app.
 - ⬜ Dashboard padre/madre
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
-- ⬜ Cambiar redirect post-verify de `/Index` a `/Dashboard`
 
 ---
 
 ## Próximos 3 pasos (Fase 1)
 1. Verificar flujo login en mitutoria.app/login
-2. Cambiar redirect post-verify a `/Dashboard`
-3. Crear aula estudiante
+2. Crear aula estudiante
+3. Agregar navegación padre ↔ dashboard
 
 ---
 
@@ -89,6 +89,7 @@ y chatean en su aula desde mitutoria.app.
 | `sent=true` leído desde `Request.Query` en `OnGet` | Garantiza que la vista muestre el estado de confirmación después del redirect post-envío |
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 | Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
+| `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
 
 ---
 
@@ -204,8 +205,8 @@ mitutoria/
 - Commit en `feature/dashboard-parent`: `feat: add parent dashboard with route protection`
 - `Pages/Dashboard/Index.cshtml.cs` protege la ruta leyendo `FamilyId` desde sesión y carga la familia actual con sus estudiantes
 - `Pages/Dashboard/Index.cshtml` expone el dashboard padre en `/Dashboard` con bienvenida y lista de hijos
-- Sigue pendiente cambiar el redirect post-verify para que vaya a `/Dashboard` en lugar de `/Index`
-- `CHANGES.md` actualizado con la sesión S29 y este cambio queda trazado en documentación
+- `Pages/Auth/Verify.cshtml.cs` ahora redirige a `/Dashboard/Index` después de guardar `FamilyId` en sesión
+- `CHANGES.md` actualizado con la sesión S30 y este cambio queda trazado en documentación
 
 ---
 
