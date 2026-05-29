@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 7
+- **Sesión:** 8
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `feature/dashboard-parent`
-- **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`
-- **Último commit:** feat: add parent dashboard with route protection
+- **Branch activo:** `feature/parent-profile`
+- **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
+- **Último commit:** feat: add parent profile page with nickname and role
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -42,22 +42,24 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
 - ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
 - ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
+- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre)
+- ✅ `Family` extendida con `Nickname` y `ParentRole` enum
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
+- ⬜ Ejecutar migración `AddParentProfile` en Railway (bloqueado por SDK local)
 - ⬜ Mergear features pendientes a main
 - ⬜ Auth / Login
-- ⬜ Dashboard padre/madre
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
 
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Verificar flujo login en mitutoria.app/login
-2. Crear aula estudiante
-3. Agregar navegación padre ↔ dashboard
+1. Ejecutar migración `AddParentProfile` en Railway
+2. Verificar flujo login → dashboard → perfil en mitutoria.app
+3. Crear aula estudiante
 
 ---
 
@@ -90,6 +92,8 @@ y chatean en su aula desde mitutoria.app.
 | Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
 | Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
 | `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
+| `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
+| `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
 
 ---
 
@@ -119,6 +123,7 @@ mitutoria/
 │   │   ├── Login.cshtml
 │   │   ├── Auth/Verify.cshtml
 │   │   ├── Dashboard/Index.cshtml
+│   │   ├── Profile/Index.cshtml
 │   │   └── Shared/_Layout.cshtml
 │   ├── wwwroot/
 │   │   ├── css/site.css
@@ -157,6 +162,7 @@ mitutoria/
 | `main` | Production → Railway auto-deploy |
 | `develop` | Integración |
 | `feature/dashboard-parent` | Dashboard padre con protección por sesión |
+| `feature/parent-profile` | Perfil padre — Nickname, ParentRole, página /Profile |
 | `feature/fix-login-flow` | Pendiente de mergear — fix magic link/login flow |
 | `feature/fix-landing-login-link` | Integra landing inclusivo + footer versionado + link a Login |
 | `feature/landing-inclusive` | Mergeada en `feature/fix-landing-login-link` |
@@ -205,12 +211,14 @@ mitutoria/
 ---
 
 ## POST-CAMBIO
-- Commit en `feature/dashboard-parent`: `feat: add parent dashboard with route protection`
-- `Pages/Dashboard/Index.cshtml.cs` protege la ruta leyendo `FamilyId` desde sesión y carga la familia actual con sus estudiantes
-- `Pages/Dashboard/Index.cshtml` expone el dashboard padre en `/Dashboard` con bienvenida y lista de hijos
-- `Pages/Auth/Verify.cshtml.cs` ahora redirige a `/Dashboard/Index` después de guardar `FamilyId` en sesión
-- `CHANGES.md` actualizado con la sesión S30 y este cambio queda trazado en documentación
+- Commit en `feature/parent-profile`: `feat: add parent profile page with nickname and role`
+- `Family.cs` extendida con `Nickname` y `ParentRole` enum (`Padre` / `Madre`)
+- `AppDbContext` registra conversión a string para `Family.ParentRole`
+- `Pages/Profile/Index.cshtml.cs` y `Index.cshtml` implementan `/Profile` protegida por sesión
+- `Pages/Dashboard/Index.cshtml` incluye link "Editar perfil" → `/Profile`
+- Migración `AddParentProfile` **pendiente** — requiere SDK 8 disponible en la máquina local
+- `CHANGES.md` actualizado con la sesión S31
 
 ---
 
-*Actualizado al cierre de Sesión 7*
+*Actualizado al cierre de Sesión 8*

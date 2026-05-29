@@ -1,0 +1,44 @@
+@page "/Profile"
+@model miTutoria.Web.Pages.Profile.IndexModel
+@using miTutoria.Web.Data.Entities.Auth
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Tu perfil";
+}
+
+<main>
+    <header>
+        <h1>Tu perfil</h1>
+    </header>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p style="color:red">@error.ErrorMessage</p>
+            }
+        </div>
+    }
+
+    <form method="post">
+        <div>
+            <label for="Name">Nombre completo</label>
+            <input id="Name" name="Name" type="text" value="@Model.Name" required />
+        </div>
+        <div>
+            <label for="Nickname">Apodo</label>
+            <input id="Nickname" name="Nickname" type="text" value="@Model.Nickname" />
+        </div>
+        <div>
+            <label for="ParentRole">Rol</label>
+            <select id="ParentRole" name="ParentRole">
+                <option value="@ParentRole.Padre" selected="@(Model.ParentRole == ParentRole.Padre ? "selected" : null)">Padre</option>
+                <option value="@ParentRole.Madre" selected="@(Model.ParentRole == ParentRole.Madre ? "selected" : null)">Madre</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn-main">Guardar</button>
+        </div>
+    </form>
+</main>

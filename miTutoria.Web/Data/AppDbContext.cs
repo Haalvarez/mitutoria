@@ -32,6 +32,10 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasConversion<string>();
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.ParentRole)
+            .HasConversion<string>();
+
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();

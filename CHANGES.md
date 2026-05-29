@@ -1,5 +1,7 @@
 ## [Unreleased]
 ### feat
+- Profile: nueva página `/Profile` para editar nombre, apodo y rol (Padre/Madre)
+- Family: extendida con `Nickname` y `ParentRole` enum
 - Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
 - Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
 ### fix
@@ -45,6 +47,7 @@
 | S28 | Confirmación visual después de enviar el magic link | ✅ completo |
 | S29 | Dashboard padre con protección de ruta por sesión | ✅ completo |
 | S30 | Redirect post-verify al dashboard padre | ✅ completo |
+| S31 | Perfil padre — Nickname + ParentRole + página /Profile | ✅ completo |
 
 ### S1 — Proyecto base (aplicado)
 - miTutoria.Web creado en .NET 8 Razor Pages
@@ -173,3 +176,11 @@
 ### S30 — Redirect post-verify al dashboard (aplicado)
 - `Pages/Auth/Verify.cshtml.cs` ahora redirige a `/Dashboard/Index` después de guardar `FamilyId` en sesión
 - El flujo de magic link entra directo al dashboard padre protegido
+
+### S31 — Perfil padre (aplicado)
+- `Family.cs` extendida con `Nickname` (nullable string) y `ParentRole` enum (`Padre` / `Madre`)
+- `AppDbContext` registra conversión a string para `ParentRole`
+- `Pages/Profile/Index.cshtml.cs` y `Index.cshtml` implementan `/Profile` con protección por sesión
+- Formulario permite editar nombre completo, apodo y rol; valida nombre no vacío; try/catch con ModelState
+- Dashboard padre incluye link "Editar perfil" → `/Profile`
+- Migración `AddParentProfile` pendiente de ejecutar con `dotnet ef` en entorno con SDK 8
