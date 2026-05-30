@@ -29,8 +29,8 @@
                 @foreach (var student in Model.Students)
                 {
                     <li>
-                        <strong>@student.FullName</strong>
-                        <span>@student.Email</span>
+                        <strong>@(student.Nickname ?? student.FullName)</strong>
+                        <a href="/Classroom/@student.Id" class="btn-main" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Abrir aula</a>
                     </li>
                 }
             </ul>

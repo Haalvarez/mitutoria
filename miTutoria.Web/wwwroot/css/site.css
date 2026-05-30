@@ -731,3 +731,69 @@ footer{
   font-size: 0.95rem;
   color: var(--dust);
 }
+
+/* ── Classroom / Chat ── */
+.chat-history {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.chat-bubble {
+  padding: 0.9rem 1.2rem;
+  border-radius: 3px;
+  max-width: 80%;
+}
+
+.chat-bubble--user {
+  background: var(--warm);
+  border-left: 3px solid var(--rust);
+  align-self: flex-end;
+}
+
+.chat-bubble--assistant {
+  background: var(--paper);
+  border-left: 3px solid var(--sage);
+  align-self: flex-start;
+}
+
+.chat-bubble__role {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dust);
+  margin-bottom: 0.4rem;
+}
+
+.chat-bubble p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-form {
+  margin-top: 1rem;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: var(--warm);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  resize: vertical;
+}

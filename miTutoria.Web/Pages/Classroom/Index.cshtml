@@ -1,0 +1,50 @@
+@page "/Classroom/{studentId:int}"
+@model miTutoria.Web.Pages.Classroom.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Aula de " + Model.StudentName;
+}
+
+<main class="page-main">
+    <div class="dashboard-header">
+        <h1>Aula de @Model.StudentName</h1>
+        <div class="dashboard-nav-links">
+            <a href="/Dashboard">← Volver</a>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p>@error.ErrorMessage</p>
+            }
+        </div>
+    }
+
+    <section class="chat-history">
+        @if (Model.Messages.Count == 0)
+        {
+            <p class="empty-state">Todavía no hay mensajes en este aula.</p>
+        }
+        else
+        {
+            @foreach (var msg in Model.Messages)
+            {
+                <div class="chat-bubble chat-bubble--@msg.Role.ToString().ToLower()">
+                    <span class="chat-bubble__role">@(msg.Role == miTutoria.Web.Data.Entities.Academic.MessageRole.User ? Model.StudentName : "Tutor")</span>
+                    <p>@msg.Content</p>
+                </div>
+            }
+        }
+    </section>
+
+    <form method="post" class="chat-form">
+        <input type="hidden" name="StudentId" value="@Model.StudentId" />
+        <div class="chat-input-row">
+            <textarea name="Content" rows="3" placeholder="Escribí tu pregunta o pegá el texto que querés trabajar..." required></textarea>
+            <button type="submit" class="btn-main">Enviar</button>
+        </div>
+    </form>
+</main>
