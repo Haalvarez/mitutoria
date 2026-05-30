@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using UglyToad.PdfPig;
-using UglyToad.PdfPig.Content;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -9,18 +7,27 @@ using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
+using miTutoria.Web.Data.Entities.Billing;
+using UglyToad.PdfPig;
 
 namespace miTutoria.Web.Pages.Classroom;
 
 public class IndexModel : PageModel
 {
+    private const string Model = "claude-haiku-4-5-20251001";
+    // Haiku 4.5 pricing per million tokens (USD)
+    private const decimal CostPerMInputToken  = 0.80m  / 1_000_000;
+    private const decimal CostPerMOutputToken = 4.00m  / 1_000_000;
+
     private readonly AppDbContext _dbContext;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _config;
 
-    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory)
+    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config)
     {
         _dbContext = dbContext;
         _httpClientFactory = httpClientFactory;
+        _config = config;
     }
 
     public int StudentId { get; private set; }
@@ -69,10 +76,21 @@ public class IndexModel : PageModel
             return Page();
         }
 
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+
+        // Check monthly token limit before calling Claude
+        var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
+        var usedThisMonth = await GetMonthlyTokensAsync(familyId.Value);
+        if (usedThisMonth >= monthlyLimit)
+        {
+            ModelState.AddModelError(string.Empty, "Se alcanzó el límite mensual de uso. Contactá al administrador.");
+            Material = classroom.Material;
+            Messages = await LoadMessagesAsync(classroom.Id);
+            return Page();
+        }
+
         try
         {
-            var classroom = await GetOrCreateClassroomAsync(studentId);
-
             _dbContext.Messages.Add(new Message
             {
                 ClassroomId = classroom.Id,
@@ -82,7 +100,7 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
 
             var history = await LoadMessagesAsync(classroom.Id);
-            var reply = await CallClaudeAsync(student, classroom.Material, history);
+            var (reply, inputTokens, outputTokens) = await CallClaudeAsync(student, classroom.Material, history);
 
             _dbContext.Messages.Add(new Message
             {
@@ -90,6 +108,18 @@ public class IndexModel : PageModel
                 Role = MessageRole.Assistant,
                 Content = reply
             });
+
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = familyId.Value,
+                UserId = student.Id,
+                TokensIn = inputTokens,
+                TokensOut = outputTokens,
+                ModelUsed = Model,
+                Feature = "chat",
+                CostUsd = inputTokens * CostPerMInputToken + outputTokens * CostPerMOutputToken
+            });
+
             await _dbContext.SaveChangesAsync();
 
             return RedirectToPage(new { studentId });
@@ -97,7 +127,6 @@ public class IndexModel : PageModel
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, $"Error: {ex.GetType().Name} — {ex.Message}");
-            var classroom = await GetOrCreateClassroomAsync(studentId);
             Material = classroom.Material;
             Messages = await LoadMessagesAsync(classroom.Id);
             return Page();
@@ -131,24 +160,37 @@ public class IndexModel : PageModel
         return RedirectToPage(new { studentId });
     }
 
-    private static string ExtractPdfText(IFormFile pdfFile)
+    public async Task<IActionResult> OnPostNewSessionAsync(int studentId)
     {
-        using var stream = pdfFile.OpenReadStream();
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        using var pdf = PdfDocument.Open(ms.ToArray());
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return RedirectToPage("/Login");
 
-        var sb = new StringBuilder();
-        foreach (var page in pdf.GetPages())
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return RedirectToPage("/Dashboard");
+
+        var classroom = await _dbContext.Classrooms
+            .Include(c => c.Messages)
+            .SingleOrDefaultAsync(c => c.StudentId == studentId);
+
+        if (classroom is not null)
         {
-            sb.AppendLine(page.Text);
+            _dbContext.Messages.RemoveRange(classroom.Messages);
+            classroom.Material = null;
+            await _dbContext.SaveChangesAsync();
         }
-        return sb.ToString().Trim();
+
+        return RedirectToPage(new { studentId });
     }
 
-    private async Task<string> CallClaudeAsync(User student, string? material, List<Message> history)
+    private async Task<(string reply, int inputTokens, int outputTokens)> CallClaudeAsync(
+        User student, string? material, List<Message> history)
     {
-        var systemPrompt = BuildSystemPrompt(student, material);
+        var maxMaterialChars = _config.GetValue<int>("MAX_MATERIAL_CHARS", 15_000);
+        var trimmedMaterial = material is { Length: > 0 } && material.Length > maxMaterialChars
+            ? material[..maxMaterialChars] + "\n[Material truncado por límite de tamaño]"
+            : material;
+
+        var systemPrompt = BuildSystemPrompt(student, trimmedMaterial);
 
         var messages = history.Select(m => new
         {
@@ -158,7 +200,7 @@ public class IndexModel : PageModel
 
         var body = JsonSerializer.Serialize(new
         {
-            model = "claude-haiku-4-5-20251001",
+            model = Model,
             max_tokens = 1024,
             system = systemPrompt,
             messages
@@ -171,10 +213,13 @@ public class IndexModel : PageModel
         response.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? string.Empty;
+        var root = doc.RootElement;
+
+        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var inputTokens = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
+        var outputTokens = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
+
+        return (reply, inputTokens, outputTokens);
     }
 
     private static string BuildSystemPrompt(User student, string? material)
@@ -183,9 +228,7 @@ public class IndexModel : PageModel
             ? "El estudiante tiene TDAH: usá frases muy cortas, un solo concepto por mensaje, evitá párrafos largos y celebrá cada avance pequeño con entusiasmo genuino."
             : string.Empty;
 
-        var materialSection = string.IsNullOrWhiteSpace(material)
-            ? string.Empty
-            : $"""
+        var materialSection = string.IsNullOrWhiteSpace(material) ? string.Empty : $"""
 
             Material de trabajo cargado por el estudiante (trabajá siempre sobre este texto):
             ---
@@ -213,6 +256,28 @@ public class IndexModel : PageModel
 
             Hablá siempre en español rioplatense (vos, che, dale). Mensajes cortos y directos.
             """;
+    }
+
+    private async Task<long> GetMonthlyTokensAsync(int familyId)
+    {
+        var start = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        return await _dbContext.TokenEvents
+            .Where(t => t.FamilyId == familyId && t.CreatedAt >= start)
+            .SumAsync(t => (long)t.TokensIn + t.TokensOut);
+    }
+
+    private static string ExtractPdfText(IFormFile pdfFile)
+    {
+        using var stream = pdfFile.OpenReadStream();
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        using var pdf = PdfDocument.Open(ms.ToArray());
+
+        var sb = new StringBuilder();
+        foreach (var page in pdf.GetPages())
+            sb.AppendLine(page.Text);
+
+        return sb.ToString().Trim();
     }
 
     private async Task<User?> GetStudentAsync(int studentId, int familyId) =>

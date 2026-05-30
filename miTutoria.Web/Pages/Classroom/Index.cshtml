@@ -10,6 +10,11 @@
         <h1>Aula de @Model.StudentName</h1>
         <div class="dashboard-nav-links">
             <a href="/Dashboard">← Volver</a>
+            <form method="post" asp-page-handler="NewSession" style="display:inline;"
+                  onsubmit="return confirm('¿Borrar todos los mensajes y el material? No se puede deshacer.')">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <button type="submit" class="btn-secondary">Nueva sesión</button>
+            </form>
         </div>
     </div>
 
@@ -26,7 +31,7 @@
     <section class="material-section">
         <details @(string.IsNullOrEmpty(Model.Material) ? "" : "open")>
             <summary class="material-summary">
-                @(string.IsNullOrEmpty(Model.Material) ? "＋ Pegar material de trabajo" : "📄 Material cargado")
+                @(string.IsNullOrEmpty(Model.Material) ? "＋ Pegar material de trabajo" : "📄 Material cargado — " + Model.Material.Length + " caracteres")
             </summary>
             <form method="post" asp-page-handler="SaveMaterial" class="material-form" enctype="multipart/form-data">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
@@ -38,10 +43,6 @@
                     <label>O pegá el texto directamente</label>
                     <textarea name="Material" rows="5" placeholder="Pegá acá el texto, enunciado o fotocopia...">@Model.Material</textarea>
                 </div>
-                @if (!string.IsNullOrEmpty(Model.Material))
-                {
-                    <p class="material-preview">📄 @Model.Material.Length caracteres cargados</p>
-                }
                 <div class="form-actions">
                     <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar material</button>
                     @if (!string.IsNullOrEmpty(Model.Material))
@@ -53,7 +54,7 @@
         </details>
     </section>
 
-    <section class="chat-history">
+    <section class="chat-history" id="chat-history">
         @if (Model.Messages.Count == 0)
         {
             <p class="empty-state">Todavía no hay mensajes en este aula.</p>
@@ -73,8 +74,21 @@
     <form method="post" class="chat-form">
         <input type="hidden" name="StudentId" value="@Model.StudentId" />
         <div class="chat-input-row">
-            <textarea name="Content" rows="3" placeholder="Escribí tu pregunta..." required></textarea>
+            <textarea name="Content" id="chat-input" rows="2" placeholder="Escribí tu pregunta..."></textarea>
             <button type="submit" class="btn-main">Enviar</button>
         </div>
     </form>
 </main>
+
+<script>
+    // Auto-scroll al último mensaje
+    const history = document.getElementById('chat-history');
+    if (history) history.scrollTop = history.scrollHeight;
+
+    // Enviar con Ctrl+Enter / Cmd+Enter
+    document.getElementById('chat-input')?.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            this.closest('form').submit();
+        }
+    });
+</script>
