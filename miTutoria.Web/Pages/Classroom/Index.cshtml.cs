@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -24,6 +23,7 @@ public class IndexModel : PageModel
 
     public int StudentId { get; private set; }
     public string StudentName { get; private set; } = string.Empty;
+    public string? Material { get; private set; }
     public List<Message> Messages { get; private set; } = new();
 
     [BindProperty]
@@ -41,6 +41,7 @@ public class IndexModel : PageModel
         StudentName = student.Nickname ?? student.FullName;
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
+        Material = classroom.Material;
         Messages = await LoadMessagesAsync(classroom.Id);
 
         return Page();
@@ -61,6 +62,7 @@ public class IndexModel : PageModel
         {
             ModelState.AddModelError(nameof(Content), "El mensaje no puede estar vacío.");
             var c2 = await GetOrCreateClassroomAsync(studentId);
+            Material = c2.Material;
             Messages = await LoadMessagesAsync(c2.Id);
             return Page();
         }
@@ -78,7 +80,7 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
 
             var history = await LoadMessagesAsync(classroom.Id);
-            var reply = await CallClaudeAsync(student, history);
+            var reply = await CallClaudeAsync(student, classroom.Material, history);
 
             _dbContext.Messages.Add(new Message
             {
@@ -94,14 +96,30 @@ public class IndexModel : PageModel
         {
             ModelState.AddModelError(string.Empty, $"Error: {ex.GetType().Name} — {ex.Message}");
             var classroom = await GetOrCreateClassroomAsync(studentId);
+            Material = classroom.Material;
             Messages = await LoadMessagesAsync(classroom.Id);
             return Page();
         }
     }
 
-    private async Task<string> CallClaudeAsync(User student, List<Message> history)
+    public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, bool clearMaterial = false)
     {
-        var systemPrompt = BuildSystemPrompt(student);
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return RedirectToPage("/Login");
+
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return RedirectToPage("/Dashboard");
+
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+        classroom.Material = clearMaterial ? null : (string.IsNullOrWhiteSpace(material) ? null : material.Trim());
+        await _dbContext.SaveChangesAsync();
+
+        return RedirectToPage(new { studentId });
+    }
+
+    private async Task<string> CallClaudeAsync(User student, string? material, List<Message> history)
+    {
+        var systemPrompt = BuildSystemPrompt(student, material);
 
         var messages = history.Select(m => new
         {
@@ -130,11 +148,21 @@ public class IndexModel : PageModel
             .GetString() ?? string.Empty;
     }
 
-    private static string BuildSystemPrompt(User student)
+    private static string BuildSystemPrompt(User student, string? material)
     {
         var tdahNote = student.HasAdhd
             ? "El estudiante tiene TDAH: usá frases muy cortas, un solo concepto por mensaje, evitá párrafos largos y celebrá cada avance pequeño con entusiasmo genuino."
             : string.Empty;
+
+        var materialSection = string.IsNullOrWhiteSpace(material)
+            ? string.Empty
+            : $"""
+
+            Material de trabajo cargado por el estudiante (trabajá siempre sobre este texto):
+            ---
+            {material}
+            ---
+            """;
 
         return $"""
             Sos un tutor socrático. Tu único objetivo es guiar al estudiante para que llegue a la respuesta por sí mismo.
@@ -152,7 +180,7 @@ public class IndexModel : PageModel
             - Nombre: {student.Nickname ?? student.FullName}
             - Nivel escolar: {student.SchoolLevel}
             - Año: {student.Grade}
-            {tdahNote}
+            {tdahNote}{materialSection}
 
             Hablá siempre en español rioplatense (vos, che, dale). Mensajes cortos y directos.
             """;

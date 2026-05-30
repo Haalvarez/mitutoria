@@ -797,3 +797,51 @@ footer{
   color: var(--ink);
   resize: vertical;
 }
+
+/* ── Material section ── */
+.material-section {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.material-summary {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: var(--warm);
+  user-select: none;
+}
+
+.material-form {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.material-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--dust);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  border-radius: 2px;
+  cursor: pointer;
+}

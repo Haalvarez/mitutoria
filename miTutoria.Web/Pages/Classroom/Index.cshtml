@@ -23,6 +23,25 @@
         </div>
     }
 
+    <section class="material-section">
+        <details @(string.IsNullOrEmpty(Model.Material) ? "" : "open")>
+            <summary class="material-summary">
+                @(string.IsNullOrEmpty(Model.Material) ? "＋ Pegar material de trabajo" : "📄 Material cargado")
+            </summary>
+            <form method="post" asp-page-handler="SaveMaterial" class="material-form">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <textarea name="Material" rows="6" placeholder="Pegá acá el texto, enunciado o fotocopia sobre el que querés trabajar...">@Model.Material</textarea>
+                <div class="form-actions">
+                    <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar material</button>
+                    @if (!string.IsNullOrEmpty(Model.Material))
+                    {
+                        <button type="submit" name="ClearMaterial" value="true" class="btn-secondary">Borrar material</button>
+                    }
+                </div>
+            </form>
+        </details>
+    </section>
+
     <section class="chat-history">
         @if (Model.Messages.Count == 0)
         {
@@ -43,7 +62,7 @@
     <form method="post" class="chat-form">
         <input type="hidden" name="StudentId" value="@Model.StudentId" />
         <div class="chat-input-row">
-            <textarea name="Content" rows="3" placeholder="Escribí tu pregunta o pegá el texto que querés trabajar..." required></textarea>
+            <textarea name="Content" rows="3" placeholder="Escribí tu pregunta..." required></textarea>
             <button type="submit" class="btn-main">Enviar</button>
         </div>
     </form>
