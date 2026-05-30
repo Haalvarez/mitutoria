@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -102,7 +104,7 @@ public class IndexModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, bool clearMaterial = false)
+    public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile, bool clearMaterial = false)
     {
         var familyId = HttpContext.Session.GetInt32("FamilyId");
         if (familyId is null) return RedirectToPage("/Login");
@@ -111,10 +113,37 @@ public class IndexModel : PageModel
         if (student is null) return RedirectToPage("/Dashboard");
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
-        classroom.Material = clearMaterial ? null : (string.IsNullOrWhiteSpace(material) ? null : material.Trim());
-        await _dbContext.SaveChangesAsync();
 
+        if (clearMaterial)
+        {
+            classroom.Material = null;
+        }
+        else if (pdfFile is { Length: > 0 })
+        {
+            classroom.Material = ExtractPdfText(pdfFile);
+        }
+        else
+        {
+            classroom.Material = string.IsNullOrWhiteSpace(material) ? null : material.Trim();
+        }
+
+        await _dbContext.SaveChangesAsync();
         return RedirectToPage(new { studentId });
+    }
+
+    private static string ExtractPdfText(IFormFile pdfFile)
+    {
+        using var stream = pdfFile.OpenReadStream();
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        using var pdf = PdfDocument.Open(ms.ToArray());
+
+        var sb = new StringBuilder();
+        foreach (var page in pdf.GetPages())
+        {
+            sb.AppendLine(page.Text);
+        }
+        return sb.ToString().Trim();
     }
 
     private async Task<string> CallClaudeAsync(User student, string? material, List<Message> history)

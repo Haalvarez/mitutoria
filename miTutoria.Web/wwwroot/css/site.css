@@ -845,3 +845,9 @@ footer{
   border-radius: 2px;
   cursor: pointer;
 }
+
+.material-preview {
+  font-size: 0.82rem;
+  color: var(--sage);
+  padding: 0.25rem 0;
+}

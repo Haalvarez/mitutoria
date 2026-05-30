@@ -28,9 +28,20 @@
             <summary class="material-summary">
                 @(string.IsNullOrEmpty(Model.Material) ? "＋ Pegar material de trabajo" : "📄 Material cargado")
             </summary>
-            <form method="post" asp-page-handler="SaveMaterial" class="material-form">
+            <form method="post" asp-page-handler="SaveMaterial" class="material-form" enctype="multipart/form-data">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <textarea name="Material" rows="6" placeholder="Pegá acá el texto, enunciado o fotocopia sobre el que querés trabajar...">@Model.Material</textarea>
+                <div class="form-field">
+                    <label>Subir PDF</label>
+                    <input type="file" name="PdfFile" accept="application/pdf" />
+                </div>
+                <div class="form-field">
+                    <label>O pegá el texto directamente</label>
+                    <textarea name="Material" rows="5" placeholder="Pegá acá el texto, enunciado o fotocopia...">@Model.Material</textarea>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Material))
+                {
+                    <p class="material-preview">📄 @Model.Material.Length caracteres cargados</p>
+                }
                 <div class="form-actions">
                     <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar material</button>
                     @if (!string.IsNullOrEmpty(Model.Material))
