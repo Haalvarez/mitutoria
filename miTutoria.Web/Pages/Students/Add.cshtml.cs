@@ -48,8 +48,8 @@ public class AddModel : PageModel
             return Page();
         }
 
-        if (Grade < 1 || Grade > 7 && SchoolLevel == SchoolLevel.Primario ||
-            Grade < 1 || Grade > 6 && SchoolLevel == SchoolLevel.Secundario)
+        if ((SchoolLevel == SchoolLevel.Primario && (Grade < 1 || Grade > 7)) ||
+            (SchoolLevel == SchoolLevel.Secundario && (Grade < 1 || Grade > 6)))
         {
             ModelState.AddModelError(nameof(Grade), "El año escolar no es válido para el nivel seleccionado.");
             return Page();
