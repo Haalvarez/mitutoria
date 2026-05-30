@@ -10,6 +10,11 @@ namespace miTutoria.Web.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_classrooms_subjects_SubjectId",
+                schema: "academic",
+                table: "classrooms");
+
             migrationBuilder.AlterColumn<int>(
                 name: "SubjectId",
                 schema: "academic",
@@ -18,11 +23,6 @@ namespace miTutoria.Web.Migrations
                 nullable: true,
                 oldClrType: typeof(int),
                 oldType: "integer");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_classrooms_subjects_SubjectId",
-                schema: "academic",
-                table: "classrooms");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_classrooms_subjects_SubjectId",
