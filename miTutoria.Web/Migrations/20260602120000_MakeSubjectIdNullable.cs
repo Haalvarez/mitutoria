@@ -10,57 +10,20 @@ namespace miTutoria.Web.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_classrooms_subjects_SubjectId",
-                schema: "academic",
-                table: "classrooms");
-
-            migrationBuilder.AlterColumn<int>(
-                name: "SubjectId",
-                schema: "academic",
-                table: "classrooms",
-                type: "integer",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_classrooms_subjects_SubjectId",
-                schema: "academic",
-                table: "classrooms",
-                column: "SubjectId",
-                principalSchema: "academic",
-                principalTable: "subjects",
-                principalColumn: "Id");
+            migrationBuilder.Sql(@"
+                ALTER TABLE academic.classrooms DROP CONSTRAINT IF EXISTS ""FK_classrooms_subjects_SubjectId"";
+                ALTER TABLE academic.classrooms ALTER COLUMN ""SubjectId"" DROP NOT NULL;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_classrooms_subjects_SubjectId",
-                schema: "academic",
-                table: "classrooms");
-
-            migrationBuilder.AlterColumn<int>(
-                name: "SubjectId",
-                schema: "academic",
-                table: "classrooms",
-                type: "integer",
-                nullable: false,
-                oldClrType: typeof(int),
-                oldNullable: true,
-                oldType: "integer");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_classrooms_subjects_SubjectId",
-                schema: "academic",
-                table: "classrooms",
-                column: "SubjectId",
-                principalSchema: "academic",
-                principalTable: "subjects",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+            migrationBuilder.Sql(@"
+                ALTER TABLE academic.classrooms ALTER COLUMN ""SubjectId"" SET NOT NULL;
+                ALTER TABLE academic.classrooms ADD CONSTRAINT ""FK_classrooms_subjects_SubjectId""
+                    FOREIGN KEY (""SubjectId"") REFERENCES academic.subjects(""Id"") ON DELETE CASCADE;
+            ");
         }
     }
 }
