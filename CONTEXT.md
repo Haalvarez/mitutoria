@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 9
+- **Sesión:** 4
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/parent-profile`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** fix: dashboard name display and profile layout bugs
+- **Último commit:** chore: update CONTEXT.md end of session 4
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -40,27 +40,30 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
 - ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
 - ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
+- ✅ Login funciona de punta a punta — magic link enviado, token verificado, sesión creada, redirect a `/Dashboard`
 - ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
 - ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
-- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre), labels correctos, layout sin duplicados
-- ✅ Dashboard muestra `Nickname ?? Name ?? Email` como nombre de familia
+- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre), guarda y redirige
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
+- ✅ Migración `AddParentProfile` aplicada vía `db.Database.Migrate()` en startup (auto-migrate)
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
-- ⬜ Ejecutar migración `AddParentProfile` en Railway (bloqueado por SDK local)
+- 🐛 Bug: `FamilyName` en dashboard muestra email en lugar de `Nickname ?? Name`
+- 🐛 Bug: Layout duplicado en `/Profile` (renderiza doble estructura HTML)
+- 🐛 Bug: Labels faltantes en `/Profile` — inputs sin etiquetas visibles
+- ⬜ Agregar hijos desde el dashboard (después de resolver los bugs)
 - ⬜ Mergear features pendientes a main
-- ⬜ Auth / Login
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
 
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Ejecutar migración `AddParentProfile` en Railway
-2. Verificar flujo login → dashboard → perfil en mitutoria.app
-3. Crear aula estudiante
+1. Fix `FamilyName`: mostrar `Nickname ?? Name ?? Email` en lugar del email crudo
+2. Fix `/Profile`: eliminar layout duplicado y agregar labels a los inputs
+3. Agregar hijos desde el dashboard
 
 ---
 
