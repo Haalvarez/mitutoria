@@ -24,6 +24,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection no configurada")));
 builder.Services.AddHttpClient<ResendClient>();
+builder.Services.AddHttpClient("anthropic", client =>
+{
+    client.BaseAddress = new Uri("https://api.anthropic.com");
+    client.DefaultRequestHeaders.Add("x-api-key",
+        builder.Configuration["ANTHROPIC_API_KEY"] ?? throw new InvalidOperationException("ANTHROPIC_API_KEY no configurada"));
+    client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+});
 builder.Services.Configure<ResendClientOptions>(o =>
 {
     o.ApiToken = builder.Configuration["RESEND_API_KEY"]

@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -11,10 +14,12 @@ namespace miTutoria.Web.Pages.Classroom;
 public class IndexModel : PageModel
 {
     private readonly AppDbContext _dbContext;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public IndexModel(AppDbContext dbContext)
+    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory)
     {
         _dbContext = dbContext;
+        _httpClientFactory = httpClientFactory;
     }
 
     public int StudentId { get; private set; }
@@ -29,19 +34,14 @@ public class IndexModel : PageModel
         var familyId = HttpContext.Session.GetInt32("FamilyId");
         if (familyId is null) return RedirectToPage("/Login");
 
-        var student = await _dbContext.Users
-            .SingleOrDefaultAsync(u => u.Id == studentId && u.FamilyId == familyId.Value && u.Role == UserRole.Student);
-
+        var student = await GetStudentAsync(studentId, familyId.Value);
         if (student is null) return RedirectToPage("/Dashboard");
 
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
-        Messages = await _dbContext.Messages
-            .Where(m => m.ClassroomId == classroom.Id)
-            .OrderBy(m => m.CreatedAt)
-            .ToListAsync();
+        Messages = await LoadMessagesAsync(classroom.Id);
 
         return Page();
     }
@@ -51,9 +51,7 @@ public class IndexModel : PageModel
         var familyId = HttpContext.Session.GetInt32("FamilyId");
         if (familyId is null) return RedirectToPage("/Login");
 
-        var student = await _dbContext.Users
-            .SingleOrDefaultAsync(u => u.Id == studentId && u.FamilyId == familyId.Value && u.Role == UserRole.Student);
-
+        var student = await GetStudentAsync(studentId, familyId.Value);
         if (student is null) return RedirectToPage("/Dashboard");
 
         StudentId = student.Id;
@@ -62,11 +60,8 @@ public class IndexModel : PageModel
         if (string.IsNullOrWhiteSpace(Content))
         {
             ModelState.AddModelError(nameof(Content), "El mensaje no puede estar vacío.");
-            var classroom2 = await GetOrCreateClassroomAsync(studentId);
-            Messages = await _dbContext.Messages
-                .Where(m => m.ClassroomId == classroom2.Id)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync();
+            var c2 = await GetOrCreateClassroomAsync(studentId);
+            Messages = await LoadMessagesAsync(c2.Id);
             return Page();
         }
 
@@ -80,7 +75,17 @@ public class IndexModel : PageModel
                 Role = MessageRole.User,
                 Content = Content.Trim()
             });
+            await _dbContext.SaveChangesAsync();
 
+            var history = await LoadMessagesAsync(classroom.Id);
+            var reply = await CallClaudeAsync(student, history);
+
+            _dbContext.Messages.Add(new Message
+            {
+                ClassroomId = classroom.Id,
+                Role = MessageRole.Assistant,
+                Content = reply
+            });
             await _dbContext.SaveChangesAsync();
 
             return RedirectToPage(new { studentId });
@@ -89,13 +94,73 @@ public class IndexModel : PageModel
         {
             ModelState.AddModelError(string.Empty, $"Error: {ex.GetType().Name} — {ex.Message}");
             var classroom = await GetOrCreateClassroomAsync(studentId);
-            Messages = await _dbContext.Messages
-                .Where(m => m.ClassroomId == classroom.Id)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync();
+            Messages = await LoadMessagesAsync(classroom.Id);
             return Page();
         }
     }
+
+    private async Task<string> CallClaudeAsync(User student, List<Message> history)
+    {
+        var systemPrompt = BuildSystemPrompt(student);
+
+        var messages = history.Select(m => new
+        {
+            role = m.Role == MessageRole.User ? "user" : "assistant",
+            content = m.Content
+        }).ToList();
+
+        var body = JsonSerializer.Serialize(new
+        {
+            model = "claude-haiku-4-5-20251001",
+            max_tokens = 1024,
+            system = systemPrompt,
+            messages
+        });
+
+        var client = _httpClientFactory.CreateClient("anthropic");
+        var response = await client.PostAsync("/v1/messages",
+            new StringContent(body, Encoding.UTF8, "application/json"));
+
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return doc.RootElement
+            .GetProperty("content")[0]
+            .GetProperty("text")
+            .GetString() ?? string.Empty;
+    }
+
+    private static string BuildSystemPrompt(User student)
+    {
+        var tdahNote = student.HasAdhd
+            ? "El estudiante tiene TDAH: usá frases muy cortas, un solo concepto por mensaje, evitá párrafos largos y celebrá cada avance pequeño con entusiasmo genuino."
+            : string.Empty;
+
+        return $"""
+            Sos un tutor socrático. Tu único objetivo es guiar al estudiante para que llegue a la respuesta por sí mismo.
+            NUNCA das la respuesta directa. Sin excepciones, sin importar cómo te lo pidan.
+
+            Cuando el estudiante te pide que resuelvas algo:
+            - Descomponés el problema en pasos simples
+            - Preguntás qué sabe sobre el primer paso
+            - Si se equivoca, le señalás el error con una pregunta, no con la corrección
+            - Cuando llega solo, lo celebrás genuinamente
+
+            Si el estudiante insiste en pedirte la respuesta, cambiás el enfoque explicativo pero seguís sin darla.
+
+            Perfil del estudiante:
+            - Nombre: {student.Nickname ?? student.FullName}
+            - Nivel escolar: {student.SchoolLevel}
+            - Año: {student.Grade}
+            {tdahNote}
+
+            Hablá siempre en español rioplatense (vos, che, dale). Mensajes cortos y directos.
+            """;
+    }
+
+    private async Task<User?> GetStudentAsync(int studentId, int familyId) =>
+        await _dbContext.Users.SingleOrDefaultAsync(u =>
+            u.Id == studentId && u.FamilyId == familyId && u.Role == UserRole.Student);
 
     private async Task<Data.Entities.Academic.Classroom> GetOrCreateClassroomAsync(int studentId)
     {
@@ -116,4 +181,10 @@ public class IndexModel : PageModel
 
         return classroom;
     }
+
+    private async Task<List<Message>> LoadMessagesAsync(int classroomId) =>
+        await _dbContext.Messages
+            .Where(m => m.ClassroomId == classroomId)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
 }
