@@ -1,0 +1,38 @@
+@page "/Students/Add"
+@model miTutoria.Web.Pages.Students.AddModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Agregar hijo";
+}
+
+<main class="page-main">
+    <h1>Agregar hijo</h1>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p>@error.ErrorMessage</p>
+            }
+        </div>
+    }
+
+    <form method="post">
+        <div class="form-field">
+            <label for="FullName">Nombre completo</label>
+            <input id="FullName" name="FullName" type="text" value="@Model.FullName" required />
+        </div>
+        <div class="form-field">
+            <label for="Grade">Año escolar</label>
+            <input id="Grade" name="Grade" type="number" min="1" max="12" value="@Model.Grade" required />
+        </div>
+        <div class="form-field" style="flex-direction: row; align-items: center; gap: 0.75rem;">
+            <input id="HasAdhd" name="HasAdhd" type="checkbox" value="true" @(Model.HasAdhd ? "checked" : "") style="width:18px; height:18px; accent-color: var(--rust);" />
+            <label for="HasAdhd" style="text-transform: none; font-size: 0.92rem; letter-spacing: 0; color: var(--ink);">Tiene TDAH</label>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn-main">Guardar</button>
+        </div>
+    </form>
+</main>

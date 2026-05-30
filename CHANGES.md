@@ -1,5 +1,8 @@
 ## [Unreleased]
 ### feat
+- User: `HasAdhd` — nuevo campo booleano para perfil TDAH
+- Migrations: `AddHasAdhdToUser` creada manualmente
+- Students: página `/Students/Add` con nombre, año escolar y checkbox TDAH
 - Profile: nueva página `/Profile` para editar nombre, apodo y rol (Padre/Madre)
 - Family: extendida con `Nickname` y `ParentRole` enum
 - Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
@@ -7,7 +10,6 @@
 ### fix
 - Profile: layout sin duplicados — `<main class="page-main">` compensa nav fixed con `padding-top: 7rem`
 - Profile: labels y campos de formulario visibles con estilos `.form-field`
-- Dashboard: botón “+ Agregar hijo” presente (apunta a `/Students/Add` — pendiente implementar)
 - Dashboard: `FamilyName` muestra `Nickname ?? Name ?? Email` en lugar de solo `Name`
 ### style
 - CSS: agregar estilos para páginas internas (`.page-main`, `.form-field`, `.form-errors`, `.form-actions`, `.dashboard-header`, `.dashboard-nav-links`, `.section-header`, `.students-list`, `.empty-state`)

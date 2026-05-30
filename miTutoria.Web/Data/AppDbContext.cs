@@ -32,6 +32,10 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasConversion<string>();
 
+        modelBuilder.Entity<User>()
+            .Property(u => u.HasAdhd)
+            .HasColumnName("has_adhd");
+
         modelBuilder.Entity<Family>()
             .Property(f => f.ParentRole)
             .HasConversion<string>();

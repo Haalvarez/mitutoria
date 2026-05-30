@@ -14,6 +14,7 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
+    public bool HasAdhd { get; set; }
     public UserRole Role { get; set; }
     public int FamilyId { get; set; }
     public Family Family { get; set; } = null!;

@@ -17,7 +17,7 @@ y chatean en su aula desde mitutoria.app.
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/parent-profile`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** chore: update CONTEXT.md end of session 4
+- **Último commit:** feat: add student form with TDAH flag
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -49,22 +49,25 @@ y chatean en su aula desde mitutoria.app.
 - ✅ `FamilyName` muestra `Nickname ?? Name ?? Email` — nunca el email crudo
 - ✅ CSS: bloque `.page-main`, `.form-field`, `.dashboard-header`, `.students-list` agregado a `site.css`
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
+- ✅ `User.HasAdhd` agregado al modelo para marcar perfil TDAH en estudiantes
+- ✅ `/Students/Add` permite crear hijos con nombre, año escolar y flag TDAH
 - ✅ Migración `AddParentProfile` aplicada vía `db.Database.Migrate()` en startup (auto-migrate)
+- ✅ Migración `AddHasAdhdToUser` creada manualmente; Railway la aplicará automáticamente en startup vía `db.Database.Migrate()`
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
-- ⬜ Implementar página `/Students/Add` para agregar hijos desde el dashboard
+- ⬜ Verificar `/Students/Add` en producción después del próximo deploy
 - ⬜ Mergear features pendientes a main
-- ⬜ Aula estudiante
+- ⬜ Aula estudiante (`/Classroom`)
 - ⬜ Integración Anthropic API
 
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Implementar `/Students/Add` — formulario para agregar hijo con nombre y email
-2. Listar hijos en dashboard con link a su aula
-3. Crear aula estudiante (`/Classroom/{id}`)
+1. Verificar `/Students/Add` en producción
+2. Crear aula estudiante (`/Classroom`)
+3. Integrar Anthropic API con system prompt TDAH-aware
 
 ---
 

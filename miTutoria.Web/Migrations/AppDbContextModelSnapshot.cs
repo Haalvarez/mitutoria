@@ -152,6 +152,10 @@ namespace miTutoria.Web.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("HasAdhd")
+                        .HasColumnName("has_adhd")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("Grade")
                         .HasColumnType("integer");
 
