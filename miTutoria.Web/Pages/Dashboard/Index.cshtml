@@ -5,22 +5,27 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<main>
-    <header>
-        <h1>Bienvenido, @Model.FamilyName</h1>
-        <a href="/Profile" style="display:inline-block; color:blue; text-decoration:underline;">Editar perfil</a>
-    </header>
+<main class="page-main">
+    <div class="dashboard-header">
+        <h1>Hola, @Model.FamilyName</h1>
+        <div class="dashboard-nav-links">
+            <a href="/Profile">Editar perfil</a>
+        </div>
+    </div>
 
     <section>
-        <h2>Hijos</h2>
+        <div class="section-header">
+            <h2>Hijos</h2>
+            <a href="/Students/Add" class="btn-main" style="padding: 0.6rem 1.4rem; font-size: 0.85rem;">+ Agregar hijo</a>
+        </div>
 
         @if (Model.Students.Count == 0)
         {
-            <p>Todavía no hay estudiantes en tu familia.</p>
+            <p class="empty-state">Todavía no hay estudiantes en tu familia.</p>
         }
         else
         {
-            <ul>
+            <ul class="students-list">
                 @foreach (var student in Model.Students)
                 {
                     <li>

@@ -5,13 +5,12 @@
 - Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
 - Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
 ### fix
+- Profile: layout sin duplicados — `<main class="page-main">` compensa nav fixed con `padding-top: 7rem`
+- Profile: labels y campos de formulario visibles con estilos `.form-field`
+- Dashboard: botón “+ Agregar hijo” presente (apunta a `/Students/Add` — pendiente implementar)
 - Dashboard: `FamilyName` muestra `Nickname ?? Name ?? Email` en lugar de solo `Name`
-- Profile: verificado que no tiene `Layout` duplicado ni estructura HTML completa — solo `@{ Layout = "_Layout"; }` al inicio
-- Profile: labels "Nombre completo", "Apodo" y "Rol" ya presentes y correctos
-- Auth: redirect post-verify ahora apunta a `/Dashboard`
-- Login: usar `APP_BASE_URL` para construir el magic link y corregir casing de `/Auth/Verify`
-- Login: mostrar errores de `ModelState` arriba del formulario en `/Login`
 ### style
+- CSS: agregar estilos para páginas internas (`.page-main`, `.form-field`, `.form-errors`, `.form-actions`, `.dashboard-header`, `.dashboard-nav-links`, `.section-header`, `.students-list`, `.empty-state`)
 - Landing: inclusive language — "mamá o papá" instead of gendered "padre"
 - Footer: show short Git hash from RAILWAY_GIT_COMMIT_SHA env var
 

@@ -44,16 +44,17 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
 - ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
 - ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre), guarda y redirige
+- ✅ `/Profile` con estilos `.form-field`, layout sin duplicados y labels visibles
+- ✅ `/Dashboard` con estilos `.dashboard-header`, `.students-list` y botón “+ Agregar hijo” (apunta a `/Students/Add`)
+- ✅ `FamilyName` muestra `Nickname ?? Name ?? Email` — nunca el email crudo
+- ✅ CSS: bloque `.page-main`, `.form-field`, `.dashboard-header`, `.students-list` agregado a `site.css`
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
 - ✅ Migración `AddParentProfile` aplicada vía `db.Database.Migrate()` en startup (auto-migrate)
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
-- 🐛 Bug: `FamilyName` en dashboard muestra email en lugar de `Nickname ?? Name`
-- 🐛 Bug: Layout duplicado en `/Profile` (renderiza doble estructura HTML)
-- 🐛 Bug: Labels faltantes en `/Profile` — inputs sin etiquetas visibles
-- ⬜ Agregar hijos desde el dashboard (después de resolver los bugs)
+- ⬜ Implementar página `/Students/Add` para agregar hijos desde el dashboard
 - ⬜ Mergear features pendientes a main
 - ⬜ Aula estudiante
 - ⬜ Integración Anthropic API
@@ -61,9 +62,9 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Fix `FamilyName`: mostrar `Nickname ?? Name ?? Email` en lugar del email crudo
-2. Fix `/Profile`: eliminar layout duplicado y agregar labels a los inputs
-3. Agregar hijos desde el dashboard
+1. Implementar `/Students/Add` — formulario para agregar hijo con nombre y email
+2. Listar hijos en dashboard con link a su aula
+3. Crear aula estudiante (`/Classroom/{id}`)
 
 ---
 
