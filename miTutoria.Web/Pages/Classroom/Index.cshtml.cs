@@ -8,7 +8,8 @@ using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
-using UglyToad.PdfPig;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
 
 namespace miTutoria.Web.Pages.Classroom;
 
@@ -36,7 +37,7 @@ public class IndexModel : PageModel
     public List<Message> Messages { get; private set; } = new();
 
     [BindProperty]
-    public string Content { get; set; } = string.Empty;
+    public new string Content { get; set; } = string.Empty;
 
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
@@ -269,13 +270,12 @@ public class IndexModel : PageModel
     private static string ExtractPdfText(IFormFile pdfFile)
     {
         using var stream = pdfFile.OpenReadStream();
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        using var pdf = PdfDocument.Open(ms.ToArray());
+        using var reader = new PdfReader(stream);
+        using var pdf = new iText.Kernel.Pdf.PdfDocument(reader);
 
         var sb = new StringBuilder();
-        foreach (var page in pdf.GetPages())
-            sb.AppendLine(page.Text);
+        for (int i = 1; i <= pdf.GetNumberOfPages(); i++)
+            sb.AppendLine(PdfTextExtractor.GetTextFromPage(pdf.GetPage(i)));
 
         return sb.ToString().Trim();
     }
