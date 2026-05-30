@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace miTutoria.Web.Migrations
 {
     /// <inheritdoc />
-    public partial class MakeSubjectIdNullable : Migration
+    public partial class MakeSubjectIdNullable2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
