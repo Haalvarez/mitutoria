@@ -36,7 +36,7 @@ public class IndexModel : PageModel
             return RedirectToPage("/Login");
         }
 
-        FamilyName = family.Name;
+        FamilyName = family.Nickname ?? family.Name ?? family.Email;
         Students = family.Users
             .OrderBy(u => u.FullName)
             .ToList();

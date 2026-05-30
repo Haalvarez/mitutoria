@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 8
+- **Sesión:** 9
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/parent-profile`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** feat: add parent profile page with nickname and role
+- **Último commit:** fix: dashboard name display and profile layout bugs
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -42,7 +42,8 @@ y chatean en su aula desde mitutoria.app.
 - ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
 - ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
 - ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
-- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre)
+- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre), labels correctos, layout sin duplicados
+- ✅ Dashboard muestra `Nickname ?? Name ?? Email` como nombre de familia
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)

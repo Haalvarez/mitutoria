@@ -5,6 +5,9 @@
 - Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
 - Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
 ### fix
+- Dashboard: `FamilyName` muestra `Nickname ?? Name ?? Email` en lugar de solo `Name`
+- Profile: verificado que no tiene `Layout` duplicado ni estructura HTML completa — solo `@{ Layout = "_Layout"; }` al inicio
+- Profile: labels "Nombre completo", "Apodo" y "Rol" ya presentes y correctos
 - Auth: redirect post-verify ahora apunta a `/Dashboard`
 - Login: usar `APP_BASE_URL` para construir el magic link y corregir casing de `/Auth/Verify`
 - Login: mostrar errores de `ModelState` arriba del formulario en `/Login`
