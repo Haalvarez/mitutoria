@@ -13,11 +13,11 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 4
+- **Sesión:** 9
 - **Fase activa:** Fase 1 — MVP Familia
-- **Branch activo:** `feature/parent-profile`
+- **Branch activo:** `main`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** feat: add nickname and school level to student profile
+- **Último commit:** chore: sync CONTEXT.md with real migration state
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -51,15 +51,14 @@ y chatean en su aula desde mitutoria.app.
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
 - ✅ `User.HasAdhd` agregado al modelo para marcar perfil TDAH en estudiantes
 - ✅ `User` ahora tiene `Nickname` y `SchoolLevel` para perfil de estudiante
-- ✅ `/Students/Add` actualizado con nombre, apodo, nivel escolar, año y flag TDAH
-- ✅ Migración `AddParentProfile` aplicada vía `db.Database.Migrate()` en startup (auto-migrate)
-- ✅ Migración `AddHasAdhdToUser` creada manualmente; Railway la aplicará automáticamente en startup vía `db.Database.Migrate()`
-- ✅ Migración `AddStudentProfile` creada manualmente; Railway la aplicará automáticamente en startup vía `db.Database.Migrate()`
+- ✅ `/Students/Add` live en Railway — nombre, apodo, nivel escolar, año y flag TDAH funcionando
+- ✅ Migración `AddParentProfile` aplicada en Railway
+- ✅ Migración `AddStudentProfile` aplicada en Railway (incluye columnas `has_adhd`, `nickname`, `school_level` — no existe `AddHasAdhdToUser` como migración separada)
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
 ## No funciona / pendiente
-- ⬜ Verificar `/Students/Add` en producción después del próximo deploy
+- ⬜ Fix bug de precedencia de operadores en `Add.cshtml.cs` línea 51-54 (validación de año escolar incorrecta)
 - ⬜ Mergear features pendientes a main
 - ⬜ Aula estudiante (`/Classroom`)
 - ⬜ Integración Anthropic API
@@ -67,7 +66,7 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos 3 pasos (Fase 1)
-1. Verificar `/Students/Add` en producción
+1. Fix validación de año escolar en `/Students/Add` (operador precedencia línea 51-54)
 2. Crear aula estudiante (`/Classroom`)
 3. Integrar Anthropic API con system prompt TDAH-aware
 
@@ -106,6 +105,7 @@ y chatean en su aula desde mitutoria.app.
 | `SchoolLevel` se maneja como enum con conversión a string en `AppDbContext` | Sigue el mismo patrón que `ParentRole` y simplifica persistencia legible |
 | `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
 | Migraciones creadas manualmente | Incompatibilidad de SDK local (8.0.0 requerido, solo 9.x/10.x disponible) — los archivos `.cs` se escriben a mano siguiendo el patrón existente |
+| `AddHasAdhdToUser` nunca existió como migración | Las columnas `has_adhd`, `nickname` y `school_level` se incluyeron directamente en `AddStudentProfile` |
 | `@page` sin ruta explícita en `Students/Add` | La ruta se infiere por convención Razor Pages y evita duplicar el path en la vista |
 | Archivos de páginas van en `miTutoria.Web/Pages/`, nunca en `mitutoria/miTutoria.Web/` | Evita usar la carpeta duplicada fuera del proyecto real y previene rutas/fuentes inconsistentes |
 
@@ -224,17 +224,25 @@ mitutoria/
 
 ---
 
-## POST-CAMBIO
-- Commit en `main`: `fix: use implicit route in Students/Add page`
-- `Pages/Students/Add.cshtml` usa `@page` sin ruta explícita; la URL queda inferida por convención como `/Students/Add`
-- Commit en `feature/parent-profile`: `feat: add parent profile page with nickname and role`
-- `Family.cs` extendida con `Nickname` y `ParentRole` enum (`Padre` / `Madre`)
-- `AppDbContext` registra conversión a string para `Family.ParentRole`
-- `Pages/Profile/Index.cshtml.cs` y `Index.cshtml` implementan `/Profile` protegida por sesión
-- `Pages/Dashboard/Index.cshtml` incluye link "Editar perfil" → `/Profile`
-- Migración `AddParentProfile` **pendiente** — requiere SDK 8 disponible en la máquina local
-- `CHANGES.md` actualizado con la sesión S31
+## Migraciones aplicadas en Railway
+| Archivo | Contenido |
+|---|---|
+| `20260524233347_InitialCreate` | Tablas base: families, users, subjects, classrooms, messages |
+| `20260527221738_AddTokenEvents` | Tabla `billing.token_events` |
+| `20260528000817_AddMagicTokenToFamily` | Campos `MagicToken` y `MagicTokenExpiry` en `families` |
+| `20260530191338_AddStudentProfile` | Columnas `has_adhd`, `nickname`, `school_level`, `grade` en `users` |
+| `20260601000000_AddParentProfile` | Columnas `nickname`, `parent_role` en `families` |
+
+> `AddHasAdhdToUser` nunca existió como archivo separado — sus columnas están incluidas en `AddStudentProfile`.
 
 ---
 
-*Actualizado al cierre de Sesión 8*
+## POST-CAMBIO
+- Commit en `main`: `chore: sync CONTEXT.md with real migration state`
+- Estado de migraciones corregido: todas aplicadas, historial limpio
+- `/Students/Add` confirmado live en Railway
+- Bug de validación documentado como pendiente (línea 51-54 en `Add.cshtml.cs`)
+
+---
+
+*Actualizado al cierre de Sesión 9*
