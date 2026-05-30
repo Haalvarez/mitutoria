@@ -17,7 +17,7 @@ y chatean en su aula desde mitutoria.app.
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/parent-profile`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** feat: add student form with TDAH flag
+- **Último commit:** fix: use implicit route in Students/Add page
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -103,6 +103,7 @@ y chatean en su aula desde mitutoria.app.
 | `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
 | `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
 | Migraciones creadas manualmente | Incompatibilidad de SDK local (8.0.0 requerido, solo 9.x/10.x disponible) — los archivos `.cs` se escriben a mano siguiendo el patrón existente |
+| `@page` sin ruta explícita en `Students/Add` | La ruta se infiere por convención Razor Pages y evita duplicar el path en la vista |
 
 ---
 
@@ -220,6 +221,8 @@ mitutoria/
 ---
 
 ## POST-CAMBIO
+- Commit en `main`: `fix: use implicit route in Students/Add page`
+- `Pages/Students/Add.cshtml` usa `@page` sin ruta explícita; la URL queda inferida por convención como `/Students/Add`
 - Commit en `feature/parent-profile`: `feat: add parent profile page with nickname and role`
 - `Family.cs` extendida con `Nickname` y `ParentRole` enum (`Padre` / `Madre`)
 - `AppDbContext` registra conversión a string para `Family.ParentRole`
