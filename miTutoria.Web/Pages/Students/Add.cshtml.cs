@@ -19,7 +19,13 @@ public class AddModel : PageModel
     public string FullName { get; set; } = string.Empty;
 
     [BindProperty]
-    public int Grade { get; set; }
+    public string? Nickname { get; set; }
+
+    [BindProperty]
+    public int Grade { get; set; } = 1;
+
+    [BindProperty]
+    public SchoolLevel SchoolLevel { get; set; }
 
     [BindProperty]
     public bool HasAdhd { get; set; }
@@ -42,9 +48,10 @@ public class AddModel : PageModel
             return Page();
         }
 
-        if (Grade < 1 || Grade > 12)
+        if (Grade < 1 || Grade > 7 && SchoolLevel == SchoolLevel.Primario ||
+            Grade < 1 || Grade > 6 && SchoolLevel == SchoolLevel.Secundario)
         {
-            ModelState.AddModelError(nameof(Grade), "El año escolar debe estar entre 1 y 12.");
+            ModelState.AddModelError(nameof(Grade), "El año escolar no es válido para el nivel seleccionado.");
             return Page();
         }
 
@@ -53,7 +60,9 @@ public class AddModel : PageModel
             var student = new User
             {
                 FullName = FullName.Trim(),
+                Nickname = string.IsNullOrWhiteSpace(Nickname) ? null : Nickname.Trim(),
                 Grade = Grade,
+                SchoolLevel = SchoolLevel,
                 HasAdhd = HasAdhd,
                 Role = UserRole.Student,
                 FamilyId = familyId.Value,

@@ -8,6 +8,12 @@ public enum UserRole
     Student
 }
 
+public enum SchoolLevel
+{
+    Primario,
+    Secundario
+}
+
 public class User
 {
     public int Id { get; set; }
@@ -15,6 +21,8 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public bool HasAdhd { get; set; }
+    public string? Nickname { get; set; }
+    public SchoolLevel SchoolLevel { get; set; }
     public UserRole Role { get; set; }
     public int FamilyId { get; set; }
     public Family Family { get; set; } = null!;

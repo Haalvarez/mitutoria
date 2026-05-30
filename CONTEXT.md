@@ -17,7 +17,7 @@ y chatean en su aula desde mitutoria.app.
 - **Fase activa:** Fase 1 — MVP Familia
 - **Branch activo:** `feature/parent-profile`
 - **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** fix: use implicit route in Students/Add page
+- **Último commit:** feat: add nickname and school level to student profile
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway
@@ -50,9 +50,11 @@ y chatean en su aula desde mitutoria.app.
 - ✅ CSS: bloque `.page-main`, `.form-field`, `.dashboard-header`, `.students-list` agregado a `site.css`
 - ✅ `Family` extendida con `Nickname` y `ParentRole` enum
 - ✅ `User.HasAdhd` agregado al modelo para marcar perfil TDAH en estudiantes
-- ✅ `/Students/Add` permite crear hijos con nombre, año escolar y flag TDAH
+- ✅ `User` ahora tiene `Nickname` y `SchoolLevel` para perfil de estudiante
+- ✅ `/Students/Add` actualizado con nombre, apodo, nivel escolar, año y flag TDAH
 - ✅ Migración `AddParentProfile` aplicada vía `db.Database.Migrate()` en startup (auto-migrate)
 - ✅ Migración `AddHasAdhdToUser` creada manualmente; Railway la aplicará automáticamente en startup vía `db.Database.Migrate()`
+- ✅ Migración `AddStudentProfile` creada manualmente; Railway la aplicará automáticamente en startup vía `db.Database.Migrate()`
 - ✅ Sesión con cookie HttpOnly 7 días
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 
@@ -101,6 +103,7 @@ y chatean en su aula desde mitutoria.app.
 | Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
 | `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
 | `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
+| `SchoolLevel` se maneja como enum con conversión a string en `AppDbContext` | Sigue el mismo patrón que `ParentRole` y simplifica persistencia legible |
 | `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
 | Migraciones creadas manualmente | Incompatibilidad de SDK local (8.0.0 requerido, solo 9.x/10.x disponible) — los archivos `.cs` se escriben a mano siguiendo el patrón existente |
 | `@page` sin ruta explícita en `Students/Add` | La ruta se infiere por convención Razor Pages y evita duplicar el path en la vista |

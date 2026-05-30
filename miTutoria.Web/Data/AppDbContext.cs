@@ -33,8 +33,21 @@ public class AppDbContext : DbContext
             .HasConversion<string>();
 
         modelBuilder.Entity<User>()
+            .Property(u => u.SchoolLevel)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<User>()
             .Property(u => u.HasAdhd)
             .HasColumnName("has_adhd");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.Nickname)
+            .HasColumnName("nickname");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.SchoolLevel)
+            .HasColumnName("school_level")
+            .HasDefaultValue(SchoolLevel.Primario);
 
         modelBuilder.Entity<Family>()
             .Property(f => f.ParentRole)

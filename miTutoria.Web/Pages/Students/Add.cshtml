@@ -1,5 +1,6 @@
 @page
 @model miTutoria.Web.Pages.Students.AddModel
+@using miTutoria.Web.Data.Entities.Auth
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Agregar hijo";
@@ -24,8 +25,19 @@
             <input id="FullName" name="FullName" type="text" value="@Model.FullName" required />
         </div>
         <div class="form-field">
-            <label for="Grade">Año escolar</label>
-            <input id="Grade" name="Grade" type="number" min="1" max="12" value="@Model.Grade" required />
+            <label for="Nickname">Apodo (opcional)</label>
+            <input id="Nickname" name="Nickname" type="text" value="@Model.Nickname" />
+        </div>
+        <div class="form-field">
+            <label for="SchoolLevel">Nivel</label>
+            <select id="SchoolLevel" name="SchoolLevel">
+                <option value="@SchoolLevel.Primario" selected="@(Model.SchoolLevel == SchoolLevel.Primario ? "selected" : null)">Primario</option>
+                <option value="@SchoolLevel.Secundario" selected="@(Model.SchoolLevel == SchoolLevel.Secundario ? "selected" : null)">Secundario</option>
+            </select>
+        </div>
+        <div class="form-field">
+            <label for="Grade">Año</label>
+            <input id="Grade" name="Grade" type="number" min="1" max="7" value="@Model.Grade" required />
         </div>
         <div class="form-field" style="flex-direction: row; align-items: center; gap: 0.75rem;">
             <input id="HasAdhd" name="HasAdhd" type="checkbox" value="true" @(Model.HasAdhd ? "checked" : "") style="width:18px; height:18px; accent-color: var(--rust);" />

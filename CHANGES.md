@@ -1,5 +1,8 @@
 ## [Unreleased]
 ### feat
+- User: `Nickname` y `SchoolLevel` agregados al modelo
+- Migrations: `AddStudentProfile` creada manualmente
+- Students: `/Students/Add` actualizado con campos apodo y nivel escolar
 - User: `HasAdhd` — nuevo campo booleano para perfil TDAH
 - Migrations: `AddHasAdhdToUser` creada manualmente
 - Students: página `/Students/Add` con nombre, año escolar y checkbox TDAH

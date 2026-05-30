@@ -156,12 +156,22 @@ namespace miTutoria.Web.Migrations
                         .HasColumnName("has_adhd")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Nickname")
+                        .HasColumnName("nickname")
+                        .HasColumnType("text");
+
                     b.Property<int?>("Grade")
                         .HasColumnType("integer");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("SchoolLevel")
+                        .IsRequired()
+                        .HasColumnName("school_level")
+                        .HasColumnType("text")
+                        .HasDefaultValue("Primario");
 
                     b.Property<string>("Role")
                         .IsRequired()
