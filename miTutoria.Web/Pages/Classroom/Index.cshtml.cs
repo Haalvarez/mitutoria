@@ -346,7 +346,10 @@ public class IndexModel : PageModel
                 });
                 await _dbContext.SaveChangesAsync();
             }
-            catch { /* no romper el flujo si el ack falla */ }
+            catch
+            {
+                ackReply = "¡Material cargado! Escribime cuando estés listo para arrancar.";
+            }
         }
 
         // PDF viene vía AJAX — responder con JSON

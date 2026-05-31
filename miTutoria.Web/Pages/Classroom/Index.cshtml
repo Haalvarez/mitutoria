@@ -209,10 +209,8 @@ document.getElementById('pdf-input').addEventListener('change', async function()
             statusEl.textContent = '✓ ' + (data.chars ? `${data.chars.toLocaleString()} caracteres cargados` : 'Material cargado');
             // Actualizar label del accordion
             document.querySelector('.sidebar-panel summary span').textContent = '📄 Material cargado';
-            if (data.reply) {
-                messagesEl.querySelector('.empty-state')?.remove();
-                addBubble(data.reply, 'assistant');
-            }
+            messagesEl.querySelector('.empty-state')?.remove();
+            addBubble(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.', 'assistant');
         }
     } catch(e) {
         statusEl.textContent = 'Error al subir. Intentá de nuevo.';
