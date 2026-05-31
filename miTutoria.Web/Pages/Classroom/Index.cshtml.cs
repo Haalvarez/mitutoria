@@ -254,8 +254,8 @@ public class IndexModel : PageModel
                 userMsg, maxTokens: 1200);
             var arsRate = await _exchangeRate.GetMepRateAsync();
 
-            // Guardar texto plano en historial como respaldo
-            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = raw });
+            // Guardar placeholder en historial (no el JSON crudo)
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = "📇 Tarjetas de estudio generadas." });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
                 FamilyId = student.FamilyId, UserId = student.Id,

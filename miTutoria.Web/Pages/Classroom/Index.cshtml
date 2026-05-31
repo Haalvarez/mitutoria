@@ -138,6 +138,26 @@
     </div>
 </div>
 
+@* Modal de tarjetas *@
+<div id="cards-modal" class="cards-modal" style="display:none;" role="dialog" aria-modal="true">
+    <div class="cards-modal__backdrop"></div>
+    <div class="cards-modal__box">
+        <button class="cards-modal__close" id="cards-close" aria-label="Cerrar">✕</button>
+        <div class="cards-modal__counter" id="cards-counter"></div>
+        <div class="cards-modal__card" id="cards-card">
+            <div class="cards-modal__face" id="cards-face">
+                <span class="cards-modal__face-label" id="cards-face-label">Frente</span>
+                <p id="cards-text"></p>
+            </div>
+            <button class="cards-modal__flip" id="cards-flip">Ver respuesta</button>
+        </div>
+        <div class="cards-modal__nav">
+            <button id="cards-prev">← Anterior</button>
+            <button id="cards-next">Siguiente →</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const studentId = @Model.StudentId;
 const studentName = '@Html.Raw(Model.StudentName)';
@@ -255,37 +275,59 @@ async function toolbarAction(handler, label) {
     }
 }
 
+// Modal de tarjetas
+let _cards = [], _cardIdx = 0, _showingBack = false;
+
 function addFlashcards(cards) {
+    // Burbuja en el chat con botón para abrir
     const wrap = document.createElement('div');
     wrap.className = 'msg msg--assistant';
     wrap.innerHTML = `
         <div class="msg__avatar msg__avatar--assistant">T</div>
         <div class="msg__body">
             <span class="msg__label">Tutor</span>
-            <div class="flashcards-grid"></div>
-            <p class="flashcard-hint">Tocá cada tarjeta para ver la respuesta</p>
+            <div class="msg__bubble">
+                Armé ${cards.length} tarjetas de estudio.
+                <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="openCards()">📇 Abrir tarjetas</button>
+            </div>
         </div>`;
-    const grid = wrap.querySelector('.flashcards-grid');
-    cards.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'flashcard';
-        card.innerHTML = `
-            <div class="flashcard__inner">
-                <div class="flashcard__face flashcard__face--front">
-                    <span class="flashcard__label">Frente</span>
-                    <p class="flashcard__text">${c.front}</p>
-                </div>
-                <div class="flashcard__face flashcard__face--back">
-                    <span class="flashcard__label">Dorso</span>
-                    <p class="flashcard__text">${c.back}</p>
-                </div>
-            </div>`;
-        card.addEventListener('click', () => card.classList.toggle('flipped'));
-        grid.appendChild(card);
-    });
     messagesEl.insertBefore(wrap, typing);
     scrollBottom();
+    _cards = cards;
+    openCards();
 }
+
+function openCards() {
+    if (!_cards.length) return;
+    _cardIdx = 0;
+    renderCard();
+    document.getElementById('cards-modal').style.display = 'flex';
+}
+
+function renderCard() {
+    _showingBack = false;
+    const c = _cards[_cardIdx];
+    document.getElementById('cards-counter').textContent = `${_cardIdx + 1} / ${_cards.length}`;
+    document.getElementById('cards-text').textContent = c.front;
+    document.getElementById('cards-face-label').textContent = 'Frente';
+    document.getElementById('cards-card').classList.remove('showing-back');
+    document.getElementById('cards-flip').textContent = 'Ver respuesta';
+    document.getElementById('cards-prev').disabled = _cardIdx === 0;
+    document.getElementById('cards-next').disabled = _cardIdx === _cards.length - 1;
+}
+
+document.getElementById('cards-flip').addEventListener('click', () => {
+    const c = _cards[_cardIdx];
+    _showingBack = !_showingBack;
+    document.getElementById('cards-text').textContent = _showingBack ? c.back : c.front;
+    document.getElementById('cards-face-label').textContent = _showingBack ? 'Dorso' : 'Frente';
+    document.getElementById('cards-card').classList.toggle('showing-back', _showingBack);
+    document.getElementById('cards-flip').textContent = _showingBack ? 'Ver pregunta' : 'Ver respuesta';
+});
+document.getElementById('cards-prev').addEventListener('click', () => { if (_cardIdx > 0) { _cardIdx--; renderCard(); } });
+document.getElementById('cards-next').addEventListener('click', () => { if (_cardIdx < _cards.length - 1) { _cardIdx++; renderCard(); } });
+document.getElementById('cards-close').addEventListener('click', () => { document.getElementById('cards-modal').style.display = 'none'; });
+document.querySelector('.cards-modal__backdrop').addEventListener('click', () => { document.getElementById('cards-modal').style.display = 'none'; });
 
 btnQuiz.addEventListener('click', () => toolbarAction('Quiz', 'Quiz'));
 btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
