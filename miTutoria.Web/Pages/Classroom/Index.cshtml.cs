@@ -293,6 +293,8 @@ public class IndexModel : PageModel
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
 
+        bool materialNuevo = false;
+
         if (clearMaterial)
         {
             classroom.Material = null;
@@ -305,13 +307,43 @@ public class IndexModel : PageModel
                 return await ReloadPage(studentId);
             }
             classroom.Material = ExtractPdfText(pdfFile);
+            materialNuevo = true;
+        }
+        else if (!string.IsNullOrWhiteSpace(material))
+        {
+            classroom.Material = material.Trim();
+            materialNuevo = true;
         }
         else
         {
-            classroom.Material = string.IsNullOrWhiteSpace(material) ? null : material.Trim();
+            classroom.Material = null;
         }
 
         await _dbContext.SaveChangesAsync();
+
+        // Si se cargó material nuevo, el tutor lo reconoce con un mensaje al chat
+        if (materialNuevo && !string.IsNullOrWhiteSpace(classroom.Material))
+        {
+            try
+            {
+                var arsRate = await _exchangeRate.GetMepRateAsync();
+                var systemPrompt = BuildSystemPrompt(student, classroom);
+                var ack = $"El estudiante acaba de cargar material nuevo. Saludalo brevemente, mencioná en una línea de qué trata el material (sin spoilear ni resumir el contenido), y decile que estás listo para arrancar cuando quiera. Máximo 3 líneas, tono cálido y entusiasta.";
+                var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(systemPrompt, ack, maxTokens: 200);
+
+                _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+                _dbContext.TokenEvents.Add(new TokenEvent
+                {
+                    FamilyId = student.FamilyId, UserId = student.Id,
+                    TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
+                    Feature = "material_ack", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                    ArsRate = arsRate
+                });
+                await _dbContext.SaveChangesAsync();
+            }
+            catch { /* no romper el flujo si el ack falla */ }
+        }
+
         return RedirectToPage(new { studentId });
     }
 
