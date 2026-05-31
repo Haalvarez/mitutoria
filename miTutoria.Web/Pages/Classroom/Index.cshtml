@@ -116,10 +116,7 @@
         <div class="chat-toolbar" id="chat-toolbar">
             <button id="btn-quiz" class="toolbar-btn" title="Generá un quiz basado en el material cargado">Quiz</button>
             <button id="btn-cards" class="toolbar-btn" title="Generá tarjetas de estudio (flashcards)">Tarjetas</button>
-            <button id="btn-exam" class="toolbar-btn @(Model.IsExamMode ? "toolbar-btn--active" : "")"
-                    title="@(Model.IsExamMode ? "Salir del Modo Examen" : "Activar Modo Examen — el tutor solo pregunta")">
-                @(Model.IsExamMode ? "Salir del examen" : "Modo Examen")
-            </button>
+            <button id="btn-exam" class="toolbar-btn" title="Generá un simulacro con preguntas de opción múltiple">Simulacro</button>
         </div>
 
         <div class="chat-input-bar">
@@ -135,6 +132,18 @@
             </div>
             <p class="chat-hint">Ctrl+Enter también envía</p>
         </div>
+    </div>
+</div>
+
+@* Modal de simulacro *@
+<div id="exam-modal" class="cards-modal" style="display:none;" role="dialog" aria-modal="true">
+    <div class="cards-modal__backdrop"></div>
+    <div class="cards-modal__box">
+        <button class="cards-modal__close" id="exam-close" aria-label="Cerrar">✕</button>
+        <div class="cards-modal__counter" id="exam-counter"></div>
+        <div class="exam-modal__question" id="exam-question"></div>
+        <div class="exam-modal__options" id="exam-options"></div>
+        <div id="exam-result" style="display:none;"></div>
     </div>
 </div>
 
@@ -262,6 +271,8 @@ async function toolbarAction(handler, label) {
         typing.style.display = 'none';
         if (data.type === 'flashcards') {
             addFlashcards(data.cards);
+        } else if (data.type === 'exam') {
+            openExam(data.questions);
         } else if (data.reply) {
             addBubble(data.reply, 'assistant');
         } else {
@@ -327,33 +338,79 @@ document.getElementById('cards-flip').addEventListener('click', () => {
 document.getElementById('cards-prev').addEventListener('click', () => { if (_cardIdx > 0) { _cardIdx--; renderCard(); } });
 document.getElementById('cards-next').addEventListener('click', () => { if (_cardIdx < _cards.length - 1) { _cardIdx++; renderCard(); } });
 document.getElementById('cards-close').addEventListener('click', () => { document.getElementById('cards-modal').style.display = 'none'; });
-document.querySelector('.cards-modal__backdrop').addEventListener('click', () => { document.getElementById('cards-modal').style.display = 'none'; });
+document.querySelector('#cards-modal .cards-modal__backdrop').addEventListener('click', () => { document.getElementById('cards-modal').style.display = 'none'; });
+
+// Simulacro de examen
+let _questions = [], _qIdx = 0, _score = 0, _answered = [];
+
+function openExam(questions) {
+    _questions = questions;
+    _qIdx = 0; _score = 0; _answered = [];
+    renderQuestion();
+    document.getElementById('exam-modal').style.display = 'flex';
+    // Burbuja en el chat
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--assistant';
+    wrap.innerHTML = `<div class="msg__avatar msg__avatar--assistant">T</div>
+        <div class="msg__body"><span class="msg__label">Tutor</span>
+        <div class="msg__bubble">📝 Simulacro listo — ${questions.length} preguntas.
+        <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="document.getElementById('exam-modal').style.display='flex'">Retomar simulacro</button>
+        </div></div>`;
+    messagesEl.insertBefore(wrap, typing);
+    scrollBottom();
+}
+
+function renderQuestion() {
+    const q = _questions[_qIdx];
+    document.getElementById('exam-counter').textContent = `Pregunta ${_qIdx + 1} de ${_questions.length}`;
+    document.getElementById('exam-question').textContent = q.question;
+    document.getElementById('exam-result').style.display = 'none';
+    const opts = document.getElementById('exam-options');
+    opts.innerHTML = '';
+    ['a','b','c','d'].forEach(k => {
+        if (!q.options[k]) return;
+        const btn = document.createElement('button');
+        btn.className = 'exam-option';
+        btn.innerHTML = `<strong>${k})</strong> ${q.options[k]}`;
+        btn.addEventListener('click', () => selectOption(k, btn));
+        opts.appendChild(btn);
+    });
+}
+
+function selectOption(key, btn) {
+    const q = _questions[_qIdx];
+    const correct = q.correct?.toLowerCase();
+    document.querySelectorAll('.exam-option').forEach(b => b.disabled = true);
+    btn.classList.add(key === correct ? 'exam-option--correct' : 'exam-option--wrong');
+    if (key !== correct)
+        document.querySelectorAll('.exam-option').forEach(b => {
+            if (b.textContent.trim().startsWith(correct + ')') || b.innerHTML.includes(`>${correct})<`)) b.classList.add('exam-option--correct');
+        });
+    _answered.push({ q: q.question, selected: key, correct });
+    if (key === correct) _score++;
+
+    const resultEl = document.getElementById('exam-result');
+    resultEl.style.display = 'block';
+    if (_qIdx < _questions.length - 1) {
+        resultEl.innerHTML = `<button class="btn-main btn-sm" id="exam-next-btn">Siguiente →</button>`;
+        document.getElementById('exam-next-btn').addEventListener('click', () => { _qIdx++; renderQuestion(); });
+    } else {
+        const pct = Math.round(_score / _questions.length * 100);
+        resultEl.innerHTML = `<div class="exam-score">
+            <strong>${_score}/${_questions.length} correctas (${pct}%)</strong>
+            <p>${pct >= 70 ? '¡Muy bien! Estás listo/a.' : pct >= 50 ? 'Bien, pero hay conceptos para repasar.' : 'Hay bastante para repasar. ¿Arrancamos?'}</p>
+            <button class="btn-main btn-sm" onclick="document.getElementById('exam-modal').style.display='none'">Cerrar</button>
+        </div>`;
+    }
+}
+
+document.getElementById('exam-close').addEventListener('click', () => { document.getElementById('exam-modal').style.display = 'none'; });
+document.querySelector('#exam-modal .cards-modal__backdrop').addEventListener('click', () => { document.getElementById('exam-modal').style.display = 'none'; });
 
 btnQuiz.addEventListener('click', () => toolbarAction('Quiz', 'Quiz'));
 btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
 
-btnExam.addEventListener('click', async () => {
-    btnExam.disabled = true;
-    try {
-        const res = await fetch(`/Classroom/${studentId}?handler=ToggleExam`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
-            body: new URLSearchParams({ studentId })
-        });
-        if (res.status === 401) { location.href = '/Login'; return; }
-        const data = await res.json();
-        isExamMode = data.examMode;
-        btnExam.textContent = isExamMode ? 'Salir del examen' : 'Modo Examen';
-        btnExam.classList.toggle('toolbar-btn--active', isExamMode);
-        addBubble(isExamMode
-            ? 'Modo Examen activado. A partir de ahora solo voy a hacerte preguntas, sin darte pistas.'
-            : 'Modo Examen desactivado. Volvemos al modo socrático normal.', 'assistant');
-    } catch(e) {
-        addBubble('Error al cambiar el modo.', 'assistant');
-    } finally {
-        btnExam.disabled = false;
-    }
-});
+btnExam.addEventListener('click', () => toolbarAction('Exam', 'Simulacro'));
 
 async function sendMessage() {
     const text = inputEl.value.trim();

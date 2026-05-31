@@ -282,6 +282,63 @@ public class IndexModel : PageModel
         }
     }
 
+    // ── POST: simulacro de examen ────────────────────────────────────────────
+
+    public async Task<IActionResult> OnPostExamAsync(int studentId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+        if (string.IsNullOrWhiteSpace(classroom.Material))
+            return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para generar el simulacro." });
+
+        var material = classroom.Material.Length > 10_000 ? classroom.Material[..10_000] : classroom.Material;
+        var jsonExample = """[{"question":"¿Qué es X?","options":{"a":"...","b":"...","c":"...","d":"..."},"correct":"b"}]""";
+        var userMsg = $"""
+            Generá 6 preguntas de opción múltiple para un simulacro de examen basado en este material:
+            ---
+            {material}
+            ---
+            Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin bloques de código.
+            Formato exacto (6 objetos): {jsonExample}
+            Reglas: opciones plausibles, una sola respuesta correcta, dificultad variada, cubrir los conceptos principales.
+            Si el usuario ya tiene un modelo de examen de su materia, puede subir ese PDF y el simulacro replicará ese formato.
+            """;
+
+        try
+        {
+            var (raw, tokensIn, tokensOut) = await CallClaudeRawAsync(
+                "Sos un generador de exámenes escolares. Respondés solo con JSON válido, nada más.",
+                userMsg, maxTokens: 1400);
+            var arsRate = await _exchangeRate.GetMepRateAsync();
+
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = "📝 Simulacro de examen generado." });
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = student.FamilyId, UserId = student.Id,
+                TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
+                Feature = "exam", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
+            });
+            await _dbContext.SaveChangesAsync();
+
+            try
+            {
+                using var parsed = JsonDocument.Parse(raw.Trim());
+                return new JsonResult(new { type = "exam", questions = parsed.RootElement });
+            }
+            catch
+            {
+                return new JsonResult(new { reply = raw });
+            }
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+        }
+    }
+
     // ── POST: toggle modo examen ─────────────────────────────────────────────
 
     public IActionResult OnPostToggleExam(int studentId)
