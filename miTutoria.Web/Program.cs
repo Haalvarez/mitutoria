@@ -39,6 +39,7 @@ builder.Services.AddHttpClient("dolarapi", client =>
     client.Timeout = TimeSpan.FromSeconds(5);
 });
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
+builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
 builder.Services.Configure<ResendClientOptions>(o =>
 {
     o.ApiToken = builder.Configuration["RESEND_API_KEY"]

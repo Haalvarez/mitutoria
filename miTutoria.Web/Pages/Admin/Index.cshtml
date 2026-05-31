@@ -1,0 +1,155 @@
+@page "/admin"
+@model miTutoria.Web.Pages.Admin.IndexModel
+@{
+    Layout = null;
+    var token = HttpContext.Request.Query["token"].ToString();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin · miTutorIA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;font-size:14px;background:#f5f5f5;color:#222;padding:2rem}
+h1{font-size:1.4rem;margin-bottom:1.5rem}
+h2{font-size:1rem;font-weight:600;margin:2rem 0 .75rem;border-bottom:1px solid #ddd;padding-bottom:.4rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card__label{font-size:.72rem;color:#888;letter-spacing:.05em;text-transform:uppercase}
+.card__value{font-size:1.6rem;font-weight:700;margin-top:.2rem}
+.card__sub{font-size:.8rem;color:#666;margin-top:.1rem}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+th{background:#f0f0f0;font-weight:600;font-size:.78rem;text-align:left;padding:.6rem .8rem;white-space:nowrap}
+td{padding:.55rem .8rem;border-top:1px solid #f0f0f0;vertical-align:middle}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;font-size:.7rem;padding:.2rem .5rem;border-radius:4px;font-weight:600}
+.badge-warn{background:#fff3cd;color:#856404}
+.badge-danger{background:#fde8e8;color:#c94a1f}
+.badge-ok{background:#d4edda;color:#155724}
+.signal{font-size:.75rem;color:#c94a1f;font-weight:600}
+.dim{color:#aaa}
+a{color:#0066cc;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>miTutorIA · Admin</h1>
+
+@* ── Globales ──────────────────────────────────────────────────────────── *@
+<div class="grid">
+    <div class="card">
+        <div class="card__label">Familias activas</div>
+        <div class="card__value">@Model.Families.Count</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Costo API mes (USD)</div>
+        <div class="card__value">$@Model.TotalCostUsdMonth.ToString("F2")</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Costo API mes (ARS)</div>
+        <div class="card__value">$@((Model.TotalCostArsMonth).ToString("N0"))</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Waitlist</div>
+        <div class="card__value">@Model.Waitlist.Count</div>
+        <div class="card__sub">emails registrados</div>
+    </div>
+</div>
+
+@* ── Tokens por feature ──────────────────────────────────────────────── *@
+<h2>Tokens por feature (mes)</h2>
+<div class="grid">
+    @foreach (var kv in Model.TokensByFeature.OrderByDescending(x => x.Value))
+    {
+        <div class="card">
+            <div class="card__label">@kv.Key</div>
+            <div class="card__value" style="font-size:1.1rem">@kv.Value.ToString("N0")</div>
+        </div>
+    }
+</div>
+
+@* ── Señales de riesgo ───────────────────────────────────────────────── *@
+@{
+    var warnings = Model.Families.Where(f => f.NearLimit || f.Inactive7Days || f.StudentsWithoutMaterial).ToList();
+}
+@if (warnings.Any())
+{
+    <h2>⚠ Señales de riesgo</h2>
+    <table>
+        <thead><tr><th>Familia</th><th>Señal</th></tr></thead>
+        <tbody>
+        @foreach (var f in warnings)
+        {
+            <tr>
+                <td>@f.Name</td>
+                <td>
+                    @if (f.NearLimit) { <span class="badge badge-danger">cerca del límite</span> }
+                    @if (f.Inactive7Days) { <span class="badge badge-warn">sin actividad 7+ días</span> }
+                    @if (f.StudentsWithoutMaterial) { <span class="badge badge-warn">alumno sin material</span> }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@* ── Familias ────────────────────────────────────────────────────────── *@
+<h2>Familias</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Familia</th>
+            <th>Hijos</th>
+            <th>Hoy</th>
+            <th>Semana</th>
+            <th>Mes</th>
+            <th>USD mes</th>
+            <th>ARS mes</th>
+            <th>Último uso</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model.Families)
+    {
+        <tr>
+            <td>@f.Name</td>
+            <td>@f.Students</td>
+            <td>@f.ExchangesToday</td>
+            <td>@f.ExchangesWeek</td>
+            <td>@f.ExchangesMonth</td>
+            <td>$@f.CostUsdMonth.ToString("F3")</td>
+            <td>$@f.CostArsMonth.ToString("N0")</td>
+            <td>
+                @if (f.LastActivity.HasValue)
+                {
+                    var ago = DateTime.UtcNow - f.LastActivity.Value;
+                    var label = ago.TotalMinutes < 60 ? $"{(int)ago.TotalMinutes}m" :
+                                ago.TotalHours < 24 ? $"{(int)ago.TotalHours}h" : $"{(int)ago.TotalDays}d";
+                    <span class="@(ago.TotalDays > 7 ? "signal" : "")">@label</span>
+                }
+                else { <span class="dim">nunca</span> }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@* ── Waitlist ─────────────────────────────────────────────────────────── *@
+<h2>Waitlist (@Model.Waitlist.Count)</h2>
+<table>
+    <thead><tr><th>Email</th><th>Nombre</th><th>Fecha</th></tr></thead>
+    <tbody>
+    @foreach (var w in Model.Waitlist)
+    {
+        <tr>
+            <td>@w.Email</td>
+            <td>@(w.Name ?? "-")</td>
+            <td>@w.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+</body>
+</html>
