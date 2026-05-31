@@ -103,8 +103,11 @@
                 </div>
                 <div class="usage-card">
                     <span class="usage-card__label">Gasto del mes</span>
-                    <span class="usage-card__value">$@Model.TotalCostArs.ToString("N0") ARS</span>
-                    <span class="usage-card__sub">≈ $@(Model.TotalExchangesMonth > 0 ? (Model.TotalCostArs / Model.TotalExchangesMonth).ToString("N1") : "0") por intercambio</span>
+                    <span class="usage-card__value">@(Model.TotalCostArs > 0 ? "$" + Model.TotalCostArs.ToString("N0") + " ARS" : "—")</span>
+                    @if (Model.TotalCostArs > 0 && Model.TotalExchangesMonth > 0)
+                    {
+                        <span class="usage-card__sub">≈ $@((Model.TotalCostArs / Model.TotalExchangesMonth).ToString("N1")) por intercambio</span>
+                    }
                 </div>
             </div>
 

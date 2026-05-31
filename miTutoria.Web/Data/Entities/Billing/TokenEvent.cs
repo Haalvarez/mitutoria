@@ -11,5 +11,6 @@ public class TokenEvent
     public string ModelUsed { get; set; } = string.Empty;
     public string Feature { get; set; } = string.Empty;
     public decimal CostUsd { get; set; }
+    public decimal? ArsRate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

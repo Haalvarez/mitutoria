@@ -10,6 +10,7 @@ using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
+using miTutoria.Web.Infrastructure;
 
 namespace miTutoria.Web.Pages.Classroom;
 
@@ -23,12 +24,14 @@ public class IndexModel : PageModel
     private readonly AppDbContext _dbContext;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
+    private readonly ExchangeRateService _exchangeRate;
 
-    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config)
+    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config, ExchangeRateService exchangeRate)
     {
         _dbContext = dbContext;
         _httpClientFactory = httpClientFactory;
         _config = config;
+        _exchangeRate = exchangeRate;
     }
 
     public int StudentId { get; private set; }
@@ -72,6 +75,7 @@ public class IndexModel : PageModel
             var history = await LoadMessagesAsync(classroom.Id);
             var examMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
             var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat", examMode);
+            var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
@@ -82,7 +86,8 @@ public class IndexModel : PageModel
                 TokensOut = tokensOut,
                 ModelUsed = ClaudeModel,
                 Feature = "chat",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
 
@@ -151,6 +156,7 @@ public class IndexModel : PageModel
 
             var history = await LoadMessagesAsync(classroom.Id);
             var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat");
+            var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
@@ -161,7 +167,8 @@ public class IndexModel : PageModel
                 TokensOut = tokensOut,
                 ModelUsed = ClaudeModel,
                 Feature = "chat",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
 
@@ -206,13 +213,15 @@ public class IndexModel : PageModel
             var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
                 "Sos un generador de quizzes educativos. Respondé solo con el quiz, sin introducciones.",
                 userMsg, maxTokens: 800);
+            var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
                 FamilyId = familyId.Value, UserId = student.Id,
                 TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
-                Feature = "quiz", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+                Feature = "quiz", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
             return new JsonResult(new { reply });
@@ -255,13 +264,15 @@ public class IndexModel : PageModel
             var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
                 "Sos un generador de tarjetas de estudio (flashcards). Respondé solo con las tarjetas.",
                 userMsg, maxTokens: 900);
+            var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
                 FamilyId = familyId.Value, UserId = student.Id,
                 TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
-                Feature = "flashcards", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+                Feature = "flashcards", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
             return new JsonResult(new { reply });
@@ -357,6 +368,7 @@ public class IndexModel : PageModel
         {
             var history = classroom.Messages.OrderBy(m => m.CreatedAt).ToList();
             var (summary, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "compact");
+            var arsRate = await _exchangeRate.GetMepRateAsync();
 
             classroom.CompactSummary = summary;
             _dbContext.Messages.RemoveRange(classroom.Messages);
@@ -368,7 +380,8 @@ public class IndexModel : PageModel
                 TokensOut = tokensOut,
                 ModelUsed = ClaudeModel,
                 Feature = "compact",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
         }

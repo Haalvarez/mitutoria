@@ -33,6 +33,12 @@ builder.Services.AddHttpClient("anthropic", client =>
         builder.Configuration["ANTHROPIC_API_KEY"] ?? throw new InvalidOperationException("ANTHROPIC_API_KEY no configurada"));
     client.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
 });
+builder.Services.AddHttpClient("dolarapi", client =>
+{
+    client.BaseAddress = new Uri("https://dolarapi.com");
+    client.Timeout = TimeSpan.FromSeconds(5);
+});
+builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
 builder.Services.Configure<ResendClientOptions>(o =>
 {
     o.ApiToken = builder.Configuration["RESEND_API_KEY"]

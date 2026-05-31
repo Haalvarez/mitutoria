@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Auth;
+using miTutoria.Web.Data.Entities.Billing;
 
 namespace miTutoria.Web.Pages.Dashboard;
 
@@ -22,19 +23,16 @@ public class StudentSummary
 public class IndexModel : PageModel
 {
     private readonly AppDbContext _dbContext;
-    private readonly IConfiguration _config;
 
-    public IndexModel(AppDbContext dbContext, IConfiguration config)
+    public IndexModel(AppDbContext dbContext)
     {
         _dbContext = dbContext;
-        _config = config;
     }
 
     public string FamilyName { get; private set; } = string.Empty;
     public List<User> Students { get; private set; } = new();
     public List<StudentSummary> StudentSummaries { get; private set; } = new();
     public decimal TotalCostArs { get; private set; }
-    public decimal UsdToArsRate { get; private set; }
     public int TotalExchangesMonth { get; private set; }
     public int DaysInMonth { get; private set; }
     public string ChartJson { get; private set; } = "{}";
@@ -54,7 +52,6 @@ public class IndexModel : PageModel
 
         FamilyName = family.Nickname ?? family.Name ?? family.Email;
         Students = family.Users.OrderBy(u => u.FullName).ToList();
-        UsdToArsRate = _config.GetValue<decimal>("USD_TO_ARS_RATE", 1000m);
 
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -66,7 +63,7 @@ public class IndexModel : PageModel
             .Where(t => t.FamilyId == familyId.Value && t.CreatedAt >= monthStart)
             .ToListAsync();
 
-        TotalCostArs = events.Sum(t => t.CostUsd) * UsdToArsRate;
+        TotalCostArs = events.Sum(t => t.CostUsd * (t.ArsRate ?? 0m));
         TotalExchangesMonth = events.Count(t => t.Feature == "chat");
 
         var studentIds = Students.Select(s => s.Id).ToHashSet();
