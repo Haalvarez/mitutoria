@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<Classroom> Classrooms => Set<Classroom>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<TokenEvent> TokenEvents => Set<TokenEvent>();
+    public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +28,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Classroom>().ToTable("classrooms", "academic");
         modelBuilder.Entity<Message>().ToTable("messages", "academic");
         modelBuilder.Entity<TokenEvent>().ToTable("token_events", schema: "billing");
+        modelBuilder.Entity<WaitlistEntry>().ToTable("waitlist_entries", schema: "auth");
 
         modelBuilder.Entity<User>()
             .Property(u => u.Role)
