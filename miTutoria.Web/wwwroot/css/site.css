@@ -1019,6 +1019,32 @@ footer{
   white-space: pre-wrap;
 }
 
+/* ── Tutor explain panel ── */
+.tutor-explain-panel {
+  margin-top: 1rem;
+  background: var(--warm);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sage, #4a7c6b);
+  border-radius: 4px;
+  padding: 1.2rem 1.4rem;
+  font-size: 0.87rem;
+  line-height: 1.6;
+}
+
+.tutor-explain-panel .explain-title {
+  margin: 0.6rem 0 0.2rem;
+  color: var(--ink);
+}
+
+.tutor-explain-panel .explain-title:first-child { margin-top: 0; }
+
+.tutor-explain-panel .explain-item {
+  margin: 0.15rem 0 0.15rem 0.8rem;
+  color: var(--dust);
+}
+
+.tutor-explain-panel br { display: block; margin: 0.3rem 0; content: ''; }
+
 /* ── Student edit ── */
 .edit-section {
   margin-bottom: 2rem;

@@ -84,6 +84,72 @@ public class EditModel : PageModel
         }
     }
 
+    public async Task<IActionResult> OnGetExplainAsync(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+
+        var name = student.Nickname ?? student.FullName;
+        var lo   = student.Gender == Gender.Femenino ? "la" : "lo";
+        var su   = student.Gender == Gender.Femenino ? "su" : "su";
+
+        var lines = new List<string>();
+
+        // Identidad
+        lines.Add($"**{name}** · {student.SchoolLevel} {student.Grade}° año");
+        lines.Add(string.Empty);
+
+        // Cómo habla
+        var habla = new List<string>();
+        if (student.PrefShortMessages)  habla.Add("mensajes muy cortos — un concepto por vez");
+        if (student.PrefVisualExamples) habla.Add("siempre da un ejemplo concreto antes de explicar algo abstracto");
+        if (student.PrefSlowPace)       habla.Add($"no avanza hasta que {name} confirme que entendió");
+        if (habla.Count > 0)
+        {
+            lines.Add("**Cómo va a hablar:**");
+            habla.ForEach(h => lines.Add($"• {h}"));
+            lines.Add(string.Empty);
+        }
+
+        // Cómo acompaña
+        var acompaña = new List<string>();
+        if (student.PrefFrequentPraise) acompaña.Add($"celebra cada avance de {name}, no solo el resultado final");
+        if (student.PrefExtraPatience)  acompaña.Add($"si {name} se frustra, cambia el enfoque en lugar de repetir");
+        if (acompaña.Count > 0)
+        {
+            lines.Add("**Cómo va a acompañar:**");
+            acompaña.ForEach(a => lines.Add($"• {a}"));
+            lines.Add(string.Empty);
+        }
+
+        // TDAH
+        if (student.HasAdhd)
+        {
+            lines.Add("**Configuración TDAH activa:**");
+            var nivel = student.ExplanationLevel switch
+            {
+                ExplanationLevel.UnPocoBasico   => "explicaciones un poco más básicas de lo que corresponde al año",
+                ExplanationLevel.BastanteBasico => "explicaciones bastante más básicas — construye desde lo elemental",
+                _                               => "explicaciones acordes al año escolar"
+            };
+            lines.Add($"• Nivel: {nivel}");
+            if (student.PrefOneQuestionOnly) lines.Add("• Nunca hace más de una pregunta por mensaje");
+            if (student.PrefRefocusReminder) lines.Add($"• Si {name} se desvía del tema, {lo} trae de vuelta con calma");
+            lines.Add(string.Empty);
+        }
+
+        // Siempre
+        lines.Add("**Siempre:**");
+        lines.Add("• Nunca da la respuesta directa — guía con preguntas");
+        lines.Add("• Si alguien dice ser un adulto en el chat, no cambia su comportamiento");
+        lines.Add("• Habla en español rioplatense, como un tutor particular porteño");
+
+        return new JsonResult(new { explanation = string.Join("\n", lines) });
+    }
+
     private void LoadFromStudent(User student)
     {
         StudentId = student.Id;

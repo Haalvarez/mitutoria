@@ -141,10 +141,49 @@
             <button type="submit" class="btn-main">Guardar cambios</button>
         </div>
     </form>
+
+    <div style="margin-top:1.5rem;">
+        <button id="btn-explain" class="btn-secondary" type="button">
+            ¿Cómo va a actuar el tutor con @Model.FullName?
+        </button>
+        <div id="tutor-explain-panel" class="tutor-explain-panel" style="display:none;"></div>
+    </div>
 </main>
 
 <script>
     document.getElementById('HasAdhd').addEventListener('change', function() {
         document.getElementById('tdah-section').style.display = this.checked ? '' : 'none';
+    });
+
+    document.getElementById('btn-explain').addEventListener('click', async function() {
+        const btn   = this;
+        const panel = document.getElementById('tutor-explain-panel');
+
+        if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.textContent = '¿Cómo va a actuar el tutor con @Model.FullName?'; return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Cargando...';
+
+        try {
+            const res  = await fetch(`/Students/Edit/@Model.StudentId?handler=Explain`);
+            const data = await res.json();
+
+            panel.innerHTML = data.explanation
+                .split('\n')
+                .map(line => {
+                    if (!line.trim()) return '<br>';
+                    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                    return line.startsWith('•') ? `<p class="explain-item">${line}</p>` : `<p class="explain-title">${line}</p>`;
+                })
+                .join('');
+
+            panel.style.display = 'block';
+            btn.textContent = 'Ocultar';
+        } catch(e) {
+            panel.innerHTML = '<p>Error al cargar la explicación.</p>';
+            panel.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+        }
     });
 </script>
