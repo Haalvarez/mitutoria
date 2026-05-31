@@ -2,103 +2,150 @@
 @model miTutoria.Web.Pages.Dashboard.IndexModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Inicio";
+
+    string LastSeenText(DateTime? last)
+    {
+        if (last is null) return "Sin actividad aún";
+        var diff = DateTime.UtcNow - last.Value;
+        if (diff.TotalMinutes < 60)  return "Hace un rato";
+        if (diff.TotalHours   < 24)  return "Hoy";
+        if (diff.TotalDays    < 2)   return "Ayer";
+        if (diff.TotalDays    < 7)   return $"Hace {(int)diff.TotalDays} días";
+        return $"Hace más de una semana";
+    }
+
+    string ExchangeWord(int n) => n == 1 ? "intercambio" : "intercambios";
 }
 
 <main class="page-main">
+
     <div class="dashboard-header">
-        <h1>Hola, @Model.FamilyName</h1>
-        <div class="dashboard-nav-links">
-            <a href="/Profile">Editar perfil</a>
+        <div>
+            <h1>Hola, @Model.FamilyName</h1>
+            <p class="dashboard-subtitle">Así va el aprendizaje de tu familia este mes.</p>
         </div>
+        <a href="/Profile" class="btn-secondary">Editar perfil</a>
     </div>
 
-    @* — Consumo del mes — *@
-    <section style="margin-bottom: 2rem;">
+    @* ── Hijos ── *@
+    <section class="dashboard-section">
         <div class="section-header">
-            <h2>Consumo este mes</h2>
-        </div>
-
-        <div class="usage-summary">
-            <div class="usage-card">
-                <span class="usage-card__label">Tokens totales</span>
-                <span class="usage-card__value">@Model.TotalTokensMonth.ToString("N0")</span>
-            </div>
-            <div class="usage-card">
-                <span class="usage-card__label">Costo estimado</span>
-                <span class="usage-card__value">U$D @Model.TotalCostMonth.ToString("F4")</span>
-            </div>
-            @foreach (var u in Model.UsageByStudent)
-            {
-                <div class="usage-card">
-                    <span class="usage-card__label">@u.Name</span>
-                    <span class="usage-card__value">@u.TotalTokens.ToString("N0") tok</span>
-                    <span class="usage-card__sub">U$D @u.TotalCostUsd.ToString("F4")</span>
-                </div>
-            }
-        </div>
-
-        @if (Model.UsageByStudent.Count > 0)
-        {
-            <div class="chart-container">
-                <canvas id="usageChart"></canvas>
-            </div>
-        }
-        else
-        {
-            <p class="empty-state" style="margin-top:1rem;">Sin actividad este mes todavía.</p>
-        }
-    </section>
-
-    @* — Hijos — *@
-    <section>
-        <div class="section-header">
-            <h2>Hijos</h2>
-            <a href="/Students/Add" class="btn-main" style="padding: 0.6rem 1.4rem; font-size: 0.85rem;">+ Agregar hijo</a>
+            <h2>Tus hijos</h2>
+            <a href="/Students/Add" class="btn-main btn-sm">+ Agregar</a>
         </div>
 
         @if (Model.Students.Count == 0)
         {
-            <p class="empty-state">Todavía no hay estudiantes en tu familia.</p>
+            <div class="empty-card">
+                <p>Todavía no agregaste ningún hijo.</p>
+                <a href="/Students/Add" class="btn-main" style="margin-top:0.8rem; display:inline-block;">Agregar el primero</a>
+            </div>
         }
         else
         {
-            <ul class="students-list">
-                @foreach (var student in Model.Students)
+            <div class="student-cards">
+                @foreach (var s in Model.StudentSummaries)
                 {
-                    <li>
-                        <strong>@(student.Nickname ?? student.FullName)</strong>
-                        <div style="display:flex; gap:0.5rem;">
-                            <a href="/Students/Edit/@student.Id" class="btn-secondary">Editar</a>
-                            <a href="/Classroom/@student.Id" class="btn-main" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Abrir aula</a>
+                    var studiedToday = s.ExchangesToday > 0;
+                    <div class="student-card @(studiedToday ? "student-card--active" : "")">
+                        <div class="student-card__top">
+                            <div class="student-card__avatar">@s.Name[0].ToString().ToUpper()</div>
+                            <div class="student-card__info">
+                                <strong class="student-card__name">@s.Name</strong>
+                                <span class="student-card__last">@LastSeenText(s.LastActivity)</span>
+                            </div>
+                            @if (studiedToday)
+                            {
+                                <span class="badge-today">Estudió hoy</span>
+                            }
                         </div>
-                    </li>
+
+                        <div class="student-card__stats">
+                            <div class="stat">
+                                <span class="stat__value">@s.ExchangesToday</span>
+                                <span class="stat__label">hoy</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat__value">@s.ExchangesThisWeek</span>
+                                <span class="stat__label">esta semana</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat__value">@s.ExchangesThisMonth</span>
+                                <span class="stat__label">este mes</span>
+                            </div>
+                        </div>
+                        <p class="stat__hint">@ExchangeWord(s.ExchangesThisMonth) con el tutor</p>
+
+                        <div class="student-card__actions">
+                            <a href="/Students/Edit/@s.Id" class="btn-secondary btn-sm">Editar</a>
+                            <a href="/Classroom/@s.Id" class="btn-main btn-sm">Abrir aula</a>
+                        </div>
+                    </div>
                 }
-            </ul>
+            </div>
         }
     </section>
+
+    @* ── Actividad del mes ── *@
+    @if (Model.StudentSummaries.Any(s => s.ExchangesThisMonth > 0))
+    {
+        <section class="dashboard-section">
+            <div class="section-header">
+                <h2>Actividad del mes</h2>
+                <span class="section-meta">intercambios por día</span>
+            </div>
+
+            <div class="usage-summary">
+                <div class="usage-card">
+                    <span class="usage-card__label">Intercambios totales</span>
+                    <span class="usage-card__value">@Model.TotalExchangesMonth.ToString("N0")</span>
+                </div>
+                <div class="usage-card">
+                    <span class="usage-card__label">Gasto del mes</span>
+                    <span class="usage-card__value">$@Model.TotalCostArs.ToString("N0") ARS</span>
+                    <span class="usage-card__sub">≈ $@(Model.TotalExchangesMonth > 0 ? (Model.TotalCostArs / Model.TotalExchangesMonth).ToString("N1") : "0") por intercambio</span>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="usageChart"></canvas>
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="dashboard-section">
+            <p class="empty-state">
+                Cuando @(Model.Students.Count == 1 ? "tu hijo" : "tus hijos") empiecen a usar el aula, acá vas a ver cuánto estudiaron cada día.
+            </p>
+        </section>
+    }
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script>
-    const data = @Html.Raw(Model.ChartJson);
+@if (Model.StudentSummaries.Any(s => s.ExchangesThisMonth > 0))
+{
+    <script>
     new Chart(document.getElementById('usageChart'), {
         type: 'bar',
-        data: data,
+        data: @Html.Raw(Model.ChartJson),
         options: {
             responsive: true,
             plugins: {
                 legend: { position: 'top' },
                 tooltip: {
                     callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} tokens`
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} intercambio${ctx.parsed.y !== 1 ? 's' : ''}`
                     }
                 }
             },
             scales: {
                 x: { stacked: false, grid: { display: false } },
-                y: { beginAtZero: true, ticks: { precision: 0 } }
+                y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'intercambios' } }
             }
         }
     });
-</script>
+    </script>
+}

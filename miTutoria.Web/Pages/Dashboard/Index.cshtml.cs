@@ -8,28 +8,34 @@ using miTutoria.Web.Data.Entities.Auth;
 
 namespace miTutoria.Web.Pages.Dashboard;
 
-public class StudentUsage
+public class StudentSummary
 {
+    public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public long TotalTokens { get; set; }
-    public decimal TotalCostUsd { get; set; }
-    public Dictionary<int, long> TokensByDay { get; set; } = new();
+    public int ExchangesToday { get; set; }
+    public int ExchangesThisWeek { get; set; }
+    public int ExchangesThisMonth { get; set; }
+    public DateTime? LastActivity { get; set; }
+    public Dictionary<int, int> ExchangesByDay { get; set; } = new();
 }
 
 public class IndexModel : PageModel
 {
     private readonly AppDbContext _dbContext;
+    private readonly IConfiguration _config;
 
-    public IndexModel(AppDbContext dbContext)
+    public IndexModel(AppDbContext dbContext, IConfiguration config)
     {
         _dbContext = dbContext;
+        _config = config;
     }
 
     public string FamilyName { get; private set; } = string.Empty;
     public List<User> Students { get; private set; } = new();
-    public List<StudentUsage> UsageByStudent { get; private set; } = new();
-    public long TotalTokensMonth { get; private set; }
-    public decimal TotalCostMonth { get; private set; }
+    public List<StudentSummary> StudentSummaries { get; private set; } = new();
+    public decimal TotalCostArs { get; private set; }
+    public decimal UsdToArsRate { get; private set; }
+    public int TotalExchangesMonth { get; private set; }
     public int DaysInMonth { get; private set; }
     public string ChartJson { get; private set; } = "{}";
 
@@ -48,35 +54,40 @@ public class IndexModel : PageModel
 
         FamilyName = family.Nickname ?? family.Name ?? family.Email;
         Students = family.Users.OrderBy(u => u.FullName).ToList();
+        UsdToArsRate = _config.GetValue<decimal>("USD_TO_ARS_RATE", 1000m);
 
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var weekStart  = now.Date.AddDays(-(int)now.DayOfWeek).ToUniversalTime();
+        var dayStart   = now.Date.ToUniversalTime();
         DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
 
         var events = await _dbContext.TokenEvents
             .Where(t => t.FamilyId == familyId.Value && t.CreatedAt >= monthStart)
             .ToListAsync();
 
-        TotalTokensMonth = events.Sum(t => (long)t.TokensIn + t.TokensOut);
-        TotalCostMonth = events.Sum(t => t.CostUsd);
+        TotalCostArs = events.Sum(t => t.CostUsd) * UsdToArsRate;
+        TotalExchangesMonth = events.Count(t => t.Feature == "chat");
 
         var studentIds = Students.Select(s => s.Id).ToHashSet();
-        var byStudent = events
-            .Where(t => t.UserId.HasValue && studentIds.Contains(t.UserId.Value))
-            .GroupBy(t => t.UserId!.Value);
-
         var studentMap = Students.ToDictionary(s => s.Id);
-        foreach (var group in byStudent)
+
+        foreach (var student in Students)
         {
-            var student = studentMap[group.Key];
-            UsageByStudent.Add(new StudentUsage
+            var mine = events.Where(t => t.UserId == student.Id).ToList();
+            var chatMine = mine.Where(t => t.Feature == "chat").ToList();
+
+            StudentSummaries.Add(new StudentSummary
             {
+                Id   = student.Id,
                 Name = student.Nickname ?? student.FullName,
-                TotalTokens = group.Sum(t => (long)t.TokensIn + t.TokensOut),
-                TotalCostUsd = group.Sum(t => t.CostUsd),
-                TokensByDay = group
+                ExchangesToday     = chatMine.Count(t => t.CreatedAt >= dayStart),
+                ExchangesThisWeek  = chatMine.Count(t => t.CreatedAt >= weekStart),
+                ExchangesThisMonth = chatMine.Count,
+                LastActivity       = mine.Any() ? mine.Max(t => t.CreatedAt) : null,
+                ExchangesByDay     = chatMine
                     .GroupBy(t => t.CreatedAt.Day)
-                    .ToDictionary(g => g.Key, g => g.Sum(t => (long)t.TokensIn + t.TokensOut))
+                    .ToDictionary(g => g.Key, g => g.Count())
             });
         }
 
@@ -87,14 +98,14 @@ public class IndexModel : PageModel
     private void BuildChartJson()
     {
         var labels = Enumerable.Range(1, DaysInMonth).Select(d => d.ToString()).ToArray();
-        var datasets = UsageByStudent.Select((u, i) => new
+        var datasets = StudentSummaries.Select((s, i) => new
         {
-            label = u.Name,
-            data = Enumerable.Range(1, DaysInMonth)
-                             .Select(d => u.TokensByDay.TryGetValue(d, out var v) ? v : 0L)
-                             .ToArray(),
+            label = s.Name,
+            data  = Enumerable.Range(1, DaysInMonth)
+                              .Select(d => s.ExchangesByDay.TryGetValue(d, out var v) ? v : 0)
+                              .ToArray(),
             backgroundColor = ChartColors[i % ChartColors.Length] + "99",
-            borderColor = ChartColors[i % ChartColors.Length],
+            borderColor     = ChartColors[i % ChartColors.Length],
             borderWidth = 1,
             borderRadius = 2
         }).ToArray();

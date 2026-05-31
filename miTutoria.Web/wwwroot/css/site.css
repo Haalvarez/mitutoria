@@ -654,7 +654,7 @@ footer{
 .dashboard-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: flex-start;
   margin-bottom: 2.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--line);
@@ -667,24 +667,14 @@ footer{
   letter-spacing: -0.02em;
 }
 
-.dashboard-nav-links {
-  display: flex;
-  gap: 1.5rem;
-  align-items: center;
-}
-
-.dashboard-nav-links a {
-  font-size: 0.82rem;
+.dashboard-subtitle {
+  font-size: 0.87rem;
   color: var(--dust);
-  text-decoration: none;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 2px;
-  transition: color 0.2s, border-color 0.2s;
+  margin-top: 0.3rem;
 }
 
-.dashboard-nav-links a:hover {
-  color: var(--ink);
-  border-color: var(--ink);
+.dashboard-section {
+  margin-bottom: 2.5rem;
 }
 
 .section-header {
@@ -700,30 +690,135 @@ footer{
   font-weight: 700;
 }
 
-.students-list {
-  list-style: none;
+.section-meta {
+  font-size: 0.78rem;
+  color: var(--dust);
+}
+
+/* Student cards */
+.student-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.student-card {
+  background: var(--warm);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1.2rem;
   display: flex;
   flex-direction: column;
+  gap: 0.9rem;
+}
+
+.student-card--active {
+  border-left: 3px solid var(--sage, #4a7c6b);
+}
+
+.student-card__top {
+  display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
 
-.students-list li {
+.student-card__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--rust);
+  color: #fff;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.2rem;
-  background: var(--warm);
-  border-radius: 3px;
-  border-left: 3px solid var(--line);
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.students-list li strong {
-  font-size: 0.95rem;
+.student-card__info {
+  flex: 1;
+  min-width: 0;
 }
 
-.students-list li span {
-  font-size: 0.82rem;
+.student-card__name {
+  display: block;
+  font-size: 0.97rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-card__last {
+  font-size: 0.78rem;
   color: var(--dust);
+}
+
+.badge-today {
+  font-size: 0.7rem;
+  background: var(--sage, #4a7c6b);
+  color: #fff;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.student-card__stats {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0.5rem 0.3rem;
+}
+
+.stat__value {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.stat__label {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--dust);
+  margin-top: 0.2rem;
+}
+
+.stat__hint {
+  font-size: 0.75rem;
+  color: var(--dust);
+  text-align: center;
+  margin: 0;
+}
+
+.student-card__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.student-card__actions .btn-secondary,
+.student-card__actions .btn-main {
+  flex: 1;
+  text-align: center;
+}
+
+.empty-card {
+  padding: 2rem;
+  background: var(--warm);
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  text-align: center;
+  color: var(--dust);
+  font-size: 0.92rem;
 }
 
 .empty-state {
