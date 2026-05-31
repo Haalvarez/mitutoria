@@ -765,6 +765,24 @@ footer{
   flex-shrink: 0;
 }
 
+.badge-streak {
+  font-size: 0.75rem;
+  background: #ff6b35;
+  color: #fff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.sidebar-streak {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ff6b35;
+  flex-shrink: 0;
+}
+
 .student-card__stats {
   display: flex;
   gap: 0.5rem;

@@ -16,7 +16,7 @@ y chatean en su aula desde mitutoria.app.
 - **Sesión:** 10
 - **Fase activa:** Fase 1 — MVP Familia (casi completa)
 - **Branch activo:** `main`
-- **Último commit:** feat: classroom redesign — two-panel layout, AJAX chat, typing indicator, avatars
+- **Último commit:** feat: rachas de estudio + docs sesión 10
 
 ## Funciona hoy
 - ✅ mitutoria.app live en Railway, deploy automático push → Railway ~2 min
@@ -49,22 +49,53 @@ y chatean en su aula desde mitutoria.app.
 - ✅ PostgreSQL en Railway: esquemas `auth`, `academic`, `billing`, `public` (__EFMigrations)
 
 ## No funciona / pendiente
-- ⬜ Verificar aula redesign (AJAX chat) en producción post-deploy
-- ⬜ Dashboard muestra USD — convertir a ARS para el padre (ver modelo de créditos abajo)
-- ⬜ Botonera del aula: Modo Examen, Generar Quiz, Simulacro
-- ⬜ Materias por aula (hoy una aula por hijo sin materia)
-- ⬜ MercadoPago — sistema de créditos en ARS (ver diseño abajo)
+- ⬜ MercadoPago — sistema de créditos en ARS (diseño detallado abajo)
+- ⬜ Panel de admin — uso por familia, saldo API maestra, pagos recibidos
 - ⬜ Consentimiento parental (condición legal de lanzamiento)
+- ⬜ Resumen cualitativo automático al cerrar sesión (killer feature dashboard)
+- ⬜ Alertas de inactividad + CTA para hijos sin actividad en el dashboard
+- ⬜ Historial de sesiones en modo lectura para el padre
+- ⬜ Acordeón de materias/temas por aula (base para mapa curricular y metas)
+- ⬜ Quiz aprobado trackeable (requiere flujo estructurado a/b/c/d)
+- ⬜ Logros/achievements calculados (primera sesión, 7 días de racha, etc.)
 - ⬜ Mergear ramas pendientes: `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
 
 ---
 
-## Próximos 3 pasos (Sesión 10)
-1. Verificar aula AJAX en producción
-2. Dashboard en ARS (no tokens) — mostrar crédito disponible y gasto en pesos
-3. Botonera del aula — Modo Examen como primer botón
+## Próximos pasos (Sesión 11)
+1. MercadoPago — créditos en ARS con webhook casi desatendido
+2. Panel de admin básico
+3. Resumen cualitativo automático por sesión
 
 ---
+
+## 💡 MercadoPago — plan casi desatendido (pendiente implementar)
+
+**Arquitectura:**
+- `billing.credit_accounts` — `family_id` (FK único), `balance_ars` decimal, `updated_at`
+- `billing.credit_events` — `family_id`, `amount_ars` (+compra / -consumo), `type` ('purchase'/'consume'), `mp_payment_id` nullable, `created_at`
+- Reemplaza el límite de tokens (`MONTHLY_TOKEN_LIMIT`) por chequeo de saldo
+
+**Flujo de compra:**
+1. Padre va a `/Billing/Recargar` — elige paquete ($2.000 / $5.000 / $10.000 ARS)
+2. Sistema crea preferencia MP con `external_reference = family_id` (no email, más confiable)
+3. Padre paga por link o QR de MP
+4. MP envía webhook a `/api/mp-webhook` (firmado, verificar con `x-signature`)
+5. Webhook: verificar firma → acreditar `credit_accounts.balance_ars` → insertar `credit_event` tipo 'purchase'
+
+**Flujo de consumo:**
+- Cada llamada a Claude: descontar `cost_usd * ars_rate` del saldo
+- Si saldo ≤ 0: bloquear con mensaje al alumno y notificación al padre
+- Registrar `credit_event` tipo 'consume'
+
+**Panel de admin:**
+- Ruta protegida por env var `ADMIN_TOKEN` — `GET /admin?token=...`
+- Ver: todas las familias, saldo, consumo del mes en USD y ARS, pagos recibidos
+- Ver: saldo total API maestra (suma de cost_usd de todos los token_events)
+
+**Margen:**
+- Precio al usuario en ARS incluye ~50% margen sobre costo real en USD × MEP
+- Ej: paquete $5.000 ARS → costo API real ≈ $2.500 ARS → ganancia $2.500
 
 ## 💡 Modelo de negocio — créditos en ARS (diseñado, pendiente implementar)
 

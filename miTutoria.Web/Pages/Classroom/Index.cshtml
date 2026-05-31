@@ -13,6 +13,12 @@
 
         <div class="sidebar-header">
             <span class="sidebar-title">@Model.StudentName</span>
+            @if (Model.StreakDays >= 1)
+            {
+                <span class="sidebar-streak" title="@Model.StreakDays día@(Model.StreakDays > 1 ? "s" : "") seguido@(Model.StreakDays > 1 ? "s" : "") estudiando">
+                    🔥 @Model.StreakDays
+                </span>
+            }
             <form method="post" asp-page-handler="NewSession"
                   onsubmit="return confirm('¿Borrar todo? Mensajes, material y resumen se eliminan.')">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />

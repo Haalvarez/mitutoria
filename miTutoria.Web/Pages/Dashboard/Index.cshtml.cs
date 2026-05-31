@@ -16,6 +16,7 @@ public class StudentSummary
     public int ExchangesToday { get; set; }
     public int ExchangesThisWeek { get; set; }
     public int ExchangesThisMonth { get; set; }
+    public int StreakDays { get; set; }
     public DateTime? LastActivity { get; set; }
     public Dictionary<int, int> ExchangesByDay { get; set; } = new();
 }
@@ -63,16 +64,22 @@ public class IndexModel : PageModel
             .Where(t => t.FamilyId == familyId.Value && t.CreatedAt >= monthStart)
             .ToListAsync();
 
+        // Para racha necesitamos historial completo por alumno
+        var allChatDates = await _dbContext.TokenEvents
+            .Where(t => t.FamilyId == familyId.Value && t.Feature == "chat" && t.UserId.HasValue)
+            .Select(t => new { t.UserId, t.CreatedAt })
+            .ToListAsync();
+
         TotalCostArs = events.Sum(t => t.CostUsd * (t.ArsRate ?? 0m));
         TotalExchangesMonth = events.Count(t => t.Feature == "chat");
 
-        var studentIds = Students.Select(s => s.Id).ToHashSet();
         var studentMap = Students.ToDictionary(s => s.Id);
 
         foreach (var student in Students)
         {
             var mine = events.Where(t => t.UserId == student.Id).ToList();
             var chatMine = mine.Where(t => t.Feature == "chat").ToList();
+            var allDates = allChatDates.Where(t => t.UserId == student.Id).Select(t => t.CreatedAt);
 
             StudentSummaries.Add(new StudentSummary
             {
@@ -81,6 +88,7 @@ public class IndexModel : PageModel
                 ExchangesToday     = chatMine.Count(t => t.CreatedAt >= dayStart),
                 ExchangesThisWeek  = chatMine.Count(t => t.CreatedAt >= weekStart),
                 ExchangesThisMonth = chatMine.Count,
+                StreakDays         = CalculateStreak(allDates),
                 LastActivity       = mine.Any() ? mine.Max(t => t.CreatedAt) : null,
                 ExchangesByDay     = chatMine
                     .GroupBy(t => t.CreatedAt.Day)
@@ -90,6 +98,26 @@ public class IndexModel : PageModel
 
         BuildChartJson();
         return Page();
+    }
+
+    private static int CalculateStreak(IEnumerable<DateTime> createdAts)
+    {
+        var today = DateTime.UtcNow.Date;
+        var activeDays = createdAts.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+        if (activeDays.Count == 0) return 0;
+
+        // Si hoy no hay actividad, la racha sigue viva desde ayer (igual que Duolingo)
+        var start = activeDays.Contains(today) ? today : today.AddDays(-1);
+        if (!activeDays.Contains(start)) return 0;
+
+        int streak = 0;
+        var expected = start;
+        foreach (var day in activeDays.Where(d => d <= start).OrderByDescending(d => d))
+        {
+            if (day == expected) { streak++; expected = expected.AddDays(-1); }
+            else break;
+        }
+        return streak;
     }
 
     private void BuildChartJson()

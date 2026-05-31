@@ -55,7 +55,11 @@
                                 <strong class="student-card__name">@s.Name</strong>
                                 <span class="student-card__last">@LastSeenText(s.LastActivity)</span>
                             </div>
-                            @if (studiedToday)
+                            @if (s.StreakDays >= 2)
+                            {
+                                <span class="badge-streak" title="@s.StreakDays días seguidos estudiando">🔥 @s.StreakDays</span>
+                            }
+                            else if (studiedToday)
                             {
                                 <span class="badge-today">Estudió hoy</span>
                             }

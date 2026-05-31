@@ -40,6 +40,7 @@ public class IndexModel : PageModel
     public string? CompactSummary { get; private set; }
     public string CustomPrompt { get; private set; } = string.Empty;
     public bool IsExamMode { get; private set; }
+    public int StreakDays { get; private set; }
     public List<Message> Messages { get; private set; } = new();
 
     [BindProperty]
@@ -115,6 +116,7 @@ public class IndexModel : PageModel
         CompactSummary = classroom.CompactSummary;
         CustomPrompt = classroom.SystemPrompt;
         IsExamMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
+        StreakDays = await CalculateStreakAsync(studentId);
         Messages = await LoadMessagesAsync(classroom.Id);
 
         ViewData["BodyClass"] = "classroom-page";
@@ -652,6 +654,29 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
         }
         return classroom;
+    }
+
+    private async Task<int> CalculateStreakAsync(int studentId)
+    {
+        var dates = await _dbContext.TokenEvents
+            .Where(t => t.UserId == studentId && t.Feature == "chat")
+            .Select(t => t.CreatedAt)
+            .ToListAsync();
+
+        if (dates.Count == 0) return 0;
+        var today = DateTime.UtcNow.Date;
+        var activeDays = dates.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+        var start = activeDays.Contains(today) ? today : today.AddDays(-1);
+        if (!activeDays.Contains(start)) return 0;
+
+        int streak = 0;
+        var expected = start;
+        foreach (var day in activeDays.Where(d => d <= start).OrderByDescending(d => d))
+        {
+            if (day == expected) { streak++; expected = expected.AddDays(-1); }
+            else break;
+        }
+        return streak;
     }
 
     private async Task<List<Message>> LoadMessagesAsync(int classroomId) =>
