@@ -1,23 +1,47 @@
-## [Unreleased]
+## [Sesión 9] — 2026-05-30
+### feat
+- Classroom: aula `/Classroom/{studentId}` con chat completo — dos paneles, AJAX sin reload, typing indicator, burbujas con avatar
+- Classroom: integración Anthropic API — Haiku 4.5, prompt socrático v1 con género y preferencias
+- Classroom: PDF upload hasta 5MB con itext7, texto pegado, límite configurable `MAX_MATERIAL_CHARS`
+- Classroom: compactación de historial — Claude resume, guarda en `CompactSummary`, borra mensajes
+- Classroom: prompt personalizable por hijo desde sidebar del aula
+- Students: `/Students/Edit/{id}` — género, 5 preferencias de aprendizaje, config TDAH (nivel explicación + 2 prefs)
+- Dashboard: gráfico de barras Chart.js — consumo por hijo por día del mes
+- Dashboard: cards de tokens totales y costo USD del mes
+- Landing: demo en vivo con 5 mensajes sin login — 4 botones pre-cargados (honestos y tramposos)
+- Landing: lista de espera cableada a DB (`auth.waitlist_entries`)
+- token_events: registrado después de cada llamada (Feature=chat/compact), con CostUsd calculado al momento
+- Límite mensual `MONTHLY_TOKEN_LIMIT` (default 500k tokens) — bloquea antes de llamar a Claude
+- Modelo de créditos en ARS diseñado (pendiente implementar): créditos ARS, 50% margen, MercadoPago webhook
+
+### fix
+- Classroom: migración `MakeSubjectIdNullable` con raw SQL (DropFK antes de AlterColumn)
+- Dashboard: `DateTimeKind.Utc` en queries Npgsql para timestamptz
+- Dashboard: serialización JSON movida al PageModel (JsonSerializer no disponible en bloques Razor)
+- Layout: CSRF token en meta tag para fetch() AJAX desde JS
+- Footer: git hash removido del footer visible al usuario
+
+### style
+- Classroom: layout dos paneles — sidebar 280px + chat 100dvh
+- Classroom: burbujas asimétricas (usuario derecha rust, tutor izquierda sage), avatar circular con inicial
+- Classroom: input auto-resize, Enter envía, Shift+Enter nueva línea, botón SVG integrado
+- Classroom: footer oculto en el aula, body class `classroom-page`
+- Landing: sección demo sobre fondo oscuro con botones honestos/tramposos diferenciados por color
+
+## [Sesiones 1-8] — feature/landing-base
 ### feat
 - User: `Nickname` y `SchoolLevel` agregados al modelo
-- Migrations: `AddStudentProfile` creada manualmente
-- Students: `/Students/Add` actualizado con campos apodo y nivel escolar
-- User: `HasAdhd` — nuevo campo booleano para perfil TDAH
-- Migrations: `AddHasAdhdToUser` creada manualmente
-- Students: página `/Students/Add` con nombre, año escolar y checkbox TDAH
-- Profile: nueva página `/Profile` para editar nombre, apodo y rol (Padre/Madre)
+- Students: `/Students/Add` con nombre, apodo, nivel, año y TDAH
+- Profile: `/Profile` para editar nombre, apodo y rol (Padre/Madre)
 - Family: extendida con `Nickname` y `ParentRole` enum
-- Dashboard: agregar dashboard padre protegido por sesión en `/Dashboard`
-- Login: mostrar mensaje de confirmación y ocultar el formulario después de enviar el magic link
+- Dashboard: dashboard padre protegido por sesión
+- Login: confirmación visual post-envío de magic link
 ### fix
-- Profile: layout sin duplicados — `<main class="page-main">` compensa nav fixed con `padding-top: 7rem`
-- Profile: labels y campos de formulario visibles con estilos `.form-field`
-- Dashboard: `FamilyName` muestra `Nickname ?? Name ?? Email` en lugar de solo `Name`
+- Profile: layout y estilos `.form-field`
+- Dashboard: `FamilyName` muestra `Nickname ?? Name ?? Email`
 ### style
-- CSS: agregar estilos para páginas internas (`.page-main`, `.form-field`, `.form-errors`, `.form-actions`, `.dashboard-header`, `.dashboard-nav-links`, `.section-header`, `.students-list`, `.empty-state`)
-- Landing: inclusive language — "mamá o papá" instead of gendered "padre"
-- Footer: show short Git hash from RAILWAY_GIT_COMMIT_SHA env var
+- CSS: `.page-main`, `.form-field`, `.dashboard-header`, `.students-list`
+- Landing: lenguaje inclusivo — "mamá o papá"
 
 ## main — feature/landing-base
 

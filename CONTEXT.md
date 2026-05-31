@@ -1,4 +1,4 @@
-﻿# CONTEXT.md — miTutorIA
+# CONTEXT.md — miTutorIA
 > Pegar este archivo al inicio de cada sesión con Claude.
 > Actualizar al cierre de cada sesión.
 
@@ -13,62 +13,100 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 9
-- **Fase activa:** Fase 1 — MVP Familia
+- **Sesión:** 10
+- **Fase activa:** Fase 1 — MVP Familia (casi completa)
 - **Branch activo:** `main`
-- **Branches pendientes de mergear a main:** `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
-- **Último commit:** chore: sync CONTEXT.md with real migration state
+- **Último commit:** feat: classroom redesign — two-panel layout, AJAX chat, typing indicator, avatars
 
 ## Funciona hoy
-- ✅ mitutoria.app live en Railway
-- ✅ Deploy automático: push → Railway en ~2 min
-- ✅ Landing page publicada con lenguaje inclusivo (mamá o papá)
-- ✅ Footer muestra git hash desde RAILWAY_GIT_COMMIT_SHA
-- ✅ Landing tiene link directo a `/Login`
-- ✅ La página real de login está en `Pages/Login.cshtml` (no en `Pages/Auth/Login.cshtml`)
-- ✅ .gitignore, global.json, railway.json, nixpacks.toml configurados
-- ✅ PostgreSQL en Railway con esquemas `auth`, `academic` y `billing`
-- ✅ EF Core + modelos: Family, User, Subject, Classroom, Message
-- ✅ Migración inicial aplicada — tablas creadas en Railway
-- ✅ TokenEvent entity + migración aplicada
-- ✅ `feature/auth-db` mergeada a `develop` y `main`
-- ✅ Auth magic link — Login + Verify pages
-- ✅ Resend integrado con mitutoria.app
-- ✅ Forwarded headers habilitados para respetar `https` detrás del proxy de Railway
-- ✅ Remitente de Resend configurable vía `RESEND_FROM`
-- ✅ Hotfix directo en `main`: `Login.OnPostAsync` ahora muestra errores visibles en pantalla si falla save/send
-- ✅ Hotfix directo en `main`: `Pages/Login.cshtml` renderiza errores de `ModelState` arriba del formulario
-- ✅ Hotfix directo en `main`: el magic link ahora usa `APP_BASE_URL` y apunta a `/Auth/Verify` con casing correcto
-- ✅ Login muestra confirmación visual y oculta el formulario después de enviar el magic link
-- ✅ Login funciona de punta a punta — magic link enviado, token verificado, sesión creada, redirect a `/Dashboard`
-- ✅ Dashboard padre disponible en `/Dashboard` con protección por sesión y lista de estudiantes de la familia
-- ✅ Verify guarda `FamilyId` en sesión y redirige al dashboard padre
-- ✅ Perfil padre en `/Profile` — editar nombre, apodo y rol (Padre/Madre), guarda y redirige
-- ✅ `/Profile` con estilos `.form-field`, layout sin duplicados y labels visibles
-- ✅ `/Dashboard` con estilos `.dashboard-header`, `.students-list` y botón “+ Agregar hijo” (apunta a `/Students/Add`)
-- ✅ `FamilyName` muestra `Nickname ?? Name ?? Email` — nunca el email crudo
-- ✅ CSS: bloque `.page-main`, `.form-field`, `.dashboard-header`, `.students-list` agregado a `site.css`
-- ✅ `Family` extendida con `Nickname` y `ParentRole` enum
-- ✅ `User.HasAdhd` agregado al modelo para marcar perfil TDAH en estudiantes
-- ✅ `User` ahora tiene `Nickname` y `SchoolLevel` para perfil de estudiante
-- ✅ `/Students/Add` live en Railway — nombre, apodo, nivel escolar, año y flag TDAH funcionando
-- ✅ Migración `AddParentProfile` aplicada en Railway
-- ✅ Migración `AddStudentProfile` aplicada en Railway (incluye columnas `has_adhd`, `nickname`, `school_level` — no existe `AddHasAdhdToUser` como migración separada)
+- ✅ mitutoria.app live en Railway, deploy automático push → Railway ~2 min
+- ✅ Landing page con demo en vivo (5 mensajes sin login) + lista de espera funcional → DB
+- ✅ Auth magic link — Login + Verify, Resend integrado, APP_BASE_URL, forwarded headers
 - ✅ Sesión con cookie HttpOnly 7 días
+- ✅ Dashboard padre — lista de hijos, botones "Editar" y "Abrir aula"
+- ✅ Dashboard padre — gráfico de barras Chart.js de consumo por hijo por día del mes
+- ✅ Dashboard padre — cards de tokens y costo USD del mes (DateTimeKind.Utc correcto)
+- ✅ Perfil padre `/Profile` — nombre, apodo, rol (Padre/Madre)
+- ✅ Agregar hijo `/Students/Add` — nombre, apodo, género, nivel, año, TDAH
+- ✅ Editar hijo `/Students/Edit/{id}` — datos básicos + estilo de aprendizaje + config TDAH
+  - Género (Femenino/Masculino/NoEspecificado) → pronombres correctos en el prompt
+  - 5 checkboxes de preferencias de aprendizaje con descripción para padres
+  - Sección TDAH: nivel de explicación (acordeAlAño/unPocoBasico/bastanteBasico) + 2 prefs extra
+- ✅ Aula `/Classroom/{studentId}` — layout dos paneles (sidebar + chat full-height)
+  - AJAX chat sin reload de página
+  - Typing indicator (tres puntos animados)
+  - Burbujas de chat con avatar circular, alineación asimétrica usuario/tutor
+  - Input dinámico (crece con el texto), Enter envía, Shift+Enter nueva línea
+  - Sidebar: material (PDF hasta 5MB con itext7 + texto pegado), config tutor, resumen compacto
+  - Botones Compactar (Claude resume → borra mensajes) y Nueva sesión (borra todo)
+  - Footer oculto en el aula, layout 100dvh
+- ✅ Integración Anthropic API — Haiku 4.5, prompt socrático v1 con género y preferencias inyectadas
+- ✅ token_events registrado después de cada llamada — FamilyId, UserId, tokens in/out, CostUsd, Feature
+- ✅ Límite mensual configurable `MONTHLY_TOKEN_LIMIT` (default 500k tokens)
+- ✅ Límite de material `MAX_MATERIAL_CHARS` (default 15k chars, trunca con aviso)
+- ✅ Migraciones todas aplicadas en Railway vía `db.Database.Migrate()` en startup
 - ✅ TablePlus conectado a Railway DB (conexión pública)
+- ✅ PostgreSQL en Railway: esquemas `auth`, `academic`, `billing`, `public` (__EFMigrations)
 
 ## No funciona / pendiente
-- ⬜ Fix bug de precedencia de operadores en `Add.cshtml.cs` línea 51-54 (validación de año escolar incorrecta)
-- ⬜ Mergear features pendientes a main
-- ⬜ Aula estudiante (`/Classroom`)
-- ⬜ Integración Anthropic API
+- ⬜ Verificar aula redesign (AJAX chat) en producción post-deploy
+- ⬜ Dashboard muestra USD — convertir a ARS para el padre (ver modelo de créditos abajo)
+- ⬜ Botonera del aula: Modo Examen, Generar Quiz, Simulacro
+- ⬜ Materias por aula (hoy una aula por hijo sin materia)
+- ⬜ MercadoPago — sistema de créditos en ARS (ver diseño abajo)
+- ⬜ Consentimiento parental (condición legal de lanzamiento)
+- ⬜ Mergear ramas pendientes: `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
 
 ---
 
-## Próximos 3 pasos (Fase 1)
-1. Fix validación de año escolar en `/Students/Add` (operador precedencia línea 51-54)
-2. Crear aula estudiante (`/Classroom`)
-3. Integrar Anthropic API con system prompt TDAH-aware
+## Próximos 3 pasos (Sesión 10)
+1. Verificar aula AJAX en producción
+2. Dashboard en ARS (no tokens) — mostrar crédito disponible y gasto en pesos
+3. Botonera del aula — Modo Examen como primer botón
+
+---
+
+## 💡 Modelo de negocio — créditos en ARS (diseñado, pendiente implementar)
+
+El padre **no quiere ver tokens**. Quiere ver pesos y saldo disponible.
+
+**Flujo:**
+- El padre compra créditos en ARS vía MercadoPago (QR o link de pago)
+- Cada llamada a Claude descuenta del saldo según costo real en USD convertido a ARS
+- El sistema bloquea cuando el saldo llega a cero
+- MercadoPago webhook → acredita automáticamente al recibir pago confirmado
+
+**Margen:**
+- Precio al usuario: $X ARS → 50% margen → mitad cubre costo API en USD
+- Ejemplo: usuario paga $10 USD equivalente en ARS → $5 USD va a API, $5 es ganancia
+- El exchange rate debe revisarse periódicamente (hardcodeado o via API de tipo de cambio)
+
+**Tablas a agregar:**
+- `billing.credit_accounts` — saldo_ars, family_id, updated_at
+- `billing.credit_events` — family_id, amount_ars, type (purchase/consume), mp_payment_id, created_at
+- Reemplaza el límite de tokens por límite de saldo ARS
+
+**Dashboard padre:**
+- Mostrar: "Crédito disponible: $X.XX" y "Gastado este mes: $X.XX"
+- No mostrar tokens ni USD al padre final
+
+---
+
+## Migraciones aplicadas en Railway
+| Archivo | Contenido |
+|---|---|
+| `20260524233347_InitialCreate` | Tablas base: families, users, subjects, classrooms, messages |
+| `20260527221738_AddTokenEvents` | Tabla `billing.token_events` |
+| `20260528000817_AddMagicTokenToFamily` | Campos `MagicToken` y `MagicTokenExpiry` en `families` |
+| `20260530191338_AddStudentProfile` | Columnas `has_adhd`, `nickname`, `school_level`, `grade` en `users` |
+| `20260601000000_AddParentProfile` | Columnas `nickname`, `parent_role` en `families` |
+| `20260602120000_MakeSubjectIdNullable` | SubjectId nullable en classrooms (raw SQL) |
+| `20260602130000_AddMaterialToClassroom` | Columna `Material` en classrooms |
+| `20260602140000_AddClassroomExtras` | Columna `CompactSummary` en classrooms |
+| `20260602150000_AddStudentProfile2` | Gender, ExplanationLevel, 7 columnas Pref* en users |
+| `20260602160000_AddWaitlist` | Tabla `auth.waitlist_entries` |
+
+> Todas aplicadas. `AddHasAdhdToUser` nunca existió — sus columnas están en `AddStudentProfile`.
 
 ---
 
@@ -77,37 +115,21 @@ y chatean en su aula desde mitutoria.app.
 |---|---|
 | WebApplicationOptions con ContentRootPath | WebHost.UseContentRoot causaba conflicto en design-time |
 | Sin UseHttpsRedirection en Production | Railway maneja SSL en su proxy |
-| Puerto 8080 en Railway Networking | App bindea a 8080 por defecto |
-| global.json rollForward: latestMajor | SDK 8.0.0 exacto no disponible localmente |
-| cd out && dotnet miTutoria.Web.dll | wwwroot debe estar en working directory |
-| RAILWAY_GIT_COMMIT_SHA leído directo en Layout | Evita complejidad de filtros/ViewData |
-| Esquemas PostgreSQL: auth + academic | Separación de responsabilidades sin múltiples DBs |
-| Un solo schema público para EF Migrations | __EFMigrationsHistory en public por defecto |
-| IDesignTimeDbContextFactory | EF design-time no puede resolver DI en migraciones |
-| appsettings.Development.json en .gitignore | Connection string nunca va al repo |
-| ConnectionString público Railway para dev local | DATABASE_URL interno no es accesible desde máquina local |
-| Npgsql 8.0.11 + EF Design 8.0.27 | Versiones compatibles con .NET 8 |
-| Esquema billing para token_events | Separación de responsabilidades financieras |
-| Sin primary constructors en DbContext | Railway usa SDK preview 8.0.100-preview.5 que no los soporta |
-| NIXPACKS_DOTNET_VERSION=8.0 + rollForward:latestFeature | Railway usaba SDK preview 8.0.100-preview.5 — incompatible con EF Core en runtime |
-| Dockerfile propio en lugar de nixpacks | Preview SDK 8.0.100-preview.5 de nixpacks es incompatible con EF Core 8.x en runtime |
-| Sin Procfile | Con Dockerfile propio Railway usa ENTRYPOINT — Procfile causa conflicto |
-| railway.json sin buildCommand ni startCommand | Con Dockerfile Railway usa ENTRYPOINT directamente |
+| Dockerfile propio en lugar de nixpacks | Preview SDK 8.0.100-preview.5 de nixpacks incompatible con EF Core 8.x |
+| Sin Procfile | Con Dockerfile Railway usa ENTRYPOINT directamente |
 | Magic link con Resend | Sin contraseñas — token expira en 15 min |
-| UseForwardedHeaders con X-Forwarded-For/X-Forwarded-Proto | Railway termina TLS en proxy y el magic link debe salir con `https` |
-| `RESEND_FROM` configurable con fallback | Evita hardcodear el remitente y permite variar el sender por entorno |
-| `APP_BASE_URL` configurable con fallback al request actual | Permite generar links correctos detrás de proxy/domino y evita depender de `Request.Host` |
-| `sent=true` leído desde `Request.Query` en `OnGet` | Garantiza que la vista muestre el estado de confirmación después del redirect post-envío |
-| Sesión via AddSession con cookie HttpOnly 7 días | Persistencia simple para FamilyId mientras llega auth completa |
-| Dashboard padre protegido por `FamilyId` en sesión | La página `/Dashboard` requiere sesión válida y carga solo estudiantes de la familia actual |
-| `User.Role` se maneja como `UserRole` enum | El filtro de estudiantes debe usar `UserRole.Student`, no el string `"student"` |
-| `Family.ParentRole` se maneja como `ParentRole` enum con conversión a string | Permite almacenar `"Padre"` o `"Madre"` en la DB de forma legible |
-| `SchoolLevel` se maneja como enum con conversión a string en `AppDbContext` | Sigue el mismo patrón que `ParentRole` y simplifica persistencia legible |
-| `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — las migraciones se aplican automáticamente al arrancar la app |
-| Migraciones creadas manualmente | Incompatibilidad de SDK local (8.0.0 requerido, solo 9.x/10.x disponible) — los archivos `.cs` se escriben a mano siguiendo el patrón existente |
-| `AddHasAdhdToUser` nunca existió como migración | Las columnas `has_adhd`, `nickname` y `school_level` se incluyeron directamente en `AddStudentProfile` |
-| `@page` sin ruta explícita en `Students/Add` | La ruta se infiere por convención Razor Pages y evita duplicar el path en la vista |
-| Archivos de páginas van en `miTutoria.Web/Pages/`, nunca en `mitutoria/miTutoria.Web/` | Evita usar la carpeta duplicada fuera del proyecto real y previene rutas/fuentes inconsistentes |
+| UseForwardedHeaders | Railway termina TLS en proxy — magic link debe salir con `https` |
+| `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — auto-migrate al arrancar |
+| Migraciones manuales con raw SQL | SDK local incompatible — se escriben a mano con `migrationBuilder.Sql()` |
+| `AddHasAdhdToUser` nunca existió | Columnas absorbidas en `AddStudentProfile` |
+| `itext7` para extracción de PDF | PdfPig no tiene versión estable en NuGet |
+| AJAX chat con handler `OnPostSendAsync` | Evita reload de página — mejor UX |
+| `IAntiforgery` inyectado en `_Layout` | CSRF token en meta tag para fetch() desde JS |
+| `ViewData["BodyClass"] = "classroom-page"` | Oculta footer y activa layout 100dvh solo en el aula |
+| `DateTimeKind.Utc` en queries Npgsql | Npgsql rechaza DateTime sin zona en comparaciones con timestamptz |
+| Chart.js vía CDN | Sin NuGet extra — gráfico de barras funcional en el dashboard |
+| Demo público `/api/demo` en minimal API | Sin auth, limitado a 10 mensajes, llama Haiku directamente |
+| Créditos en ARS (pendiente) | El padre entiende pesos, no tokens ni USD |
 
 ---
 
@@ -122,65 +144,33 @@ mitutoria/
 │   │   ├── Entities/
 │   │   │   ├── Auth/
 │   │   │   │   ├── Family.cs
-│   │   │   │   └── User.cs
+│   │   │   │   ├── User.cs         ← Gender, ExplanationLevel, Pref* enums
+│   │   │   │   └── WaitlistEntry.cs
 │   │   │   ├── Academic/
 │   │   │   │   ├── Subject.cs
-│   │   │   │   ├── Classroom.cs
+│   │   │   │   ├── Classroom.cs    ← Material, CompactSummary, SubjectId nullable
 │   │   │   │   └── Message.cs
 │   │   │   └── Billing/
 │   │   │       └── TokenEvent.cs
 │   │   └── Migrations/
-│   ├── Infrastructure/
-│   │   └── VersionPageFilter.cs
 │   ├── Pages/
-│   │   ├── Index.cshtml
+│   │   ├── Index.cshtml            ← Landing + demo + waitlist
 │   │   ├── Login.cshtml
 │   │   ├── Auth/Verify.cshtml
-│   │   ├── Dashboard/Index.cshtml
+│   │   ├── Dashboard/Index.cshtml  ← Cards + Chart.js por hijo
 │   │   ├── Profile/Index.cshtml
-│   │   └── Shared/_Layout.cshtml
-│   ├── wwwroot/
-│   │   ├── css/site.css
-│   │   └── js/site.js
-│   ├── appsettings.json
-│   ├── appsettings.Development.json  ← en .gitignore, nunca commitear
-│   └── Program.cs
-├── Procfile
+│   │   ├── Students/Add.cshtml
+│   │   ├── Students/Edit.cshtml    ← Género + prefs + TDAH config
+│   │   ├── Classroom/Index.cshtml  ← Two-panel, AJAX, typing indicator
+│   │   └── Shared/_Layout.cshtml   ← CSRF meta, body class, footer condicional
+│   ├── wwwroot/css/site.css
+│   └── Program.cs                  ← /api/demo endpoint público
 ├── railway.json
-├── nixpacks.toml
 ├── global.json
-├── .gitignore
 ├── CHANGES.md
-├── CONTEXT.md        ← este archivo
-└── PROJECT.md
+├── CONTEXT.md
+└── ROADMAP.md
 ```
-
----
-
-## Workflow de sesión
-```
-1. Pegar CONTEXT.md al inicio → Claude lee estado real
-2. Claude genera prompts → Copilot Agent ejecuta (modelo: GPT-5.4)
-3. Prompt incluye siempre: crear rama al inicio + commit al final + actualizar CHANGES.md
-4. Claude in Chrome → verificar comportamiento en vivo
-5. Un prompt = un commit con prefijo feat/fix/chore/style/docs
-6. Ramas: feature/xxx → develop → main (nunca directo a main). Copilot Agent SIEMPRE actualiza CONTEXT.md en el POST-CAMBIO de cada commit. No es opcional.
-7. Al cerrar sesión → actualizar CONTEXT.md + CHANGES.md
-```
-
----
-
-## Ramas
-| Rama | Propósito |
-|---|---|
-| `main` | Production → Railway auto-deploy |
-| `develop` | Integración |
-| `feature/dashboard-parent` | Dashboard padre con protección por sesión |
-| `feature/parent-profile` | Perfil padre — Nickname, ParentRole, página /Profile |
-| `feature/fix-login-flow` | Pendiente de mergear — fix magic link/login flow |
-| `feature/fix-landing-login-link` | Integra landing inclusivo + footer versionado + link a Login |
-| `feature/landing-inclusive` | Mergeada en `feature/fix-landing-login-link` |
-| `feature/version-footer` | Mergeada en `feature/fix-landing-login-link` |
 
 ---
 
@@ -195,54 +185,43 @@ mitutoria/
 
 ---
 
-## Costos actuales
-| Ítem | Costo |
+## Variables de entorno Railway
+| Variable | Uso |
 |---|---|
-| mitutoria.app (Porkbun) | $10.81/año |
-| Railway Hobby | ~$5/mes |
-| PostgreSQL Railway | incluido en Hobby |
-| Anthropic API | $0 (fase 3) |
-| **Total** | **~$6/mes** |
+| `ANTHROPIC_API_KEY` | Llamadas a Claude |
+| `RESEND_API_KEY` | Magic link emails |
+| `RESEND_FROM` | Remitente configurable (default: noreply@mitutoria.app) |
+| `APP_BASE_URL` | Base URL para magic links detrás de proxy |
+| `MONTHLY_TOKEN_LIMIT` | Límite mensual de tokens por familia (default: 500000) |
+| `MAX_MATERIAL_CHARS` | Límite de caracteres de material inyectado (default: 15000) |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL Railway |
 
 ---
 
-## Backlog — ideas anotadas (no urgentes)
-> Estas ideas son válidas pero van después de Fase 1.
-> No desviar la sesión hacia estas hasta tener el MVP funcionando.
-
+## Backlog — ideas anotadas
+- [ ] Botonera del aula: Modo Examen, Generar Quiz, Simulacro desde PDF
+- [ ] Botones contextuales mid-chat ("¿Querés un ejemplo?", "¿Lo vemos de otra forma?")
+- [ ] TTS y reconocimiento de voz (especialmente útil con TDAH)
+- [ ] Materias por aula con temas en accordion
+- [ ] Agenda con fechas de examen y registro de notas
+- [ ] Resumen de sesión para el padre (qué trabajó, qué logró)
+- [ ] PWA — instalar como app desde el celular (sin stores)
+- [ ] OCR para PDFs escaneados vía Claude Vision (registrar como `feature=pdf_ocr`)
+- [ ] Auth estudiante via slug: mitutoria.app/u/{apodo} → Fase 2
 - [ ] Ambiente staging (develop → staging.mitutoria.app)
-- [ ] Error tracking en DB (Serilog + tabla Errors)
-- [ ] Analytics de comportamiento (uso por aula, sesión, hijo)
-- [ ] TO-DO system para priorizar features (GitHub Projects)
-- [ ] BYOK (bring your own API key) para familias avanzadas
-- [ ] Marketplace de aulas / plantillas por materia
-- [ ] Idioma portugués para mercado Brasil
-- [ ] Docker local para dev aislado (bloqueado — Docker Desktop no arranca)
-- [ ] Auth estudiante via slug memorable: mitutoria.app/u/{apodo}
-  → "Hola {nombre}, ingresá tu email" → magic link → sesión estudiante
-  → Fase 2 — el padre solo comunica la URL, sin contraseñas ni emails recordados
+- [ ] Consentimiento parental explícito (condición legal antes de lanzar)
 
 ---
 
-## Migraciones aplicadas en Railway
-| Archivo | Contenido |
-|---|---|
-| `20260524233347_InitialCreate` | Tablas base: families, users, subjects, classrooms, messages |
-| `20260527221738_AddTokenEvents` | Tabla `billing.token_events` |
-| `20260528000817_AddMagicTokenToFamily` | Campos `MagicToken` y `MagicTokenExpiry` en `families` |
-| `20260530191338_AddStudentProfile` | Columnas `has_adhd`, `nickname`, `school_level`, `grade` en `users` |
-| `20260601000000_AddParentProfile` | Columnas `nickname`, `parent_role` en `families` |
-
-> `AddHasAdhdToUser` nunca existió como archivo separado — sus columnas están incluidas en `AddStudentProfile`.
+## POST-CAMBIO — Sesión 9
+- Classroom `/Classroom/{studentId}` — aula completa con Anthropic API integrada
+- Chat AJAX sin reload, typing indicator, burbujas con avatar, layout dos paneles
+- token_events registrado por cada mensaje (Feature=chat) y compactación (Feature=compact)
+- `/Students/Edit/{id}` — género, preferencias de aprendizaje, config TDAH con tacto
+- Prompt socrático v1 usa pronombres según género y ajusta según preferencias
+- Landing: demo en vivo (5 mensajes) + lista de espera cableada a DB
+- Diseño del modelo de créditos en ARS para Fase 2 (pendiente implementar)
 
 ---
 
-## POST-CAMBIO
-- Commit en `main`: `chore: sync CONTEXT.md with real migration state`
-- Estado de migraciones corregido: todas aplicadas, historial limpio
-- `/Students/Add` confirmado live en Railway
-- Bug de validación documentado como pendiente (línea 51-54 en `Add.cshtml.cs`)
-
----
-
-*Actualizado al cierre de Sesión 9*
+*Actualizado al cierre de Sesión 9 / inicio de Sesión 10*
