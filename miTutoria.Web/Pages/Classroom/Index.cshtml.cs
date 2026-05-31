@@ -14,6 +14,8 @@ using miTutoria.Web.Infrastructure;
 
 namespace miTutoria.Web.Pages.Classroom;
 
+[RequestSizeLimit(21 * 1024 * 1024)]
+[RequestFormLimits(MultipartBodyLengthLimit = 21 * 1024 * 1024)]
 public class IndexModel : PageModel
 {
     private const string ClaudeModel = "claude-haiku-4-5-20251001";
@@ -289,10 +291,13 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile, bool clearMaterial = false)
     {
         var student = await ResolveStudentAsync(studentId);
-        if (student is null) return RedirectToPage("/Login");
+        if (student is null)
+        {
+            if (pdfFile != null) return new JsonResult(new { error = "Sesión expirada." });
+            return RedirectToPage("/Login");
+        }
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
-
         bool materialNuevo = false;
 
         if (clearMaterial)
@@ -302,10 +307,8 @@ public class IndexModel : PageModel
         else if (pdfFile is { Length: > 0 })
         {
             if (pdfFile.Length > MaxUploadBytes)
-            {
-                ModelState.AddModelError(string.Empty, $"El PDF no puede superar los 5 MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB).");
-                return await ReloadPage(studentId);
-            }
+                return new JsonResult(new { error = $"El PDF no puede superar los 20 MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB)." });
+
             classroom.Material = ExtractPdfText(pdfFile);
             materialNuevo = true;
         }
@@ -322,14 +325,16 @@ public class IndexModel : PageModel
         await _dbContext.SaveChangesAsync();
 
         // Si se cargó material nuevo, el tutor lo reconoce con un mensaje al chat
+        string? ackReply = null;
         if (materialNuevo && !string.IsNullOrWhiteSpace(classroom.Material))
         {
             try
             {
                 var arsRate = await _exchangeRate.GetMepRateAsync();
                 var systemPrompt = BuildSystemPrompt(student, classroom);
-                var ack = $"El estudiante acaba de cargar material nuevo. Saludalo brevemente, mencioná en una línea de qué trata el material (sin spoilear ni resumir el contenido), y decile que estás listo para arrancar cuando quiera. Máximo 3 líneas, tono cálido y entusiasta.";
+                var ack = "El estudiante acaba de cargar material nuevo. Saludalo brevemente, mencioná en una línea de qué trata el material (sin spoilear ni resumir el contenido), y decile que estás listo para arrancar cuando quiera. Máximo 3 líneas, tono cálido y entusiasta.";
                 var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(systemPrompt, ack, maxTokens: 200);
+                ackReply = reply;
 
                 _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
                 _dbContext.TokenEvents.Add(new TokenEvent
@@ -343,6 +348,10 @@ public class IndexModel : PageModel
             }
             catch { /* no romper el flujo si el ack falla */ }
         }
+
+        // PDF viene vía AJAX — responder con JSON
+        if (pdfFile != null)
+            return new JsonResult(new { chars = classroom.Material?.Length ?? 0, reply = ackReply });
 
         return RedirectToPage(new { studentId });
     }

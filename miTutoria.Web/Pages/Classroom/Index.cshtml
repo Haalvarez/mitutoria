@@ -19,8 +19,7 @@
                     🔥 @Model.StreakDays
                 </span>
             }
-            <form method="post" asp-page-handler="NewSession"
-                  onsubmit="return confirm('¿Borrar todo? Mensajes, material y resumen se eliminan.')">
+            <form method="post" asp-page-handler="NewSession">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
                 <button type="submit" class="sidebar-new-session" title="Nueva sesión">↺</button>
             </form>
@@ -39,14 +38,12 @@
             <summary>
                 <span>@(string.IsNullOrEmpty(Model.Material) ? "＋ Material" : "📄 Material cargado")</span>
             </summary>
-            @* PDF — auto-submit al seleccionar *@
-            <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data"
-                  class="sidebar-form" id="form-pdf">
-                <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <label class="sidebar-label">Subir PDF <small>(máx. 20 MB)</small></label>
+            @* PDF — upload AJAX *@
+            <div class="sidebar-form" id="pdf-section">
+                <label class="sidebar-label" for="pdf-input">Subir PDF <small>(máx. 20 MB)</small></label>
                 <input type="file" name="PdfFile" accept="application/pdf" id="pdf-input" />
-                <p class="sidebar-hint" id="pdf-uploading" style="display:none;">Subiendo...</p>
-            </form>
+                <div id="pdf-status" style="display:none;" class="sidebar-hint"></div>
+            </div>
 
             @* Texto pegado — con botón Guardar *@
             <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data"
@@ -183,11 +180,45 @@ function addBubble(text, role) {
     scrollBottom();
 }
 
-// Auto-submit PDF al seleccionar archivo
-document.getElementById('pdf-input').addEventListener('change', function() {
-    if (this.files.length > 0) {
-        document.getElementById('pdf-uploading').style.display = 'block';
-        document.getElementById('form-pdf').submit();
+// Upload PDF vía AJAX
+document.getElementById('pdf-input').addEventListener('change', async function() {
+    if (!this.files.length) return;
+    const file = this.files[0];
+    const statusEl = document.getElementById('pdf-status');
+    const input = this;
+
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Subiendo y leyendo el PDF…';
+    input.disabled = true;
+
+    const formData = new FormData();
+    formData.append('StudentId', studentId);
+    formData.append('PdfFile', file);
+
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=SaveMaterial`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': csrf() },
+            body: formData
+        });
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        if (data.error) {
+            statusEl.textContent = data.error;
+        } else {
+            statusEl.textContent = '✓ ' + (data.chars ? `${data.chars.toLocaleString()} caracteres cargados` : 'Material cargado');
+            // Actualizar label del accordion
+            document.querySelector('.sidebar-panel summary span').textContent = '📄 Material cargado';
+            if (data.reply) {
+                messagesEl.querySelector('.empty-state')?.remove();
+                addBubble(data.reply, 'assistant');
+            }
+        }
+    } catch(e) {
+        statusEl.textContent = 'Error al subir. Intentá de nuevo.';
+    } finally {
+        input.disabled = false;
+        input.value = '';
     }
 });
 
