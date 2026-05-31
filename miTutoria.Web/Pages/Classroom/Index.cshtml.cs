@@ -52,11 +52,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostSendAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
 
         var content = Request.Form["content"].ToString().Trim();
         if (string.IsNullOrWhiteSpace(content))
@@ -65,7 +62,7 @@ public class IndexModel : PageModel
         var classroom = await GetOrCreateClassroomAsync(studentId);
 
         var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
-        if (await GetMonthlyTokensAsync(familyId.Value) >= monthlyLimit)
+        if (await GetMonthlyTokensAsync(student.FamilyId) >= monthlyLimit)
             return new JsonResult(new { error = "limit", reply = "Alcanzaste el límite mensual de uso." }) { StatusCode = 429 };
 
         try
@@ -81,7 +78,7 @@ public class IndexModel : PageModel
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = familyId.Value,
+                FamilyId = student.FamilyId,
                 UserId = student.Id,
                 TokensIn = tokensIn,
                 TokensOut = tokensOut,
@@ -102,11 +99,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
@@ -127,11 +121,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
@@ -145,7 +136,7 @@ public class IndexModel : PageModel
         var classroom = await GetOrCreateClassroomAsync(studentId);
 
         var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
-        if (await GetMonthlyTokensAsync(familyId.Value) >= monthlyLimit)
+        if (await GetMonthlyTokensAsync(student.FamilyId) >= monthlyLimit)
         {
             ModelState.AddModelError(string.Empty, "Se alcanzó el límite mensual de uso.");
             return await ReloadPage(studentId);
@@ -163,7 +154,7 @@ public class IndexModel : PageModel
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = familyId.Value,
+                FamilyId = student.FamilyId,
                 UserId = student.Id,
                 TokensIn = tokensIn,
                 TokensOut = tokensOut,
@@ -187,11 +178,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostQuizAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
         if (string.IsNullOrWhiteSpace(classroom.Material))
@@ -220,7 +208,7 @@ public class IndexModel : PageModel
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = familyId.Value, UserId = student.Id,
+                FamilyId = student.FamilyId, UserId = student.Id,
                 TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
                 Feature = "quiz", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
                 ArsRate = arsRate
@@ -238,11 +226,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostFlashcardsAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
         if (string.IsNullOrWhiteSpace(classroom.Material))
@@ -271,7 +256,7 @@ public class IndexModel : PageModel
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = familyId.Value, UserId = student.Id,
+                FamilyId = student.FamilyId, UserId = student.Id,
                 TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
                 Feature = "flashcards", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
                 ArsRate = arsRate
@@ -289,8 +274,9 @@ public class IndexModel : PageModel
 
     public IActionResult OnPostToggleExam(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+        var hasSession = HttpContext.Session.GetInt32("StudentId").HasValue ||
+                         HttpContext.Session.GetInt32("FamilyId").HasValue;
+        if (!hasSession) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
 
         var key = $"ExamMode_{studentId}";
         var current = HttpContext.Session.GetString(key) == "1";
@@ -302,11 +288,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile, bool clearMaterial = false)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
 
@@ -336,11 +319,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostSavePromptAsync(int studentId, string? customPrompt)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         var classroom = await GetOrCreateClassroomAsync(studentId);
         classroom.SystemPrompt = string.IsNullOrWhiteSpace(customPrompt) ? string.Empty : customPrompt.Trim();
@@ -353,11 +333,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCompactAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         var classroom = await _dbContext.Classrooms
             .Include(c => c.Messages)
@@ -376,7 +353,7 @@ public class IndexModel : PageModel
             _dbContext.Messages.RemoveRange(classroom.Messages);
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = familyId.Value,
+                FamilyId = student.FamilyId,
                 UserId = student.Id,
                 TokensIn = tokensIn,
                 TokensOut = tokensOut,
@@ -399,11 +376,8 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostNewSessionAsync(int studentId)
     {
-        var familyId = HttpContext.Session.GetInt32("FamilyId");
-        if (familyId is null) return RedirectToPage("/Login");
-
-        var student = await GetStudentAsync(studentId, familyId.Value);
-        if (student is null) return RedirectToPage("/Dashboard");
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
 
         var classroom = await _dbContext.Classrooms
             .Include(c => c.Messages)
@@ -638,6 +612,25 @@ public class IndexModel : PageModel
         for (int i = 1; i <= pdf.GetNumberOfPages(); i++)
             sb.AppendLine(PdfTextExtractor.GetTextFromPage(pdf.GetPage(i)));
         return sb.ToString().Trim();
+    }
+
+    // Acepta sesión de alumno (/Entrar) o sesión de padre (/Login)
+    private async Task<User?> ResolveStudentAsync(int studentId)
+    {
+        var studentSessionId = HttpContext.Session.GetInt32("StudentId");
+        if (studentSessionId.HasValue)
+        {
+            // Alumno logueado: solo puede acceder a su propio aula
+            if (studentSessionId.Value != studentId) return null;
+            return await _dbContext.Users.SingleOrDefaultAsync(u =>
+                u.Id == studentId && u.Role == UserRole.Student);
+        }
+
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return null;
+
+        return await _dbContext.Users.SingleOrDefaultAsync(u =>
+            u.Id == studentId && u.FamilyId == familyId.Value && u.Role == UserRole.Student);
     }
 
     private async Task<User?> GetStudentAsync(int studentId, int familyId) =>

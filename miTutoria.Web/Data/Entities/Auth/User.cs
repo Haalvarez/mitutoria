@@ -21,6 +21,9 @@ public class User
     public int FamilyId { get; set; }
     public Family Family { get; set; } = null!;
 
+    // Login del alumno (generado por el padre)
+    public string? StudentUsername { get; set; }
+
     // Perfil estudiante
     public SchoolLevel SchoolLevel { get; set; }
     public int? Grade { get; set; }

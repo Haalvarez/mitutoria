@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,9 @@ public class EditModel : PageModel
     [BindProperty] public ExplanationLevel ExplanationLevel { get; set; }
     [BindProperty] public bool PrefOneQuestionOnly { get; set; }
     [BindProperty] public bool PrefRefocusReminder { get; set; }
+    [BindProperty] public string? StudentUsername { get; set; }
+    [BindProperty] public string? StudentPin { get; set; }
+    public bool HasStudentAccess { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
@@ -70,6 +74,32 @@ public class EditModel : PageModel
         student.ExplanationLevel = HasAdhd ? ExplanationLevel : ExplanationLevel.AcordeAlAño;
         student.PrefOneQuestionOnly = HasAdhd && PrefOneQuestionOnly;
         student.PrefRefocusReminder = HasAdhd && PrefRefocusReminder;
+
+        // Acceso del alumno
+        if (!string.IsNullOrWhiteSpace(StudentUsername))
+        {
+            var slug = StudentUsername.Trim().ToLowerInvariant();
+            var taken = await _dbContext.Users.AnyAsync(u =>
+                u.StudentUsername == slug && u.Id != student.Id);
+            if (taken)
+            {
+                ModelState.AddModelError(nameof(StudentUsername), "Ese usuario ya está en uso. Elegí otro.");
+                LoadFromStudent(student);
+                return Page();
+            }
+            student.StudentUsername = slug;
+        }
+
+        if (!string.IsNullOrWhiteSpace(StudentPin))
+        {
+            if (StudentPin.Length < 4)
+            {
+                ModelState.AddModelError(nameof(StudentPin), "El PIN debe tener al menos 4 dígitos.");
+                LoadFromStudent(student);
+                return Page();
+            }
+            student.PasswordHash = new PasswordHasher<User>().HashPassword(student, StudentPin);
+        }
 
         try
         {
@@ -167,6 +197,9 @@ public class EditModel : PageModel
         ExplanationLevel = student.ExplanationLevel;
         PrefOneQuestionOnly = student.PrefOneQuestionOnly;
         PrefRefocusReminder = student.PrefRefocusReminder;
+        StudentUsername = student.StudentUsername;
+        HasStudentAccess = !string.IsNullOrEmpty(student.StudentUsername) &&
+                           !string.IsNullOrEmpty(student.PasswordHash);
     }
 
     private async Task<User?> GetStudentAsync(int studentId, int familyId) =>

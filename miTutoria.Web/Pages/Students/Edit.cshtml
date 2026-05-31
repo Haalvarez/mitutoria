@@ -137,6 +137,38 @@
             </div>
         </section>
 
+        @* ── Acceso del alumno ── *@
+        <section class="edit-section" style="margin-top:1.5rem;">
+            <h2 class="edit-section__title">Acceso del alumno</h2>
+            @if (Model.HasStudentAccess)
+            {
+                <p class="edit-section__desc" style="color:var(--sage,#4a7c6b);">
+                    ✅ @Model.FullName puede entrar en <strong>mitutoria.app/Entrar</strong> con usuario <strong>@Model.StudentUsername</strong> y su PIN.
+                </p>
+            }
+            else
+            {
+                <p class="edit-section__desc">
+                    Creá un usuario y PIN para que @Model.FullName pueda entrar al aula desde <strong>mitutoria.app/Entrar</strong> sin necesitar el mail de la familia.
+                </p>
+            }
+            <div class="form-field">
+                <label for="StudentUsername">Usuario (sin espacios, minúsculas)</label>
+                <input id="StudentUsername" name="StudentUsername" type="text"
+                       value="@Model.StudentUsername"
+                       placeholder="ej: vika, dasha, egor"
+                       autocapitalize="none" pattern="[a-z0-9_\-]+" />
+                <small style="color:var(--dust); font-size:0.78rem;">Solo letras minúsculas, números, guiones. Único en todo el sistema.</small>
+            </div>
+            <div class="form-field">
+                <label for="StudentPin">PIN (4–8 dígitos)</label>
+                <input id="StudentPin" name="StudentPin" type="text"
+                       placeholder="Dejá vacío para no cambiar el PIN actual"
+                       inputmode="numeric" maxlength="8" autocomplete="new-password" />
+                <small style="color:var(--dust); font-size:0.78rem;">Si ya tiene PIN y no querés cambiarlo, dejá este campo vacío.</small>
+            </div>
+        </section>
+
         <div class="form-actions" style="margin-top:1.5rem;">
             <button type="submit" class="btn-main">Guardar cambios</button>
         </div>

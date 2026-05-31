@@ -1,0 +1,42 @@
+@page "/Entrar"
+@model miTutoria.Web.Pages.EntrarModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Entrar al aula";
+}
+
+<main class="page-main" style="max-width: 400px;">
+    <div style="text-align:center; margin-bottom:2rem;">
+        <h1 style="font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:900;">Tu aula</h1>
+        <p style="color:var(--dust); font-size:0.9rem;">Ingresá con tu usuario y PIN</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            { <p>@error.ErrorMessage</p> }
+        </div>
+    }
+
+    <form method="post" class="login-form">
+        <div class="form-field">
+            <label for="Username">Usuario</label>
+            <input id="Username" name="Username" type="text"
+                   placeholder="tu nombre de usuario"
+                   autocomplete="username" autocapitalize="none" required />
+        </div>
+        <div class="form-field">
+            <label for="Pin">PIN</label>
+            <input id="Pin" name="Pin" type="password"
+                   placeholder="••••••"
+                   autocomplete="current-password"
+                   inputmode="numeric" maxlength="8" required />
+        </div>
+        <button type="submit" class="btn-main" style="width:100%; margin-top:0.5rem;">Entrar</button>
+    </form>
+
+    <p style="margin-top:2rem; text-align:center; font-size:0.82rem; color:var(--dust);">
+        ¿Sos el padre o la madre? <a href="/Login">Accedé acá</a>
+    </p>
+</main>
