@@ -261,7 +261,7 @@ public class IndexModel : PageModel
 
     private async Task<long> GetMonthlyTokensAsync(int familyId)
     {
-        var start = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        var start = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         return await _dbContext.TokenEvents
             .Where(t => t.FamilyId == familyId && t.CreatedAt >= start)
             .SumAsync(t => (long)t.TokensIn + t.TokensOut);

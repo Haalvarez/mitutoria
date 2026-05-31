@@ -50,7 +50,7 @@ public class IndexModel : PageModel
         Students = family.Users.OrderBy(u => u.FullName).ToList();
 
         var now = DateTime.UtcNow;
-        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
 
         var events = await _dbContext.TokenEvents
