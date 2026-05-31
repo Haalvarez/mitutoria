@@ -74,7 +74,7 @@ public class EditModel : PageModel
         try
         {
             await _dbContext.SaveChangesAsync();
-            return RedirectToPage("/Dashboard");
+            return RedirectToPage("/Dashboard/Index");
         }
         catch (Exception ex)
         {
