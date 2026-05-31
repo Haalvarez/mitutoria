@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -30,6 +31,9 @@ public class IndexModel : PageModel
     public long TotalTokensMonth { get; private set; }
     public decimal TotalCostMonth { get; private set; }
     public int DaysInMonth { get; private set; }
+    public string ChartJson { get; private set; } = "{}";
+
+    private static readonly string[] ChartColors = { "#C94A1F", "#5C7A5E", "#A89880", "#4A7CA0", "#8A6A9A" };
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -76,6 +80,25 @@ public class IndexModel : PageModel
             });
         }
 
+        BuildChartJson();
         return Page();
+    }
+
+    private void BuildChartJson()
+    {
+        var labels = Enumerable.Range(1, DaysInMonth).Select(d => d.ToString()).ToArray();
+        var datasets = UsageByStudent.Select((u, i) => new
+        {
+            label = u.Name,
+            data = Enumerable.Range(1, DaysInMonth)
+                             .Select(d => u.TokensByDay.TryGetValue(d, out var v) ? v : 0L)
+                             .ToArray(),
+            backgroundColor = ChartColors[i % ChartColors.Length] + "99",
+            borderColor = ChartColors[i % ChartColors.Length],
+            borderWidth = 1,
+            borderRadius = 2
+        }).ToArray();
+
+        ChartJson = JsonSerializer.Serialize(new { labels, datasets });
     }
 }

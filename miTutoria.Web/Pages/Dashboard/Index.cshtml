@@ -1,26 +1,8 @@
 @page "/Dashboard"
 @model miTutoria.Web.Pages.Dashboard.IndexModel
-@using System.Text.Json
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Dashboard";
-
-    var colors = new[] { "#C94A1F", "#5C7A5E", "#A89880", "#4A7CA0", "#8A6A9A" };
-
-    var labels = Enumerable.Range(1, Model.DaysInMonth).Select(d => d.ToString()).ToArray();
-
-    var datasets = Model.UsageByStudent.Select((u, i) => new {
-        label = u.Name,
-        data = Enumerable.Range(1, Model.DaysInMonth)
-                         .Select(d => u.TokensByDay.TryGetValue(d, out var v) ? v : 0)
-                         .ToArray(),
-        backgroundColor = colors[i % colors.Length] + "99",
-        borderColor = colors[i % colors.Length],
-        borderWidth = 1,
-        borderRadius = 2
-    }).ToArray();
-
-    var chartJson = JsonSerializer.Serialize(new { labels, datasets });
 }
 
 <main class="page-main">
@@ -96,7 +78,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-    const data = @Html.Raw(chartJson);
+    const data = @Html.Raw(Model.ChartJson);
     new Chart(document.getElementById('usageChart'), {
         type: 'bar',
         data: data,
