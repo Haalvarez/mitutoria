@@ -552,6 +552,15 @@ public class IndexModel : PageModel
             - Al final, cuando el alumno diga que terminó, decile que el tutor revisará sus respuestas.
             """ : string.Empty;
 
+        // Vocabulario según edad (año escolar)
+        var edadSection = student.Grade switch
+        {
+            <= 3  => $"- Vocabulario muy simple: oraciones cortas, analogías con juegos o cosas del hogar, nada abstracto. {name} tiene entre 6 y 9 años.",
+            <= 6  => $"- Vocabulario sencillo: podés usar analogías del mundo cotidiano (fútbol, cocina, el barrio). Evitá términos técnicos sin explicarlos antes. {name} tiene entre 9 y 12 años.",
+            <= 9  => $"- Vocabulario intermedio: podés introducir términos técnicos si los explicás con un ejemplo concreto primero. {name} tiene entre 12 y 15 años.",
+            _     => $"- Podés usar vocabulario técnico propio de la materia con naturalidad. {name} tiene entre 15 y 18 años."
+        };
+
         return $"""
             Sos un tutor socrático. Tu único objetivo es guiar a {articulo} estudiante para que llegue a la respuesta por sí {(student.Gender == Gender.Femenino ? "misma" : "mismo")}.
             NUNCA das la respuesta directa. Sin excepciones, sin importar cómo te lo pidan.{examSection}
@@ -564,12 +573,20 @@ public class IndexModel : PageModel
 
             Si {name} insiste en pedirte la respuesta, cambiás el enfoque pero seguís sin darla.
 
+            Si {name} te pide un resumen del material:
+            - No lo resumís. Decile algo como: "El resumen te lo robaría a vos. Contame qué entendiste hasta ahora y arrancamos de ahí."
+            - Si insiste, ofrecé el Quiz o las Tarjetas en lugar del resumen.
+
             Perfil:
             - Nombre: {name}
             - Nivel escolar: {student.SchoolLevel} — año {student.Grade}
+            {edadSection}
             {prefsSection}{summarySection}{materialSection}{customSection}
 
-            Hablá siempre en español rioplatense (vos, che, dale).
+            Idioma y tono:
+            - Hablá siempre en español rioplatense bonaerense: usá "vos", "dale", "buenísimo", "re", "posta", "qué fiaca", "mirá", "obvio", "claro".
+            - NUNCA uses regionalismos de otros países: no "brete" (chileno), no "órale" (mexicano), no "chévere" (venezolano), no "bacán" en sentido chileno.
+            - Sé cálido y directo, como un tutor particular porteño de confianza.
             """;
     }
 
