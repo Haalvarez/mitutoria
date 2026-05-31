@@ -236,26 +236,26 @@ public class IndexModel : PageModel
             return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para que pueda armar las tarjetas." });
 
         var material = classroom.Material.Length > 10_000 ? classroom.Material[..10_000] : classroom.Material;
+        var jsonExample = """[{"front":"pregunta o concepto","back":"respuesta o definición concisa"},...]""";
         var userMsg = $"""
-            Generá 8 tarjetas de estudio (flashcards) basadas en este material:
+            Generá 8 tarjetas de estudio basadas en este material:
             ---
             {material}
             ---
-            Formato exacto para cada tarjeta:
-            🃏 **FRENTE:** [concepto, término o pregunta clave]
-            **DORSO:** [definición, explicación o respuesta — 1 a 2 líneas]
-
-            Elegí los conceptos más importantes. Sin introducciones ni cierre.
+            Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin bloques de código.
+            Formato exacto (8 objetos con claves "front" y "back"): {jsonExample}
+            Elegí los 8 conceptos más importantes del material.
             """;
 
         try
         {
-            var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
-                "Sos un generador de tarjetas de estudio (flashcards). Respondé solo con las tarjetas.",
-                userMsg, maxTokens: 900);
+            var (raw, tokensIn, tokensOut) = await CallClaudeRawAsync(
+                "Sos un generador de tarjetas de estudio. Respondés solo con JSON válido, nada más.",
+                userMsg, maxTokens: 1200);
             var arsRate = await _exchangeRate.GetMepRateAsync();
 
-            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+            // Guardar texto plano en historial como respaldo
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = raw });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
                 FamilyId = student.FamilyId, UserId = student.Id,
@@ -264,7 +264,17 @@ public class IndexModel : PageModel
                 ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
-            return new JsonResult(new { reply });
+
+            // Intentar parsear JSON; si falla, devolver como texto plano
+            try
+            {
+                using var parsed = JsonDocument.Parse(raw.Trim());
+                return new JsonResult(new { type = "flashcards", cards = parsed.RootElement });
+            }
+            catch
+            {
+                return new JsonResult(new { reply = raw });
+            }
         }
         catch (Exception ex)
         {
@@ -480,7 +490,7 @@ public class IndexModel : PageModel
         {
             model = ClaudeModel,
             max_tokens = purpose == "compact" ? 512 : 1024,
-            system = systemPrompt,
+            system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } },
             messages = messagesPayload
         });
 
@@ -506,7 +516,7 @@ public class IndexModel : PageModel
         {
             model = ClaudeModel,
             max_tokens = maxTokens,
-            system = systemPrompt,
+            system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } },
             messages = new[] { new { role = "user", content = userMessage } }
         });
 

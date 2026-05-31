@@ -695,6 +695,19 @@ footer{
   color: var(--dust);
 }
 
+/* Flashcards */
+.flashcards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;padding:.5rem 0}
+.flashcard{perspective:800px;height:160px;cursor:pointer}
+.flashcard__inner{position:relative;width:100%;height:100%;transition:transform .45s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d}
+.flashcard.flipped .flashcard__inner{transform:rotateY(180deg)}
+.flashcard__face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;padding:1rem 1.2rem;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.flashcard__face--front{background:#fff;border:1.5px solid #e5e0d8}
+.flashcard__face--back{background:var(--sage,#7a9e87);color:#fff;transform:rotateY(180deg)}
+.flashcard__label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.5;margin-bottom:.4rem}
+.flashcard__text{font-size:.9rem;line-height:1.5}
+.flashcard__face--back .flashcard__label{opacity:.7}
+.flashcard-hint{font-size:.75rem;color:#888;text-align:center;margin-top:.4rem}
+
 /* Student cards */
 .student-cards {
   display: grid;

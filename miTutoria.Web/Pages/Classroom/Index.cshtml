@@ -240,14 +240,51 @@ async function toolbarAction(handler, label) {
         if (res.status === 401) { location.href = '/Login'; return; }
         const data = await res.json();
         typing.style.display = 'none';
-        if (data.reply) addBubble(data.reply, 'assistant');
-        else addBubble('Error: ' + (data.error ?? 'sin respuesta'), 'assistant');
+        if (data.type === 'flashcards') {
+            addFlashcards(data.cards);
+        } else if (data.reply) {
+            addBubble(data.reply, 'assistant');
+        } else {
+            addBubble('Error: ' + (data.error ?? 'sin respuesta'), 'assistant');
+        }
     } catch(e) {
         typing.style.display = 'none';
         addBubble('Error de conexión. Intentá de nuevo.', 'assistant');
     } finally {
         btnQuiz.disabled = btnCards.disabled = btnExam.disabled = false;
     }
+}
+
+function addFlashcards(cards) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--assistant';
+    wrap.innerHTML = `
+        <div class="msg__avatar msg__avatar--assistant">T</div>
+        <div class="msg__body">
+            <span class="msg__label">Tutor</span>
+            <div class="flashcards-grid"></div>
+            <p class="flashcard-hint">Tocá cada tarjeta para ver la respuesta</p>
+        </div>`;
+    const grid = wrap.querySelector('.flashcards-grid');
+    cards.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'flashcard';
+        card.innerHTML = `
+            <div class="flashcard__inner">
+                <div class="flashcard__face flashcard__face--front">
+                    <span class="flashcard__label">Frente</span>
+                    <p class="flashcard__text">${c.front}</p>
+                </div>
+                <div class="flashcard__face flashcard__face--back">
+                    <span class="flashcard__label">Dorso</span>
+                    <p class="flashcard__text">${c.back}</p>
+                </div>
+            </div>`;
+        card.addEventListener('click', () => card.classList.toggle('flipped'));
+        grid.appendChild(card);
+    });
+    messagesEl.insertBefore(wrap, typing);
+    scrollBottom();
 }
 
 btnQuiz.addEventListener('click', () => toolbarAction('Quiz', 'Quiz'));
