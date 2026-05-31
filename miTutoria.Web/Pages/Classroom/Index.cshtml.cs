@@ -309,7 +309,10 @@ public class IndexModel : PageModel
             if (pdfFile.Length > MaxUploadBytes)
                 return new JsonResult(new { error = $"El PDF no puede superar los 20 MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB)." });
 
-            classroom.Material = ExtractPdfText(pdfFile);
+            var extracted = ExtractPdfText(pdfFile);
+            if (string.IsNullOrWhiteSpace(extracted))
+                return new JsonResult(new { error = "No pude extraer texto de ese PDF. Puede ser una imagen escaneada. Probá pegando el texto directamente." });
+            classroom.Material = extracted;
             materialNuevo = true;
         }
         else if (!string.IsNullOrWhiteSpace(material))
