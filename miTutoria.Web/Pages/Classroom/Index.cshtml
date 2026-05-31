@@ -39,11 +39,20 @@
             <summary>
                 <span>@(string.IsNullOrEmpty(Model.Material) ? "＋ Material" : "📄 Material cargado")</span>
             </summary>
-            <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data" class="sidebar-form">
+            @* PDF — auto-submit al seleccionar *@
+            <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data"
+                  class="sidebar-form" id="form-pdf">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <label class="sidebar-label">Subir PDF <small>(máx. 5 MB)</small></label>
-                <input type="file" name="PdfFile" accept="application/pdf" />
-                <label class="sidebar-label" style="margin-top:.6rem;">O pegá el texto</label>
+                <label class="sidebar-label">Subir PDF <small>(máx. 20 MB)</small></label>
+                <input type="file" name="PdfFile" accept="application/pdf" id="pdf-input" />
+                <p class="sidebar-hint" id="pdf-uploading" style="display:none;">Subiendo...</p>
+            </form>
+
+            @* Texto pegado — con botón Guardar *@
+            <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data"
+                  class="sidebar-form" style="margin-top:.6rem;">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <label class="sidebar-label">O pegá el texto</label>
                 <textarea name="Material" rows="5" placeholder="Enunciado, fotocopia...">@Model.Material</textarea>
                 @if (!string.IsNullOrEmpty(Model.Material))
                 {
@@ -173,6 +182,14 @@ function addBubble(text, role) {
     messagesEl.insertBefore(div, typing);
     scrollBottom();
 }
+
+// Auto-submit PDF al seleccionar archivo
+document.getElementById('pdf-input').addEventListener('change', function() {
+    if (this.files.length > 0) {
+        document.getElementById('pdf-uploading').style.display = 'block';
+        document.getElementById('form-pdf').submit();
+    }
+});
 
 const btnQuiz  = document.getElementById('btn-quiz');
 const btnCards = document.getElementById('btn-cards');

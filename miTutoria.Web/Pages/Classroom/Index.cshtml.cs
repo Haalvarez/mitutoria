@@ -19,7 +19,7 @@ public class IndexModel : PageModel
     private const string ClaudeModel = "claude-haiku-4-5-20251001";
     private const decimal CostPerInputToken  = 0.80m  / 1_000_000;
     private const decimal CostPerOutputToken = 4.00m  / 1_000_000;
-    private const int MaxUploadBytes = 5 * 1024 * 1024; // 5 MB
+    private const int MaxUploadBytes = 20 * 1024 * 1024; // 20 MB
 
     private readonly AppDbContext _dbContext;
     private readonly IHttpClientFactory _httpClientFactory;
