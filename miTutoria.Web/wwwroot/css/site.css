@@ -923,3 +923,70 @@ footer{
   color: var(--ink);
   white-space: pre-wrap;
 }
+
+/* ── Student edit ── */
+.edit-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.edit-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.edit-section__desc {
+  font-size: 0.85rem;
+  color: var(--dust);
+  margin-bottom: 1rem;
+}
+
+.pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pref-item {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  background: var(--warm);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.pref-item input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rust);
+  flex-shrink: 0;
+}
+
+.pref-item strong {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.15rem;
+}
+
+.pref-item span {
+  font-size: 0.82rem;
+  color: var(--dust);
+  line-height: 1.4;
+}
+
+.pref-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pref-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--rust);
+}

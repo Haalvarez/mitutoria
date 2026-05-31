@@ -1,0 +1,150 @@
+@page "/Students/Edit/{studentId:int}"
+@model miTutoria.Web.Pages.Students.EditModel
+@using miTutoria.Web.Data.Entities.Auth
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Editar perfil de " + Model.FullName;
+}
+
+<main class="page-main">
+    <div class="dashboard-header">
+        <h1>Editar perfil</h1>
+        <div class="dashboard-nav-links"><a href="/Dashboard">← Volver</a></div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            { <p>@error.ErrorMessage</p> }
+        </div>
+    }
+
+    <form method="post">
+        <input type="hidden" name="StudentId" value="@Model.StudentId" />
+
+        @* ── Datos básicos ── *@
+        <section class="edit-section">
+            <h2 class="edit-section__title">Datos básicos</h2>
+
+            <div class="form-field">
+                <label for="FullName">Nombre completo</label>
+                <input id="FullName" name="FullName" type="text" value="@Model.FullName" required />
+            </div>
+            <div class="form-field">
+                <label for="Nickname">Apodo (opcional)</label>
+                <input id="Nickname" name="Nickname" type="text" value="@Model.Nickname" />
+            </div>
+            <div class="form-field">
+                <label for="Gender">Género</label>
+                <select id="Gender" name="Gender">
+                    <option value="NoEspecificado" selected="@(Model.Gender == Gender.NoEspecificado)">No especificado</option>
+                    <option value="Femenino"       selected="@(Model.Gender == Gender.Femenino)">Femenino</option>
+                    <option value="Masculino"      selected="@(Model.Gender == Gender.Masculino)">Masculino</option>
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="SchoolLevel">Nivel</label>
+                <select id="SchoolLevel" name="SchoolLevel">
+                    <option value="Primario"   selected="@(Model.SchoolLevel == SchoolLevel.Primario)">Primario</option>
+                    <option value="Secundario" selected="@(Model.SchoolLevel == SchoolLevel.Secundario)">Secundario</option>
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="Grade">Año</label>
+                <input id="Grade" name="Grade" type="number" min="1" max="7" value="@Model.Grade" required />
+            </div>
+            <div class="form-field pref-row">
+                <input id="HasAdhd" name="HasAdhd" type="checkbox" value="true" @(Model.HasAdhd ? "checked" : "") />
+                <label for="HasAdhd">Tiene TDAH</label>
+            </div>
+        </section>
+
+        @* ── Estilo de aprendizaje ── *@
+        <section class="edit-section">
+            <h2 class="edit-section__title">Estilo de aprendizaje</h2>
+            <p class="edit-section__desc">Estas opciones ajustan cómo el tutor le habla a tu hijo/a. Podés activar las que mejor lo describan.</p>
+
+            <div class="pref-list">
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefShortMessages" value="true" @(Model.PrefShortMessages ? "checked" : "") />
+                    <div>
+                        <strong>Mensajes muy cortos</strong>
+                        <span>El tutor explica un solo concepto por mensaje, sin párrafos largos.</span>
+                    </div>
+                </label>
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefVisualExamples" value="true" @(Model.PrefVisualExamples ? "checked" : "") />
+                    <div>
+                        <strong>Ejemplos concretos y visuales</strong>
+                        <span>Antes de explicar algo abstracto, el tutor da un ejemplo del mundo real.</span>
+                    </div>
+                </label>
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefFrequentPraise" value="true" @(Model.PrefFrequentPraise ? "checked" : "") />
+                    <div>
+                        <strong>Celebrar cada avance</strong>
+                        <span>El tutor reconoce cada paso bien dado, no solo el resultado final.</span>
+                    </div>
+                </label>
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefExtraPatience" value="true" @(Model.PrefExtraPatience ? "checked" : "") />
+                    <div>
+                        <strong>Paciencia extra ante la frustración</strong>
+                        <span>Si el estudiante se traba, el tutor cambia el enfoque en lugar de repetir lo mismo.</span>
+                    </div>
+                </label>
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefSlowPace" value="true" @(Model.PrefSlowPace ? "checked" : "") />
+                    <div>
+                        <strong>Ritmo lento — esperar confirmación</strong>
+                        <span>El tutor no avanza al siguiente paso hasta que el estudiante confirme que entendió.</span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        @* ── Opciones TDAH ── *@
+        <section class="edit-section" id="tdah-section" style="@(Model.HasAdhd ? "" : "display:none")">
+            <h2 class="edit-section__title">Configuración TDAH</h2>
+            <p class="edit-section__desc">Estas opciones están pensadas especialmente para estudiantes con TDAH.</p>
+
+            <div class="form-field">
+                <label for="ExplanationLevel">Nivel de las explicaciones</label>
+                <select id="ExplanationLevel" name="ExplanationLevel">
+                    <option value="AcordeAlAño"    selected="@(Model.ExplanationLevel == ExplanationLevel.AcordeAlAño)">Acorde a su año escolar</option>
+                    <option value="UnPocoBasico"   selected="@(Model.ExplanationLevel == ExplanationLevel.UnPocoBasico)">Un poco más básico — ejemplos más simples</option>
+                    <option value="BastanteBasico" selected="@(Model.ExplanationLevel == ExplanationLevel.BastanteBasico)">Bastante más básico — paso a paso desde el principio</option>
+                </select>
+                <small style="color:var(--dust); font-size:0.8rem;">Ajusta qué tan básicas son las explicaciones sin cambiar el contenido del año.</small>
+            </div>
+
+            <div class="pref-list" style="margin-top:1rem;">
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefOneQuestionOnly" value="true" @(Model.PrefOneQuestionOnly ? "checked" : "") />
+                    <div>
+                        <strong>Una sola pregunta por mensaje</strong>
+                        <span>El tutor nunca hace más de una pregunta a la vez para no abrumar.</span>
+                    </div>
+                </label>
+                <label class="pref-item">
+                    <input type="checkbox" name="PrefRefocusReminder" value="true" @(Model.PrefRefocusReminder ? "checked" : "") />
+                    <div>
+                        <strong>Recordar el tema si se desvía</strong>
+                        <span>Si el estudiante cambia de tema, el tutor lo trae amablemente de vuelta.</span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <div class="form-actions" style="margin-top:1.5rem;">
+            <button type="submit" class="btn-main">Guardar cambios</button>
+        </div>
+    </form>
+</main>
+
+<script>
+    document.getElementById('HasAdhd').addEventListener('change', function() {
+        document.getElementById('tdah-section').style.display = this.checked ? '' : 'none';
+    });
+</script>

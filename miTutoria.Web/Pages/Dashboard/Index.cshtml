@@ -68,7 +68,10 @@
                 {
                     <li>
                         <strong>@(student.Nickname ?? student.FullName)</strong>
-                        <a href="/Classroom/@student.Id" class="btn-main" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Abrir aula</a>
+                        <div style="display:flex; gap:0.5rem;">
+                            <a href="/Students/Edit/@student.Id" class="btn-secondary">Editar</a>
+                            <a href="/Classroom/@student.Id" class="btn-main" style="padding: 0.5rem 1.2rem; font-size: 0.85rem;">Abrir aula</a>
+                        </div>
                     </li>
                 }
             </ul>

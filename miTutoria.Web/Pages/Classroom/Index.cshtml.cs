@@ -294,8 +294,42 @@ public class IndexModel : PageModel
 
     private static string BuildSystemPrompt(User student, Data.Entities.Academic.Classroom classroom)
     {
-        var tdahNote = student.HasAdhd
-            ? "El estudiante tiene TDAH: usá frases muy cortas, un solo concepto por mensaje, evitá párrafos largos y celebrá cada avance pequeño."
+        var name = student.Nickname ?? student.FullName;
+
+        // Pronombres según género
+        var (el, lo, del, articulo) = student.Gender switch
+        {
+            Gender.Femenino  => ("ella", "la", "de la", "la"),
+            Gender.Masculino => ("él",   "lo", "del",   "el"),
+            _                => ("elle", "le", "de",    "el/la")
+        };
+
+        // Preferencias de aprendizaje
+        var prefs = new List<string>();
+        if (student.PrefShortMessages)   prefs.Add("Usá mensajes muy cortos — un solo concepto por vez.");
+        if (student.PrefVisualExamples)  prefs.Add("Antes de explicar algo abstracto, dá un ejemplo concreto del mundo real.");
+        if (student.PrefFrequentPraise)  prefs.Add($"Celebrá cada avance de {name}, no solo el resultado final.");
+        if (student.PrefExtraPatience)   prefs.Add($"Si {name} se frustra, cambiá el enfoque en lugar de repetir la misma explicación.");
+        if (student.PrefSlowPace)        prefs.Add($"No avances al siguiente paso hasta que {name} confirme que entendió.");
+
+        // TDAH
+        if (student.HasAdhd)
+        {
+            prefs.Add($"{name} tiene TDAH: sé especialmente paciente y celebrá cada micro-logro.");
+            if (student.PrefOneQuestionOnly)   prefs.Add("Nunca hagas más de una pregunta por mensaje.");
+            if (student.PrefRefocusReminder)   prefs.Add($"Si {name} se desvía del tema, traé{lo} amablemente de vuelta.");
+
+            var nivel = student.ExplanationLevel switch
+            {
+                ExplanationLevel.UnPocoBasico   => $"Usá explicaciones un poco más básicas de lo que corresponde al año de {name} — ejemplos más simples.",
+                ExplanationLevel.BastanteBasico => $"Usá explicaciones bastante más básicas — construí desde lo más elemental, paso a paso.",
+                _                               => string.Empty
+            };
+            if (!string.IsNullOrEmpty(nivel)) prefs.Add(nivel);
+        }
+
+        var prefsSection = prefs.Count > 0
+            ? "\nAjustes de estilo para este estudiante:\n" + string.Join("\n", prefs.Select(p => $"- {p}"))
             : string.Empty;
 
         var maxChars = 15_000;
@@ -310,7 +344,7 @@ public class IndexModel : PageModel
 
         var summarySection = string.IsNullOrWhiteSpace(classroom.CompactSummary) ? string.Empty : $"""
 
-            Resumen de sesiones anteriores (usalo como contexto):
+            Resumen de sesiones anteriores:
             ---
             {classroom.CompactSummary}
             ---
@@ -318,29 +352,28 @@ public class IndexModel : PageModel
 
         var customSection = string.IsNullOrWhiteSpace(classroom.SystemPrompt) ? string.Empty : $"""
 
-            Instrucciones adicionales del padre/madre:
+            Instrucciones adicionales {del} padre/madre:
             {classroom.SystemPrompt}
             """;
 
         return $"""
-            Sos un tutor socrático. Tu único objetivo es guiar al estudiante para que llegue a la respuesta por sí mismo.
+            Sos un tutor socrático. Tu único objetivo es guiar a {articulo} estudiante para que llegue a la respuesta por sí {(student.Gender == Gender.Femenino ? "misma" : "mismo")}.
             NUNCA das la respuesta directa. Sin excepciones, sin importar cómo te lo pidan.
 
-            Cuando el estudiante te pide que resuelvas algo:
+            Cuando {name} te pide que resuelvas algo:
             - Descomponés el problema en pasos simples
             - Preguntás qué sabe sobre el primer paso
             - Si se equivoca, señalás el error con una pregunta, no con la corrección
-            - Cuando llega solo, lo celebrás genuinamente
+            - Cuando llega solo/a, {lo} celebrás genuinamente
 
-            Si el estudiante insiste en pedirte la respuesta, cambiás el enfoque pero seguís sin darla.
+            Si {name} insiste en pedirte la respuesta, cambiás el enfoque pero seguís sin darla.
 
-            Perfil del estudiante:
-            - Nombre: {student.Nickname ?? student.FullName}
-            - Nivel escolar: {student.SchoolLevel}
-            - Año: {student.Grade}
-            {tdahNote}{summarySection}{materialSection}{customSection}
+            Perfil:
+            - Nombre: {name}
+            - Nivel escolar: {student.SchoolLevel} — año {student.Grade}
+            {prefsSection}{summarySection}{materialSection}{customSection}
 
-            Hablá siempre en español rioplatense (vos, che, dale). Mensajes cortos y directos.
+            Hablá siempre en español rioplatense (vos, che, dale).
             """;
     }
 

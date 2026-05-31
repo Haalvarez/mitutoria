@@ -37,6 +37,14 @@ public class AppDbContext : DbContext
             .HasConversion<string>();
 
         modelBuilder.Entity<User>()
+            .Property(u => u.Gender)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.ExplanationLevel)
+            .HasConversion<string>();
+
+        modelBuilder.Entity<User>()
             .Property(u => u.HasAdhd)
             .HasColumnName("has_adhd");
 
