@@ -49,6 +49,16 @@ y chatean en su aula desde mitutoria.app.
 - ✅ PostgreSQL en Railway: esquemas `auth`, `academic`, `billing`, `public` (__EFMigrations)
 
 ## No funciona / pendiente
+
+### Fase 2 — Auth del alumno (decisión de arquitectura)
+- ⬜ Login de alumno con usuario (slug, ej: `vika`) + PIN de 4-6 dígitos hasheado
+  - El padre genera las credenciales desde `/Students/Edit/{id}` y se las da al hijo
+  - Página `/Entrar` — formulario usuario + PIN, sesión separada a la del padre
+  - El aula detecta el tipo de sesión: alumno → chat activo / padre → lectura solamente
+  - El botón "Abrir aula" del padre pasa a ser historial en modo lectura (supervisión, no impersonación)
+  - **Requiere:** columnas `StudentUsername` + `StudentPinHash` en `users`, nueva migración, nueva página de login, lógica de sesión dual en el aula
+
+### Fase 2 — Producto
 - ⬜ MercadoPago — sistema de créditos en ARS (diseño detallado abajo)
 - ⬜ Panel de admin — uso por familia, saldo API maestra, pagos recibidos
 - ⬜ Consentimiento parental (condición legal de lanzamiento)
