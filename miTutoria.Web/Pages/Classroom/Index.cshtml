@@ -207,7 +207,6 @@ document.getElementById('pdf-input').addEventListener('change', async function()
             statusEl.textContent = data.error;
         } else {
             statusEl.textContent = '✓ ' + (data.chars ? `${data.chars.toLocaleString()} caracteres cargados` : 'Material cargado');
-            // Actualizar label del accordion
             document.querySelector('.sidebar-panel summary span').textContent = '📄 Material cargado';
             messagesEl.querySelector('.empty-state')?.remove();
             addBubble(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.', 'assistant');

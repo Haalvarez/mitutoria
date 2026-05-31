@@ -317,10 +317,7 @@ public class IndexModel : PageModel
             classroom.Material = material.Trim();
             materialNuevo = true;
         }
-        else
-        {
-            classroom.Material = null;
-        }
+        // textarea vacío sin clearMaterial explícito → no tocar el material existente
 
         await _dbContext.SaveChangesAsync();
 
