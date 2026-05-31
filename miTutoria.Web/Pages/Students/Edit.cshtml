@@ -12,6 +12,21 @@
         <div class="dashboard-nav-links"><a href="/Dashboard">← Volver</a></div>
     </div>
 
+    @if (Model.ShowCredentialInfo)
+    {
+        <div class="credential-info">
+            <div class="credential-info__icon">✅</div>
+            <div>
+                <strong>¡Acceso configurado para @Model.FullName!</strong>
+                <p>Decile que entre a <strong>mitutoria.app/Entrar</strong> y use:</p>
+                <ul>
+                    <li>Usuario: <strong>@Model.StudentUsername</strong></li>
+                    <li>PIN: el que acabás de configurar</li>
+                </ul>
+            </div>
+        </div>
+    }
+
     @if (!ViewData.ModelState.IsValid)
     {
         <div class="form-errors">

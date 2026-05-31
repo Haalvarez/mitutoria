@@ -32,6 +32,7 @@ public class EditModel : PageModel
     [BindProperty] public string? StudentUsername { get; set; }
     [BindProperty] public string? StudentPin { get; set; }
     public bool HasStudentAccess { get; private set; }
+    public bool ShowCredentialInfo { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
@@ -42,6 +43,7 @@ public class EditModel : PageModel
         if (student is null) return RedirectToPage("/Dashboard");
 
         LoadFromStudent(student);
+        ShowCredentialInfo = Request.Query["credenciales"] == "ok";
         return Page();
     }
 
@@ -101,9 +103,15 @@ public class EditModel : PageModel
             student.PasswordHash = new PasswordHasher<User>().HashPassword(student, StudentPin);
         }
 
+        var credencialesActualizadas = !string.IsNullOrWhiteSpace(StudentUsername) ||
+                                      !string.IsNullOrWhiteSpace(StudentPin);
+
         try
         {
             await _dbContext.SaveChangesAsync();
+            if (credencialesActualizadas)
+                return RedirectToPage("/Students/Edit",
+                    new { studentId, credenciales = "ok" });
             return RedirectToPage("/Dashboard/Index");
         }
         catch (Exception ex)

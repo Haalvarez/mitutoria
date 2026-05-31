@@ -1037,6 +1037,23 @@ footer{
   white-space: pre-wrap;
 }
 
+/* ── Credential info ── */
+.credential-info {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  background: #f0f7f4;
+  border: 1px solid var(--sage, #4a7c6b);
+  border-radius: 6px;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+.credential-info__icon { font-size: 1.4rem; flex-shrink: 0; }
+.credential-info strong { display: block; margin-bottom: 0.3rem; }
+.credential-info ul { margin: 0.4rem 0 0 1rem; padding: 0; }
+.credential-info li { margin: 0.2rem 0; }
+
 /* ── Tutor explain panel ── */
 .tutor-explain-panel {
   margin-top: 1rem;
