@@ -311,7 +311,9 @@ public class IndexModel : PageModel
 
             var extracted = ExtractPdfText(pdfFile);
             if (string.IsNullOrWhiteSpace(extracted))
-                return new JsonResult(new { error = "No pude extraer texto de ese PDF. Puede ser una imagen escaneada. Probá pegando el texto directamente." });
+                extracted = await ExtractPdfWithClaudeAsync(pdfFile);
+            if (string.IsNullOrWhiteSpace(extracted))
+                return new JsonResult(new { error = "No pude leer el contenido de ese PDF. Probá pegando el texto directamente." });
             classroom.Material = extracted;
             materialNuevo = true;
         }
@@ -661,6 +663,38 @@ public class IndexModel : PageModel
         return await _dbContext.TokenEvents
             .Where(t => t.FamilyId == familyId && t.CreatedAt >= start)
             .SumAsync(t => (long)t.TokensIn + t.TokensOut);
+    }
+
+    private async Task<string> ExtractPdfWithClaudeAsync(IFormFile pdfFile)
+    {
+        using var ms = new MemoryStream();
+        await pdfFile.CopyToAsync(ms);
+        var base64 = Convert.ToBase64String(ms.ToArray());
+
+        var body = JsonSerializer.Serialize(new
+        {
+            model = ClaudeModel,
+            max_tokens = 4096,
+            messages = new[]
+            {
+                new {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new { type = "document", source = new { type = "base64", media_type = "application/pdf", data = base64 } },
+                        new { type = "text", text = "Transcribí el texto completo de este documento, respetando la estructura original. Solo el texto, sin comentarios." }
+                    }
+                }
+            }
+        });
+
+        var client = _httpClientFactory.CreateClient("anthropic");
+        var response = await client.PostAsync("/v1/messages",
+            new StringContent(body, Encoding.UTF8, "application/json"));
+        if (!response.IsSuccessStatusCode) return string.Empty;
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
     }
 
     private static string ExtractPdfText(IFormFile pdfFile)
