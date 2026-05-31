@@ -16,9 +16,20 @@ y chatean en su aula desde mitutoria.app.
 - **Sesión:** 10
 - **Fase activa:** Fase 1 — MVP Familia (casi completa)
 - **Branch activo:** `main`
-- **Último commit:** feat: rachas de estudio + docs sesión 10
+- **Último commit:** feat: botón 'Soy estudiante' en la landing → /Entrar
 
 ## Funciona hoy
+- ✅ Login de alumno `/Entrar` — usuario + PIN configurado por el padre desde `/Students/Edit`
+- ✅ Aula acepta sesión de alumno o de padre (alumno solo ve su aula, padre puede abrir cualquiera de sus hijos)
+- ✅ Racha de días 🔥 visible en el aula y en el dashboard del padre
+- ✅ Botonera del aula: Quiz, Tarjetas, Modo Examen (AJAX, basados en material cargado)
+- ✅ Tipo de cambio MEP en tiempo real (dolarapi.com, cache 60 min) — guardado por transacción en token_events
+- ✅ Dashboard rediseñado: intercambios hoy/semana/mes, gasto en ARS, racha por hijo
+- ✅ Botón "¿Cómo va a actuar el tutor?" en edición del alumno — panel instantáneo sin Claude
+- ✅ Prompt socrático v2: rioplatense bonaerense específico, vocabulario por edad, negativa al resumen, anti-jailbreak de identidad
+- ✅ Landing: "Soy estudiante" → /Entrar, "Acceso familiar" → /Login
+
+## Funciona desde antes
 - ✅ mitutoria.app live en Railway, deploy automático push → Railway ~2 min
 - ✅ Landing page con demo en vivo (5 mensajes sin login) + lista de espera funcional → DB
 - ✅ Auth magic link — Login + Verify, Resend integrado, APP_BASE_URL, forwarded headers
@@ -73,9 +84,9 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Próximos pasos (Sesión 11)
-1. MercadoPago — créditos en ARS con webhook casi desatendido
-2. Panel de admin básico
-3. Resumen cualitativo automático por sesión
+1. MercadoPago — créditos en ARS con webhook casi desatendido (diseño detallado en sección billing)
+2. Panel de admin básico — uso por familia, saldo API maestra, pagos recibidos
+3. Resumen cualitativo automático por sesión (killer feature del dashboard padre)
 
 ---
 

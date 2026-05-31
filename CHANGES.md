@@ -1,4 +1,4 @@
-## [Sesión 10] — 2026-05-31
+## [Sesión 10] — 2026-05-31 (continuación)
 ### feat
 - Classroom: botonera Quiz / Tarjetas / Modo Examen sobre el input de chat
   - Quiz: genera 5 preguntas de opción múltiple basadas en el material (sin respuestas visibles)
@@ -22,6 +22,17 @@
 - Classroom: botón "← Dashboard" removido del aula (dominio del padre, no del alumno)
 - Classroom: sección "Configurar tutor" removida del sidebar del aula (queda en /Students/Edit)
 - Classroom: botón "Compactar" removido del UI visible (sigue disponible como lógica interna)
+
+### auth alumno
+- `/Entrar`: nueva página de login para alumnos — usuario + PIN numérico
+- `/Students/Edit`: el padre configura usuario y PIN desde la edición del hijo
+  - Validación: usuario único en todo el sistema, PIN mínimo 4 dígitos
+  - Muestra estado "✅ puede entrar con usuario X" cuando ya tiene acceso
+- Migración `AddStudentUsername`: columna `StudentUsername` nullable + índice único en `auth.users`
+- Aula: `ResolveStudentAsync` acepta sesión de alumno (`StudentId`) O sesión de padre (`FamilyId`)
+  - Alumno solo accede a su propio aula
+  - PIN hasheado con `PasswordHasher<User>` de ASP.NET Core (reutiliza columna `PasswordHash`)
+- Landing: botón "Soy estudiante" → `/Entrar` + renombrado "Entrar" → "Acceso familiar"
 
 ### prompt
 - Tono rioplatense bonaerense más específico: lista de palabras válidas + lista de regionalismos prohibidos (brete, órale, chévere)
