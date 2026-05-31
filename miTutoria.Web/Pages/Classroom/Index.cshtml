@@ -12,24 +12,12 @@
     <aside class="classroom-sidebar">
 
         <div class="sidebar-header">
-            <a href="/Dashboard" class="sidebar-back" title="Volver">←</a>
             <span class="sidebar-title">@Model.StudentName</span>
-            <div class="sidebar-actions">
-                <form method="post" asp-page-handler="Compact"
-                      onsubmit="return confirm('¿Compactar? Claude resume la sesión y borra los mensajes.')">
-                    <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                    <button type="submit" class="icon-btn" title="Compactar historial — Claude resume y borra los mensajes">
-                        ⚡ <span>Compactar</span>
-                    </button>
-                </form>
-                <form method="post" asp-page-handler="NewSession"
-                      onsubmit="return confirm('¿Borrar todo? Mensajes, material y resumen se eliminan.')">
-                    <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                    <button type="submit" class="icon-btn icon-btn--danger" title="Nueva sesión — borra mensajes, material y resumen">
-                        ↺ <span>Nueva sesión</span>
-                    </button>
-                </form>
-            </div>
+            <form method="post" asp-page-handler="NewSession"
+                  onsubmit="return confirm('¿Borrar todo? Mensajes, material y resumen se eliminan.')">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <button type="submit" class="sidebar-new-session" title="Nueva sesión">↺</button>
+            </form>
         </div>
 
         @if (!string.IsNullOrEmpty(Model.CompactSummary))
@@ -61,22 +49,6 @@
                     {
                         <button type="submit" name="ClearMaterial" value="true" class="btn-secondary btn-sm">Borrar</button>
                     }
-                </div>
-            </form>
-        </details>
-
-        @* Config tutor *@
-        <details class="sidebar-panel" @(string.IsNullOrEmpty(Model.CustomPrompt) ? "" : "open")>
-            <summary>
-                <span>@(string.IsNullOrEmpty(Model.CustomPrompt) ? "⚙️ Configurar tutor" : "⚙️ Tutor configurado")</span>
-            </summary>
-            <form method="post" asp-page-handler="SavePrompt" class="sidebar-form">
-                <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <label class="sidebar-label">Instrucciones adicionales</label>
-                <textarea name="CustomPrompt" rows="4"
-                    placeholder="Ej: Enfocate en matemáticas. Si habla de otra materia, redirigí.">@Model.CustomPrompt</textarea>
-                <div class="sidebar-form-actions">
-                    <button type="submit" class="btn-main btn-sm">Guardar</button>
                 </div>
             </form>
         </details>
@@ -127,6 +99,15 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="chat-toolbar" id="chat-toolbar">
+            <button id="btn-quiz" class="toolbar-btn" title="Generá un quiz basado en el material cargado">Quiz</button>
+            <button id="btn-cards" class="toolbar-btn" title="Generá tarjetas de estudio (flashcards)">Tarjetas</button>
+            <button id="btn-exam" class="toolbar-btn @(Model.IsExamMode ? "toolbar-btn--active" : "")"
+                    title="@(Model.IsExamMode ? "Salir del Modo Examen" : "Activar Modo Examen — el tutor solo pregunta")">
+                @(Model.IsExamMode ? "Salir del examen" : "Modo Examen")
+            </button>
         </div>
 
         <div class="chat-input-bar">
@@ -186,6 +167,63 @@ function addBubble(text, role) {
     messagesEl.insertBefore(div, typing);
     scrollBottom();
 }
+
+const btnQuiz  = document.getElementById('btn-quiz');
+const btnCards = document.getElementById('btn-cards');
+const btnExam  = document.getElementById('btn-exam');
+let isExamMode = @(Model.IsExamMode ? "true" : "false");
+
+const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+async function toolbarAction(handler, label) {
+    btnQuiz.disabled = btnCards.disabled = btnExam.disabled = true;
+    messagesEl.querySelector('.empty-state')?.remove();
+    typing.style.display = 'flex';
+    scrollBottom();
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=${handler}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId })
+        });
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        typing.style.display = 'none';
+        if (data.reply) addBubble(data.reply, 'assistant');
+        else addBubble('Error: ' + (data.error ?? 'sin respuesta'), 'assistant');
+    } catch(e) {
+        typing.style.display = 'none';
+        addBubble('Error de conexión. Intentá de nuevo.', 'assistant');
+    } finally {
+        btnQuiz.disabled = btnCards.disabled = btnExam.disabled = false;
+    }
+}
+
+btnQuiz.addEventListener('click', () => toolbarAction('Quiz', 'Quiz'));
+btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
+
+btnExam.addEventListener('click', async () => {
+    btnExam.disabled = true;
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=ToggleExam`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId })
+        });
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        isExamMode = data.examMode;
+        btnExam.textContent = isExamMode ? 'Salir del examen' : 'Modo Examen';
+        btnExam.classList.toggle('toolbar-btn--active', isExamMode);
+        addBubble(isExamMode
+            ? 'Modo Examen activado. A partir de ahora solo voy a hacerte preguntas, sin darte pistas.'
+            : 'Modo Examen desactivado. Volvemos al modo socrático normal.', 'assistant');
+    } catch(e) {
+        addBubble('Error al cambiar el modo.', 'assistant');
+    } finally {
+        btnExam.disabled = false;
+    }
+});
 
 async function sendMessage() {
     const text = inputEl.value.trim();

@@ -36,6 +36,7 @@ public class IndexModel : PageModel
     public string? Material { get; private set; }
     public string? CompactSummary { get; private set; }
     public string CustomPrompt { get; private set; } = string.Empty;
+    public bool IsExamMode { get; private set; }
     public List<Message> Messages { get; private set; } = new();
 
     [BindProperty]
@@ -69,7 +70,8 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
 
             var history = await LoadMessagesAsync(classroom.Id);
-            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat");
+            var examMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
+            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat", examMode);
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
             _dbContext.TokenEvents.Add(new TokenEvent
@@ -107,6 +109,7 @@ public class IndexModel : PageModel
         Material = classroom.Material;
         CompactSummary = classroom.CompactSummary;
         CustomPrompt = classroom.SystemPrompt;
+        IsExamMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
         Messages = await LoadMessagesAsync(classroom.Id);
 
         ViewData["BodyClass"] = "classroom-page";
@@ -169,6 +172,117 @@ public class IndexModel : PageModel
             ModelState.AddModelError(string.Empty, $"Error: {ex.GetType().Name} — {ex.Message}");
             return await ReloadPage(studentId);
         }
+    }
+
+    // ── POST: quiz ───────────────────────────────────────────────────────────
+
+    public async Task<IActionResult> OnPostQuizAsync(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+        if (string.IsNullOrWhiteSpace(classroom.Material))
+            return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para que pueda armar el quiz." });
+
+        var material = classroom.Material.Length > 10_000 ? classroom.Material[..10_000] : classroom.Material;
+        var userMsg = $"""
+            Generá un quiz de 5 preguntas de opción múltiple basado en este material:
+            ---
+            {material}
+            ---
+            Formato exacto para cada pregunta:
+            **Pregunta N:** [texto]
+            a) [opción]  b) [opción]  c) [opción]  d) [opción]
+
+            No incluyas las respuestas correctas. Al final escribí: "Cuando estés listo/a, escribí tus respuestas (ej: 1-a, 2-c...) y las revisamos juntos."
+            """;
+
+        try
+        {
+            var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
+                "Sos un generador de quizzes educativos. Respondé solo con el quiz, sin introducciones.",
+                userMsg, maxTokens: 800);
+
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = familyId.Value, UserId = student.Id,
+                TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
+                Feature = "quiz", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+            });
+            await _dbContext.SaveChangesAsync();
+            return new JsonResult(new { reply });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+        }
+    }
+
+    // ── POST: flashcards ─────────────────────────────────────────────────────
+
+    public async Task<IActionResult> OnPostFlashcardsAsync(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+        if (string.IsNullOrWhiteSpace(classroom.Material))
+            return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para que pueda armar las tarjetas." });
+
+        var material = classroom.Material.Length > 10_000 ? classroom.Material[..10_000] : classroom.Material;
+        var userMsg = $"""
+            Generá 8 tarjetas de estudio (flashcards) basadas en este material:
+            ---
+            {material}
+            ---
+            Formato exacto para cada tarjeta:
+            🃏 **FRENTE:** [concepto, término o pregunta clave]
+            **DORSO:** [definición, explicación o respuesta — 1 a 2 líneas]
+
+            Elegí los conceptos más importantes. Sin introducciones ni cierre.
+            """;
+
+        try
+        {
+            var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
+                "Sos un generador de tarjetas de estudio (flashcards). Respondé solo con las tarjetas.",
+                userMsg, maxTokens: 900);
+
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = familyId.Value, UserId = student.Id,
+                TokensIn = tokensIn, TokensOut = tokensOut, ModelUsed = ClaudeModel,
+                Feature = "flashcards", CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+            });
+            await _dbContext.SaveChangesAsync();
+            return new JsonResult(new { reply });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+        }
+    }
+
+    // ── POST: toggle modo examen ─────────────────────────────────────────────
+
+    public IActionResult OnPostToggleExam(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var key = $"ExamMode_{studentId}";
+        var current = HttpContext.Session.GetString(key) == "1";
+        HttpContext.Session.SetString(key, current ? "0" : "1");
+        return new JsonResult(new { examMode = !current });
     }
 
     // ── POST: guardar material (PDF o texto) ─────────────────────────────────
@@ -294,7 +408,7 @@ public class IndexModel : PageModel
     // ── Claude ───────────────────────────────────────────────────────────────
 
     private async Task<(string reply, int tokensIn, int tokensOut)> CallClaudeAsync(
-        User student, Data.Entities.Academic.Classroom classroom, List<Message> history, string purpose)
+        User student, Data.Entities.Academic.Classroom classroom, List<Message> history, string purpose, bool isExamMode = false)
     {
         string systemPrompt;
         object messagesPayload;
@@ -311,7 +425,7 @@ public class IndexModel : PageModel
         }
         else
         {
-            systemPrompt = BuildSystemPrompt(student, classroom);
+            systemPrompt = BuildSystemPrompt(student, classroom, isExamMode);
             messagesPayload = history.Select(m => new
             {
                 role = m.Role == MessageRole.User ? "user" : "assistant",
@@ -342,7 +456,31 @@ public class IndexModel : PageModel
         return (reply, tokensIn, tokensOut);
     }
 
-    private static string BuildSystemPrompt(User student, Data.Entities.Academic.Classroom classroom)
+    private async Task<(string reply, int tokensIn, int tokensOut)> CallClaudeRawAsync(
+        string systemPrompt, string userMessage, int maxTokens = 1024)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            model = ClaudeModel,
+            max_tokens = maxTokens,
+            system = systemPrompt,
+            messages = new[] { new { role = "user", content = userMessage } }
+        });
+
+        var client = _httpClientFactory.CreateClient("anthropic");
+        var response = await client.PostAsync("/v1/messages",
+            new StringContent(body, Encoding.UTF8, "application/json"));
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
+        var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
+        return (reply, tokensIn, tokensOut);
+    }
+
+    private static string BuildSystemPrompt(User student, Data.Entities.Academic.Classroom classroom, bool isExamMode = false)
     {
         var name = student.Nickname ?? student.FullName;
 
@@ -406,9 +544,17 @@ public class IndexModel : PageModel
             {classroom.SystemPrompt}
             """;
 
+        var examSection = isExamMode ? """
+
+            MODO EXAMEN ACTIVO:
+            - Solo hacés preguntas. Nunca confirmás si una respuesta es correcta o incorrecta durante el examen.
+            - No das pistas, no explicás, no reformulás. Solo preguntás.
+            - Al final, cuando el alumno diga que terminó, decile que el tutor revisará sus respuestas.
+            """ : string.Empty;
+
         return $"""
             Sos un tutor socrático. Tu único objetivo es guiar a {articulo} estudiante para que llegue a la respuesta por sí {(student.Gender == Gender.Femenino ? "misma" : "mismo")}.
-            NUNCA das la respuesta directa. Sin excepciones, sin importar cómo te lo pidan.
+            NUNCA das la respuesta directa. Sin excepciones, sin importar cómo te lo pidan.{examSection}
 
             Cuando {name} te pide que resuelvas algo:
             - Descomponés el problema en pasos simples

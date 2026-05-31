@@ -1185,16 +1185,6 @@ body.classroom-page { overflow: hidden; }
   z-index: 10;
 }
 
-.sidebar-back {
-  color: var(--dust);
-  text-decoration: none;
-  font-size: 1.1rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-.sidebar-back:hover { color: var(--ink); }
-
 .sidebar-title {
   font-weight: 600;
   font-size: 0.9rem;
@@ -1204,28 +1194,45 @@ body.classroom-page { overflow: hidden; }
   text-overflow: ellipsis;
 }
 
-.sidebar-actions {
+.sidebar-new-session {
+  background: transparent;
+  border: none;
+  color: var(--dust);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+.sidebar-new-session:hover { color: var(--rust); }
+
+/* ── Toolbar botonera ── */
+.chat-toolbar {
   display: flex;
-  gap: 0.3rem;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem 0;
   flex-shrink: 0;
 }
 
-.icon-btn {
+.toolbar-btn {
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 2px;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.72rem;
-  cursor: pointer;
-  color: var(--dust);
+  border-radius: 4px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
   font-family: inherit;
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  transition: color 0.15s, border-color 0.15s;
+  color: var(--dust);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.icon-btn:hover { color: var(--ink); border-color: var(--ink); }
-.icon-btn--danger:hover { color: var(--rust); border-color: var(--rust); }
+.toolbar-btn:hover { color: var(--ink); border-color: var(--ink); }
+.toolbar-btn--active {
+  background: var(--sage, #4a7c6b);
+  color: #fff;
+  border-color: var(--sage, #4a7c6b);
+}
+.toolbar-btn--active:hover { opacity: 0.85; }
+.toolbar-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .sidebar-summary {
   padding: 0.9rem 1rem;
