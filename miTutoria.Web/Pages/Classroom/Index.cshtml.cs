@@ -309,9 +309,17 @@ public class IndexModel : PageModel
             if (pdfFile.Length > MaxUploadBytes)
                 return new JsonResult(new { error = $"El PDF no puede superar los 20 MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB)." });
 
-            var extracted = ExtractPdfText(pdfFile);
-            if (string.IsNullOrWhiteSpace(extracted))
-                extracted = await ExtractPdfWithClaudeAsync(pdfFile);
+            string extracted;
+            try
+            {
+                extracted = ExtractPdfText(pdfFile);
+                if (string.IsNullOrWhiteSpace(extracted))
+                    extracted = await ExtractPdfWithClaudeAsync(pdfFile);
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { error = ex.Message });
+            }
             if (string.IsNullOrWhiteSpace(extracted))
                 return new JsonResult(new { error = "No pude leer el contenido de ese PDF. Probá pegando el texto directamente." });
             classroom.Material = extracted;
@@ -691,9 +699,10 @@ public class IndexModel : PageModel
         var client = _httpClientFactory.CreateClient("anthropic");
         var response = await client.PostAsync("/v1/messages",
             new StringContent(body, Encoding.UTF8, "application/json"));
-        if (!response.IsSuccessStatusCode) return string.Empty;
+        var raw = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Claude OCR error {(int)response.StatusCode}: {raw}");
 
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        using var doc = JsonDocument.Parse(raw);
         return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
     }
 
