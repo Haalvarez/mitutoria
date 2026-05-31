@@ -897,3 +897,29 @@ footer{
   padding: 1.25rem;
   max-height: 280px;
 }
+
+/* ── Compact summary ── */
+.compact-summary {
+  padding: 0.9rem 1.2rem;
+  background: var(--warm);
+  border-left: 3px solid var(--sage);
+  border-radius: 3px;
+  margin-bottom: 1rem;
+}
+
+.compact-summary__label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sage);
+  margin-bottom: 0.4rem;
+}
+
+.compact-summary p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+}

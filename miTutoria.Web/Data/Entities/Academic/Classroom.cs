@@ -11,5 +11,6 @@ public class Classroom
     public Subject? Subject { get; set; }
     public string SystemPrompt { get; set; } = string.Empty;
     public string? Material { get; set; }
+    public string? CompactSummary { get; set; }
     public ICollection<Message> Messages { get; set; } = new List<Message>();
 }

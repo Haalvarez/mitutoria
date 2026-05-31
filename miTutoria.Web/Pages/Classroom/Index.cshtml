@@ -10,8 +10,13 @@
         <h1>Aula de @Model.StudentName</h1>
         <div class="dashboard-nav-links">
             <a href="/Dashboard">← Volver</a>
+            <form method="post" asp-page-handler="Compact" style="display:inline;"
+                  onsubmit="return confirm('¿Compactar el historial? Claude va a resumir la sesión y borrar los mensajes.')">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <button type="submit" class="btn-secondary">Compactar</button>
+            </form>
             <form method="post" asp-page-handler="NewSession" style="display:inline;"
-                  onsubmit="return confirm('¿Borrar todos los mensajes y el material? No se puede deshacer.')">
+                  onsubmit="return confirm('¿Borrar todo? Se eliminan mensajes, material y resumen.')">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
                 <button type="submit" class="btn-secondary">Nueva sesión</button>
             </form>
@@ -28,32 +33,63 @@
         </div>
     }
 
+    @* — Material — *@
     <section class="material-section">
         <details @(string.IsNullOrEmpty(Model.Material) ? "" : "open")>
             <summary class="material-summary">
-                @(string.IsNullOrEmpty(Model.Material) ? "＋ Pegar material de trabajo" : "📄 Material cargado — " + Model.Material.Length + " caracteres")
+                @(string.IsNullOrEmpty(Model.Material) ? "＋ Material de trabajo" : "📄 Material cargado — " + Model.Material.Length + " caracteres")
             </summary>
             <form method="post" asp-page-handler="SaveMaterial" class="material-form" enctype="multipart/form-data">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
                 <div class="form-field">
-                    <label>Subir PDF</label>
+                    <label>Subir PDF (máx. 5 MB)</label>
                     <input type="file" name="PdfFile" accept="application/pdf" />
                 </div>
                 <div class="form-field">
-                    <label>O pegá el texto directamente</label>
-                    <textarea name="Material" rows="5" placeholder="Pegá acá el texto, enunciado o fotocopia...">@Model.Material</textarea>
+                    <label>O pegá el texto</label>
+                    <textarea name="Material" rows="4" placeholder="Pegá acá el enunciado o fotocopia...">@Model.Material</textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar material</button>
                     @if (!string.IsNullOrEmpty(Model.Material))
                     {
-                        <button type="submit" name="ClearMaterial" value="true" class="btn-secondary">Borrar material</button>
+                        <button type="submit" name="ClearMaterial" value="true" class="btn-secondary">Borrar</button>
                     }
                 </div>
             </form>
         </details>
     </section>
 
+    @* — Prompt personalizado — *@
+    <section class="material-section">
+        <details>
+            <summary class="material-summary">
+                @(string.IsNullOrEmpty(Model.CustomPrompt) ? "⚙️ Configurar tutor" : "⚙️ Tutor configurado")
+            </summary>
+            <form method="post" asp-page-handler="SavePrompt" class="material-form">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <div class="form-field">
+                    <label>Instrucciones adicionales para el tutor</label>
+                    <textarea name="CustomPrompt" rows="4"
+                        placeholder="Ej: Enfocate en matemáticas de 3° secundaria. Si pregunta sobre historia, decile que no es tu materia hoy.">@Model.CustomPrompt</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar</button>
+                </div>
+            </form>
+        </details>
+    </section>
+
+    @* — Resumen de sesión anterior — *@
+    @if (!string.IsNullOrEmpty(Model.CompactSummary))
+    {
+        <div class="compact-summary">
+            <span class="compact-summary__label">📝 Resumen de sesión anterior</span>
+            <p>@Model.CompactSummary</p>
+        </div>
+    }
+
+    @* — Chat — *@
     <section class="chat-history" id="chat-history">
         @if (Model.Messages.Count == 0)
         {
@@ -81,14 +117,10 @@
 </main>
 
 <script>
-    // Auto-scroll al último mensaje
     const history = document.getElementById('chat-history');
     if (history) history.scrollTop = history.scrollHeight;
 
-    // Enviar con Ctrl+Enter / Cmd+Enter
     document.getElementById('chat-input')?.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            this.closest('form').submit();
-        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') this.closest('form').submit();
     });
 </script>
