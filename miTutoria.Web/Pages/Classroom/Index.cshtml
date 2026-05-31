@@ -2,125 +2,233 @@
 @model miTutoria.Web.Pages.Classroom.IndexModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Aula de " + Model.StudentName;
+    ViewData["Title"] = "Aula · " + Model.StudentName;
+    var initial = (Model.StudentName.Length > 0 ? Model.StudentName[0].ToString() : "?").ToUpper();
 }
 
-<main class="page-main">
-    <div class="dashboard-header">
-        <h1>Aula de @Model.StudentName</h1>
-        <div class="dashboard-nav-links">
-            <a href="/Dashboard">← Volver</a>
-            <form method="post" asp-page-handler="Compact" style="display:inline;"
-                  onsubmit="return confirm('¿Compactar el historial? Claude va a resumir la sesión y borrar los mensajes.')">
-                <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <button type="submit" class="btn-secondary">Compactar</button>
-            </form>
-            <form method="post" asp-page-handler="NewSession" style="display:inline;"
-                  onsubmit="return confirm('¿Borrar todo? Se eliminan mensajes, material y resumen.')">
-                <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <button type="submit" class="btn-secondary">Nueva sesión</button>
-            </form>
-        </div>
-    </div>
+<div class="classroom-layout">
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="form-errors">
-            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-            {
-                <p>@error.ErrorMessage</p>
-            }
-        </div>
-    }
+    @* ── SIDEBAR ─────────────────────────────────────────────────── *@
+    <aside class="classroom-sidebar">
 
-    @* — Material — *@
-    <section class="material-section">
-        <details @(string.IsNullOrEmpty(Model.Material) ? "" : "open")>
-            <summary class="material-summary">
-                @(string.IsNullOrEmpty(Model.Material) ? "＋ Material de trabajo" : "📄 Material cargado — " + Model.Material.Length + " caracteres")
+        <div class="sidebar-header">
+            <a href="/Dashboard" class="sidebar-back" title="Volver">←</a>
+            <span class="sidebar-title">@Model.StudentName</span>
+            <div class="sidebar-actions">
+                <form method="post" asp-page-handler="Compact"
+                      onsubmit="return confirm('¿Compactar? Claude resume la sesión y borra los mensajes.')">
+                    <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                    <button type="submit" class="icon-btn" title="Compactar historial — Claude resume y borra los mensajes">
+                        ⚡ <span>Compactar</span>
+                    </button>
+                </form>
+                <form method="post" asp-page-handler="NewSession"
+                      onsubmit="return confirm('¿Borrar todo? Mensajes, material y resumen se eliminan.')">
+                    <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                    <button type="submit" class="icon-btn icon-btn--danger" title="Nueva sesión — borra mensajes, material y resumen">
+                        ↺ <span>Nueva sesión</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.CompactSummary))
+        {
+            <div class="sidebar-summary">
+                <span class="sidebar-summary__label">📝 Sesión anterior</span>
+                <p>@Model.CompactSummary</p>
+            </div>
+        }
+
+        @* Material *@
+        <details class="sidebar-panel" @(string.IsNullOrEmpty(Model.Material) ? "" : "open")>
+            <summary>
+                <span>@(string.IsNullOrEmpty(Model.Material) ? "＋ Material" : "📄 Material cargado")</span>
             </summary>
-            <form method="post" asp-page-handler="SaveMaterial" class="material-form" enctype="multipart/form-data">
+            <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data" class="sidebar-form">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <div class="form-field">
-                    <label>Subir PDF (máx. 5 MB)</label>
-                    <input type="file" name="PdfFile" accept="application/pdf" />
-                </div>
-                <div class="form-field">
-                    <label>O pegá el texto</label>
-                    <textarea name="Material" rows="4" placeholder="Pegá acá el enunciado o fotocopia...">@Model.Material</textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar material</button>
+                <label class="sidebar-label">Subir PDF <small>(máx. 5 MB)</small></label>
+                <input type="file" name="PdfFile" accept="application/pdf" />
+                <label class="sidebar-label" style="margin-top:.6rem;">O pegá el texto</label>
+                <textarea name="Material" rows="5" placeholder="Enunciado, fotocopia...">@Model.Material</textarea>
+                @if (!string.IsNullOrEmpty(Model.Material))
+                {
+                    <p class="sidebar-hint">@Model.Material.Length caracteres cargados</p>
+                }
+                <div class="sidebar-form-actions">
+                    <button type="submit" class="btn-main btn-sm">Guardar</button>
                     @if (!string.IsNullOrEmpty(Model.Material))
                     {
-                        <button type="submit" name="ClearMaterial" value="true" class="btn-secondary">Borrar</button>
+                        <button type="submit" name="ClearMaterial" value="true" class="btn-secondary btn-sm">Borrar</button>
                     }
                 </div>
             </form>
         </details>
-    </section>
 
-    @* — Prompt personalizado — *@
-    <section class="material-section">
-        <details>
-            <summary class="material-summary">
-                @(string.IsNullOrEmpty(Model.CustomPrompt) ? "⚙️ Configurar tutor" : "⚙️ Tutor configurado")
+        @* Config tutor *@
+        <details class="sidebar-panel" @(string.IsNullOrEmpty(Model.CustomPrompt) ? "" : "open")>
+            <summary>
+                <span>@(string.IsNullOrEmpty(Model.CustomPrompt) ? "⚙️ Configurar tutor" : "⚙️ Tutor configurado")</span>
             </summary>
-            <form method="post" asp-page-handler="SavePrompt" class="material-form">
+            <form method="post" asp-page-handler="SavePrompt" class="sidebar-form">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
-                <div class="form-field">
-                    <label>Instrucciones adicionales para el tutor</label>
-                    <textarea name="CustomPrompt" rows="4"
-                        placeholder="Ej: Enfocate en matemáticas de 3° secundaria. Si pregunta sobre historia, decile que no es tu materia hoy.">@Model.CustomPrompt</textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-main" style="font-size:0.85rem; padding:0.5rem 1.2rem;">Guardar</button>
+                <label class="sidebar-label">Instrucciones adicionales</label>
+                <textarea name="CustomPrompt" rows="4"
+                    placeholder="Ej: Enfocate en matemáticas. Si habla de otra materia, redirigí.">@Model.CustomPrompt</textarea>
+                <div class="sidebar-form-actions">
+                    <button type="submit" class="btn-main btn-sm">Guardar</button>
                 </div>
             </form>
         </details>
-    </section>
 
-    @* — Resumen de sesión anterior — *@
-    @if (!string.IsNullOrEmpty(Model.CompactSummary))
-    {
-        <div class="compact-summary">
-            <span class="compact-summary__label">📝 Resumen de sesión anterior</span>
-            <p>@Model.CompactSummary</p>
-        </div>
-    }
-
-    @* — Chat — *@
-    <section class="chat-history" id="chat-history">
-        @if (Model.Messages.Count == 0)
+        @if (!ViewData.ModelState.IsValid)
         {
-            <p class="empty-state">Todavía no hay mensajes en este aula.</p>
+            <div class="form-errors" style="margin-top:auto;">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                { <p>@error.ErrorMessage</p> }
+            </div>
         }
-        else
-        {
-            @foreach (var msg in Model.Messages)
+
+    </aside>
+
+    @* ── CHAT ─────────────────────────────────────────────────────── *@
+    <div class="classroom-chat">
+
+        <div class="chat-messages" id="chat-messages">
+            @if (Model.Messages.Count == 0)
             {
-                <div class="chat-bubble chat-bubble--@msg.Role.ToString().ToLower()">
-                    <span class="chat-bubble__role">@(msg.Role == miTutoria.Web.Data.Entities.Academic.MessageRole.User ? Model.StudentName : "Tutor")</span>
-                    <p>@msg.Content</p>
-                </div>
+                <p class="empty-state" style="margin:auto; text-align:center;">Todavía no hay mensajes.<br>¡Escribí algo para empezar!</p>
             }
-        }
-    </section>
+            else
+            {
+                @foreach (var msg in Model.Messages)
+                {
+                    var isUser = msg.Role == miTutoria.Web.Data.Entities.Academic.MessageRole.User;
+                    var roleClass = isUser ? "user" : "assistant";
+                    var label = isUser ? Model.StudentName : "Tutor";
+                    var avatarLetter = isUser ? initial : "T";
+                    <div class="msg msg--@roleClass">
+                        <div class="msg__avatar msg__avatar--@roleClass">@avatarLetter</div>
+                        <div class="msg__body">
+                            <span class="msg__label">@label</span>
+                            <div class="msg__bubble">@msg.Content</div>
+                        </div>
+                    </div>
+                }
+            }
 
-    <form method="post" class="chat-form">
-        <input type="hidden" name="StudentId" value="@Model.StudentId" />
-        <div class="chat-input-row">
-            <textarea name="Content" id="chat-input" rows="2" placeholder="Escribí tu pregunta..."></textarea>
-            <button type="submit" class="btn-main">Enviar</button>
+            @* Typing indicator *@
+            <div class="msg msg--assistant" id="typing-indicator" style="display:none;">
+                <div class="msg__avatar msg__avatar--assistant">T</div>
+                <div class="msg__body">
+                    <span class="msg__label">Tutor</span>
+                    <div class="msg__bubble typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
         </div>
-    </form>
-</main>
+
+        <div class="chat-input-bar">
+            <div class="chat-input-row">
+                <textarea id="chat-input" rows="1"
+                    placeholder="Escribí tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"></textarea>
+                <button id="chat-send" class="chat-send-btn" title="Enviar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <p class="chat-hint">Ctrl+Enter también envía</p>
+        </div>
+    </div>
+</div>
 
 <script>
-    const history = document.getElementById('chat-history');
-    if (history) history.scrollTop = history.scrollHeight;
+const studentId = @Model.StudentId;
+const studentName = '@Html.Raw(Model.StudentName)';
+const initial = '@initial';
 
-    document.getElementById('chat-input')?.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') this.closest('form').submit();
-    });
+const messagesEl = document.getElementById('chat-messages');
+const inputEl    = document.getElementById('chat-input');
+const sendBtn    = document.getElementById('chat-send');
+const typing     = document.getElementById('typing-indicator');
+
+// Auto-scroll al fondo
+function scrollBottom() { messagesEl.scrollTop = messagesEl.scrollHeight; }
+scrollBottom();
+
+// Auto-resize del textarea
+inputEl.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+});
+
+// Enter envía, Shift+Enter nueva línea
+inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.addEventListener('click', sendMessage);
+
+function addBubble(text, role) {
+    const isUser = role === 'user';
+    const label  = isUser ? studentName : 'Tutor';
+    const av     = isUser ? initial : 'T';
+    const div = document.createElement('div');
+    div.className = `msg msg--${role}`;
+    div.innerHTML = `
+        <div class="msg__avatar msg__avatar--${role}">${av}</div>
+        <div class="msg__body">
+            <span class="msg__label">${label}</span>
+            <div class="msg__bubble">${text.replace(/\n/g, '<br>')}</div>
+        </div>`;
+    messagesEl.insertBefore(div, typing);
+    scrollBottom();
+}
+
+async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+
+    // Quitar empty-state si existe
+    messagesEl.querySelector('.empty-state')?.remove();
+
+    addBubble(text, 'user');
+    typing.style.display = 'flex';
+    scrollBottom();
+
+    try {
+        const body = new URLSearchParams({ content: text });
+        const res = await fetch(`/Classroom/${studentId}?handler=Send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
+            },
+            body
+        });
+
+        if (res.status === 401) { location.href = '/Login'; return; }
+
+        const data = await res.json();
+        typing.style.display = 'none';
+
+        if (data.reply) addBubble(data.reply, 'assistant');
+        else addBubble('Error: ' + (data.error ?? 'sin respuesta'), 'assistant');
+
+    } catch(e) {
+        typing.style.display = 'none';
+        addBubble('Error de conexión. Intentá de nuevo.', 'assistant');
+    } finally {
+        inputEl.disabled = false;
+        sendBtn.disabled = false;
+        inputEl.focus();
+    }
+}
 </script>

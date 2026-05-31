@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
@@ -8,8 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,900;1,400;1,700&family=Instrument+Sans:wght@300;400;500&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
 </head>
-<body>
+<body class="@(ViewData["BodyClass"])">
     <div id="cursor" class="cursor"></div>
     <div id="cursorRing" class="cursor-ring"></div>
 
@@ -22,11 +25,13 @@
 
     @RenderBody()
 
-    <footer>
-        <div class="footer-logo">mi<b>Tutor</b><i>IA</i></div>
-        <span>mitutoria.app · Hecho en Argentina 🧉</span>
-        <span>© 2026 · v@(Environment.GetEnvironmentVariable("RAILWAY_GIT_COMMIT_SHA") is { Length: >= 7 } h ? h[..7] : "dev")</span>
-    </footer>
+    @if (ViewData["BodyClass"]?.ToString() != "classroom-page")
+    {
+        <footer>
+            <div class="footer-logo">mi<b>Tutor</b><i>IA</i></div>
+            <span>mitutoria.app · Hecho en Argentina 🧉</span>
+        </footer>
+    }
 
     <script src="/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

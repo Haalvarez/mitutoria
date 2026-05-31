@@ -43,6 +43,55 @@ public class IndexModel : PageModel
 
     // ── GET ──────────────────────────────────────────────────────────────────
 
+    // ── POST: AJAX mensaje (sin reload) ──────────────────────────────────────
+
+    public async Task<IActionResult> OnPostSendAsync(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var student = await GetStudentAsync(studentId, familyId.Value);
+        if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+
+        var content = Request.Form["content"].ToString().Trim();
+        if (string.IsNullOrWhiteSpace(content))
+            return new JsonResult(new { error = "empty" }) { StatusCode = 400 };
+
+        var classroom = await GetOrCreateClassroomAsync(studentId);
+
+        var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
+        if (await GetMonthlyTokensAsync(familyId.Value) >= monthlyLimit)
+            return new JsonResult(new { error = "limit", reply = "Alcanzaste el límite mensual de uso." }) { StatusCode = 429 };
+
+        try
+        {
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.User, Content = content });
+            await _dbContext.SaveChangesAsync();
+
+            var history = await LoadMessagesAsync(classroom.Id);
+            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat");
+
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = familyId.Value,
+                UserId = student.Id,
+                TokensIn = tokensIn,
+                TokensOut = tokensOut,
+                ModelUsed = ClaudeModel,
+                Feature = "chat",
+                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+            });
+            await _dbContext.SaveChangesAsync();
+
+            return new JsonResult(new { reply });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+        }
+    }
+
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
         var familyId = HttpContext.Session.GetInt32("FamilyId");
@@ -60,6 +109,7 @@ public class IndexModel : PageModel
         CustomPrompt = classroom.SystemPrompt;
         Messages = await LoadMessagesAsync(classroom.Id);
 
+        ViewData["BodyClass"] = "classroom-page";
         return Page();
     }
 
