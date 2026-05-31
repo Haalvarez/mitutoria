@@ -16,17 +16,19 @@ y chatean en su aula desde mitutoria.app.
 - **Sesión:** 10
 - **Fase activa:** Fase 1 — MVP Familia (casi completa)
 - **Branch activo:** `main`
-- **Último commit:** feat: botón 'Soy estudiante' en la landing → /Entrar
+- **Último commit:** feat: PDF auto-submit al seleccionar + límite 20MB
 
 ## Funciona hoy
 - ✅ Login de alumno `/Entrar` — usuario + PIN configurado por el padre desde `/Students/Edit`
-- ✅ Aula acepta sesión de alumno o de padre (alumno solo ve su aula, padre puede abrir cualquiera de sus hijos)
+  - Confirmación con instrucciones de acceso al guardar usuario/PIN
+- ✅ Aula acepta sesión de alumno o de padre
 - ✅ Racha de días 🔥 visible en el aula y en el dashboard del padre
 - ✅ Botonera del aula: Quiz, Tarjetas, Modo Examen (AJAX, basados en material cargado)
-- ✅ Tipo de cambio MEP en tiempo real (dolarapi.com, cache 60 min) — guardado por transacción en token_events
+- ✅ Tipo de cambio MEP en tiempo real (dolarapi.com, cache 60 min) — guardado por transacción
 - ✅ Dashboard rediseñado: intercambios hoy/semana/mes, gasto en ARS, racha por hijo
-- ✅ Botón "¿Cómo va a actuar el tutor?" en edición del alumno — panel instantáneo sin Claude
-- ✅ Prompt socrático v2: rioplatense bonaerense específico, vocabulario por edad, negativa al resumen, anti-jailbreak de identidad
+- ✅ Botón "¿Cómo va a actuar el tutor?" en edición del alumno
+- ✅ Prompt socrático v2: rioplatense, vocabulario por edad, anti-jailbreak, reconoce material
+- ✅ Material: PDF auto-submit (20MB), tutor manda mensaje de bienvenida al cargar
 - ✅ Landing: "Soy estudiante" → /Entrar, "Acceso familiar" → /Login
 
 ## Funciona desde antes

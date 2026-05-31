@@ -23,6 +23,17 @@
 - Classroom: sección "Configurar tutor" removida del sidebar del aula (queda en /Students/Edit)
 - Classroom: botón "Compactar" removido del UI visible (sigue disponible como lógica interna)
 
+### material y tutor
+- Tutor reconoce el material al cargarlo — mensaje automático al chat (feature `material_ack`)
+- Tutor nunca dice "no veo archivos" — instrucción explícita en el prompt cuando hay material
+- Saludo inicial contextual: con material → menciona el tema / sin material → pregunta en qué trabajar
+- PDF auto-submit al seleccionar archivo — sin botón Guardar para PDF, Guardar solo para texto pegado
+- Límite PDF aumentado de 5MB a 20MB (hardcodeado)
+- Fix: toggle TDAH en edición del alumno ahora es switch prominente
+- Fix: Nivel + Año en una fila en edición del alumno
+- Fix: etiquetas del formulario más legibles (minúsculas, mayor contraste)
+- Fix: mensaje de confirmación con instrucciones de acceso después de configurar usuario/PIN
+
 ### auth alumno
 - `/Entrar`: nueva página de login para alumnos — usuario + PIN numérico
 - `/Students/Edit`: el padre configura usuario y PIN desde la edición del hijo
