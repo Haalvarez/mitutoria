@@ -43,20 +43,30 @@
                     <option value="Masculino"      selected="@(Model.Gender == Gender.Masculino)">Masculino</option>
                 </select>
             </div>
-            <div class="form-field">
-                <label for="SchoolLevel">Nivel</label>
-                <select id="SchoolLevel" name="SchoolLevel">
-                    <option value="Primario"   selected="@(Model.SchoolLevel == SchoolLevel.Primario)">Primario</option>
-                    <option value="Secundario" selected="@(Model.SchoolLevel == SchoolLevel.Secundario)">Secundario</option>
-                </select>
+
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="SchoolLevel">Nivel</label>
+                    <select id="SchoolLevel" name="SchoolLevel">
+                        <option value="Primario"   selected="@(Model.SchoolLevel == SchoolLevel.Primario)">Primario</option>
+                        <option value="Secundario" selected="@(Model.SchoolLevel == SchoolLevel.Secundario)">Secundario</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="Grade">Año</label>
+                    <input id="Grade" name="Grade" type="number" min="1" max="7" value="@Model.Grade" required />
+                </div>
             </div>
-            <div class="form-field">
-                <label for="Grade">Año</label>
-                <input id="Grade" name="Grade" type="number" min="1" max="7" value="@Model.Grade" required />
-            </div>
-            <div class="form-field pref-row">
-                <input id="HasAdhd" name="HasAdhd" type="checkbox" value="true" @(Model.HasAdhd ? "checked" : "") />
-                <label for="HasAdhd">Tiene TDAH</label>
+
+            <div class="tdah-toggle">
+                <div class="tdah-toggle__text">
+                    <span class="tdah-toggle__label">¿Tiene TDAH?</span>
+                    <span class="tdah-toggle__desc">Activa opciones de adaptación específicas</span>
+                </div>
+                <label class="toggle-switch">
+                    <input id="HasAdhd" name="HasAdhd" type="checkbox" value="true" @(Model.HasAdhd ? "checked" : "") />
+                    <span class="toggle-switch__track"></span>
+                </label>
             </div>
         </section>
 
