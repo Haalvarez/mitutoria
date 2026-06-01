@@ -1,3 +1,49 @@
+## [Sesión 13] — 2026-06-01
+
+### feat — UX del aula
+- PDF upload integrado al input del chat
+  - Botón 📎 (paperclip) en el input bar dispara el selector de archivo
+  - Drag & drop sobre el área del chat con overlay visual (borde punteado brand color)
+  - Si se suelta un archivo que no es PDF → burbuja simpática de error
+  - Sidebar: sin botón viejo de subida — solo muestra estado del material y apunte extra
+- Mensajes animados durante la carga del PDF
+  - Burbuja del tutor con nombre del archivo y mensajes rotativos cada 2.5s con fade
+  - Mensajes: "Leyendo página por página...", "Identificando temas...", "Ya casi 🎯", etc.
+  - Al terminar: burbuja se convierte en el ack del tutor
+- Avatar del tutor animado mientras piensa
+  - Durante el typing indicator: avatar pulsa de sage verde → terracota `#C1440E` con halo
+  - CSS puro, 1.8s por ciclo, sin JS extra
+- Nav contextual en el aula (reemplaza el nav de landing)
+  - Logo → link al dashboard
+  - Nombre del alumno al centro
+  - Mensaje de racha a la derecha según streak (0 / 1 / 2-6 / 7-13 / 14+ días)
+- Logo real JPG en nav landing, nav aula, footer y favicon
+  - `wwwroot/img/logo.jpg` — listo para swap a SVG con vectorizer.io
+- "Simulacro" renombrado a "Examen de práctica" en botón y modal
+
+### feat — Quiz en modal
+- Quiz ahora devuelve JSON estructurado y abre el mismo modal que el examen
+- Modal muestra label correcto: "Quiz · Pregunta 1 de 5" o "Examen de práctica · Pregunta 1 de 6"
+- `ExtractJsonArray`: extrae el array JSON aunque Claude lo envuelva en bloques markdown
+  - Fix definitivo para tarjetas y simulacro que a veces caían al fallback de texto plano
+
+### feat — Error log
+- Tabla `public.error_logs` (SQL manual en TablePlus)
+- `ErrorLogService`: registra source, message, detail, context — nunca tira excepción
+- Errores internos logueados en DB, nunca expuestos al cliente
+- Admin: sección "Errores recientes" con los últimos 50
+
+### fix
+- `HasColumnName` para todas las columnas nuevas de Classroom y Family en `AppDbContext`
+  - Sin esto EF genera nombres C# con comillas y Railway falla al arrancar
+- `HasColumnType("jsonb")` para `material_sections` — EF enviaba text, Postgres esperaba jsonb
+- `SaveMaterial`: try/catch en segmentación y en `SaveChangesAsync` — devuelve JSON de error en lugar de 500 mudo
+
+### pendiente (anotado para después del piloto)
+- Avatares personalizables: alumno y tutor eligen de galería fija de emojis — sin upload, mínima superficie de falla
+
+---
+
 ## [Sesión 12] — 2026-05-31
 
 ### feat — Secciones de material (Opción B)
