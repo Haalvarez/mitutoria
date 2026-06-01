@@ -63,6 +63,22 @@ public class AppDbContext : DbContext
             .Property(f => f.ParentRole)
             .HasConversion<string>();
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.CreatedAt)
+            .HasColumnName("created_at");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.SubscriptionStatus)
+            .HasColumnName("subscription_status");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.TrialEndsAt)
+            .HasColumnName("trial_ends_at");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.PaidUntil)
+            .HasColumnName("paid_until");
+
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();
