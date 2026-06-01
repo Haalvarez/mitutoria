@@ -1,3 +1,56 @@
+## [Sesión 11] — 2026-05-31
+
+### feat
+- PDF upload vía AJAX — sin reload, muestra "Subiendo y leyendo…", feedback en sidebar
+  - Fallback OCR: si iText7 no extrae texto (PDF escaneado/imagen), reintenta con Claude Vision (base64)
+  - Si Claude tampoco puede leer el PDF, muestra error claro al usuario
+  - `[RequestSizeLimit]` y `[RequestFormLimits]` a 21MB a nivel de clase
+- Prompt caching: system prompt marcado con `cache_control: ephemeral` en todos los calls a Claude
+  - Ahorro ~90% en tokens del material durante sesión activa (cache dura 5 min, se renueva con cada hit)
+- Tarjetas (flashcards) en modal HTML interactivo
+  - Claude devuelve JSON, JS renderiza modal con nav prev/next y flip frente/dorso
+  - Historial guarda placeholder "📇 Tarjetas generadas" en lugar del JSON crudo
+- Simulacro de examen: reemplaza el "Modo Examen" toggle
+  - 6 preguntas a/b/c/d generadas por Claude desde el material, en modal
+  - Feedback inmediato verde/rojo al responder, muestra la correcta si falla
+  - Puntaje final con mensaje según resultado (≥70% / ≥50% / <50%)
+  - Si el alumno sube un PDF de examen real, el simulacro replica ese formato
+- Admin panel `/admin?token=ADMIN_TOKEN`
+  - Cards globales: familias, costo USD/ARS del mes, total waitlist
+  - Tokens por feature del mes (chat, quiz, flashcards, exam, material_ack, etc.)
+  - Señales de riesgo: cerca del límite / sin actividad 7+ días / alumnos sin material
+  - Tabla de familias: intercambios hoy/semana/mes, costo USD/ARS, último uso
+  - Tabla de waitlist completa con fecha
+- Alertas Telegram: notificación al anotarse en la waitlist (nombre, email, total)
+  - `TelegramService` ignora silenciosamente si las env vars no están configuradas
+- Landing: nav con 3 botones persistentes (Soy estudiante / Acceso familiar / Probarlo en vivo)
+- Landing: hero-bottom rediseñado en 2 columnas — texto contextual + copy de posicionamiento
+  - Botones de acción movidos al nav, hero queda limpio
+
+### fix
+- PDF: material no se pisa si el textarea de texto se envía vacío (solo `clearMaterial=true` borra)
+- PDF: mensaje del tutor siempre aparece al cargar — fallback si el ack de Claude falla
+- PDF: error claro si iText7 extrae texto vacío en lugar de guardar string vacío silenciosamente
+- Prompt: anti-bucle de confirmación — si el alumno solo valida lo sabido, tutor avanza directo
+- Aula: `confirm()` del botón Nueva Sesión eliminado
+- Admin: `Context` → `HttpContext` en la vista Razor
+
+### seguridad (análisis)
+- Acceso al aula sin login confirmado NO es bug: `ResolveStudentAsync` verifica `FamilyId` en sesión
+- Username de alumno único globalmente (cross-family) — validado antes de guardar
+- PIN no requiere unicidad por diseño — el credencial es `usuario + PIN`
+- Punto ciego identificado: el padre entra al aula en modo interactivo (debería ser lectura)
+  → pendiente: modo lectura para padre en `/Classroom/{id}`
+
+### env vars nuevas (Railway)
+| Variable | Uso |
+|---|---|
+| `ADMIN_TOKEN` | Protege `/admin` — string largo elegido por el operador |
+| `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram (BotFather) |
+| `TELEGRAM_CHAT_ID` | Chat ID del operador para recibir alertas |
+
+---
+
 ## [Sesión 10] — 2026-05-31 (continuación)
 ### feat
 - Classroom: botonera Quiz / Tarjetas / Modo Examen sobre el input de chat
