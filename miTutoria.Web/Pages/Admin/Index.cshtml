@@ -268,6 +268,30 @@ else
     </table>
 }
 
+@* ── Error log ────────────────────────────────────────────────────────── *@
+<h2>🔴 Errores recientes (@Model.RecentErrors.Count)</h2>
+@if (Model.RecentErrors.Count == 0)
+{
+    <p style="color:#888;margin-bottom:1.5rem;">Sin errores registrados. 🟢</p>
+}
+else
+{
+    <table>
+        <thead><tr><th>Fecha</th><th>Fuente</th><th>Mensaje</th><th>Contexto</th></tr></thead>
+        <tbody>
+        @foreach (var e in Model.RecentErrors)
+        {
+            <tr>
+                <td style="white-space:nowrap;">@e.CreatedAt.ToString("dd/MM HH:mm")</td>
+                <td><code>@e.Source</code></td>
+                <td style="color:#c94a1f;">@e.Message</td>
+                <td class="dim">@(e.Context ?? "—")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
 @* ── Waitlist ─────────────────────────────────────────────────────────── *@
 <h2>Waitlist (@Model.Waitlist.Count)</h2>
 <table>

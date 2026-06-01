@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using miTutoria.Web.Data.Entities;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
@@ -17,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<TokenEvent> TokenEvents => Set<TokenEvent>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
+    public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -62,6 +64,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Family>()
             .Property(f => f.ParentRole)
             .HasConversion<string>();
+
+        modelBuilder.Entity<ErrorLog>().ToTable("error_logs", "public");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.CreatedAt).HasColumnName("created_at");
 
         modelBuilder.Entity<Classroom>()
             .Property(c => c.MaterialSections)

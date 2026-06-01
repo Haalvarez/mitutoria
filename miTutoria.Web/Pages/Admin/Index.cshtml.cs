@@ -54,6 +54,11 @@ public class IndexModel : PageModel
     private int Kr4Threshold => _config.GetValue<int>("PILOT_KR4_THRESHOLD", 3);
     public int[] Thresholds => [Kr1Threshold, Kr2Threshold, Kr3Threshold, Kr4Threshold];
 
+    // ── Error log ────────────────────────────────────────────────────────────
+
+    public record ErrorRow(int Id, DateTime CreatedAt, string Source, string Message, string? Context);
+    public List<ErrorRow> RecentErrors { get; private set; } = [];
+
     // ── Waitlist ─────────────────────────────────────────────────────────────
 
     public record WaitlistRow(string Email, string? Name, DateTime CreatedAt);
@@ -199,6 +204,13 @@ public class IndexModel : PageModel
                 var label  = f.PaidUntil.HasValue ? "pago" : "trial";
                 return (f.Nickname ?? f.Name, label, expiry);
             }).ToList();
+
+        // Error log — últimos 50
+        RecentErrors = await _db.ErrorLogs
+            .OrderByDescending(e => e.CreatedAt)
+            .Take(50)
+            .Select(e => new ErrorRow(e.Id, e.CreatedAt, e.Source, e.Message, e.Context))
+            .ToListAsync();
 
         // Waitlist
         Waitlist = await _db.WaitlistEntries
