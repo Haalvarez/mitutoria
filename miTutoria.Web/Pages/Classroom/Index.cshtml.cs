@@ -27,13 +27,15 @@ public class IndexModel : PageModel
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
     private readonly ExchangeRateService _exchangeRate;
+    private readonly ILogger<IndexModel> _logger;
 
-    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config, ExchangeRateService exchangeRate)
+    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config, ExchangeRateService exchangeRate, ILogger<IndexModel> logger)
     {
         _dbContext = dbContext;
         _httpClientFactory = httpClientFactory;
         _config = config;
         _exchangeRate = exchangeRate;
+        _logger = logger;
     }
 
     public int StudentId { get; private set; }
@@ -423,7 +425,8 @@ public class IndexModel : PageModel
         }
         catch (Exception ex)
         {
-            if (pdfFile != null) return new JsonResult(new { error = $"Error al guardar: {ex.InnerException?.Message ?? ex.Message}" });
+            _logger.LogError(ex, "SaveMaterial failed for studentId={StudentId}", studentId);
+            if (pdfFile != null) return new JsonResult(new { error = "Hubo un problema al guardar el material. Intentá de nuevo." });
             throw;
         }
 

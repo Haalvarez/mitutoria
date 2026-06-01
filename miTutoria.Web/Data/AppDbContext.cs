@@ -65,7 +65,8 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Classroom>()
             .Property(c => c.MaterialSections)
-            .HasColumnName("material_sections");
+            .HasColumnName("material_sections")
+            .HasColumnType("jsonb");
 
         modelBuilder.Entity<Classroom>()
             .Property(c => c.MaterialSectionIndex)
