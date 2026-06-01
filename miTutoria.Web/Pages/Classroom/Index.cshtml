@@ -112,7 +112,15 @@
     </aside>
 
     @* ── CHAT ─────────────────────────────────────────────────────── *@
-    <div class="classroom-chat">
+    <div class="classroom-chat" id="classroom-chat">
+        <div id="drop-overlay" class="drop-overlay" style="display:none;">
+            <div class="drop-overlay__inner">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <p>Soltá el PDF acá</p>
+            </div>
+        </div>
 
         <div class="chat-messages" id="chat-messages">
             @if (Model.Messages.Count == 0)
@@ -255,6 +263,66 @@ document.getElementById('btn-attach').addEventListener('click', () => {
     document.getElementById('pdf-input').click();
 });
 
+// Drag & drop sobre el área del chat
+const chatEl    = document.getElementById('classroom-chat');
+const dropOverlay = document.getElementById('drop-overlay');
+let _dragCounter = 0;
+
+chatEl.addEventListener('dragenter', e => {
+    if (!e.dataTransfer.types.includes('Files')) return;
+    e.preventDefault();
+    _dragCounter++;
+    dropOverlay.style.display = 'flex';
+});
+chatEl.addEventListener('dragleave', () => {
+    _dragCounter--;
+    if (_dragCounter <= 0) { _dragCounter = 0; dropOverlay.style.display = 'none'; }
+});
+chatEl.addEventListener('dragover', e => e.preventDefault());
+chatEl.addEventListener('drop', e => {
+    e.preventDefault();
+    _dragCounter = 0;
+    dropOverlay.style.display = 'none';
+    const file = e.dataTransfer.files[0];
+    if (!file || file.type !== 'application/pdf') {
+        addBubble('Solo acepto archivos PDF. Probá de nuevo 😊', 'assistant');
+        return;
+    }
+    uploadPdf(file);
+});
+
+async function uploadPdf(file) {
+    document.getElementById('btn-attach').disabled = true;
+    document.getElementById('pdf-input').disabled = true;
+    startUploadAnimation(file.name);
+
+    const formData = new FormData();
+    formData.append('StudentId', studentId);
+    formData.append('PdfFile', file);
+
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=SaveMaterial`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': csrf() },
+            body: formData
+        });
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        if (data.error) {
+            stopUploadAnimation('❌ ' + data.error);
+        } else {
+            stopUploadAnimation(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.');
+            setTimeout(() => location.reload(), 1200);
+        }
+    } catch {
+        stopUploadAnimation('Hubo un problema al subir el archivo. Intentá de nuevo.');
+    } finally {
+        document.getElementById('btn-attach').disabled = false;
+        document.getElementById('pdf-input').disabled = false;
+        document.getElementById('pdf-input').value = '';
+    }
+}
+
 // Mensajes animados durante la carga del PDF
 const uploadMessages = [
     'Dame un momento, estoy abriendo tu archivo...',
@@ -305,45 +373,10 @@ function stopUploadAnimation(replyText) {
     }
 }
 
-// Upload PDF vía AJAX
-document.getElementById('pdf-input').addEventListener('change', async function() {
+// Upload PDF vía click en input
+document.getElementById('pdf-input').addEventListener('change', function() {
     if (!this.files.length) return;
-    const file = this.files[0];
-    const input = this;
-
-    input.disabled = true;
-    document.getElementById('btn-attach').disabled = true;
-    startUploadAnimation(file.name);
-
-    const formData = new FormData();
-    formData.append('StudentId', studentId);
-    formData.append('PdfFile', file);
-
-    try {
-        const res = await fetch(`/Classroom/${studentId}?handler=SaveMaterial`, {
-            method: 'POST',
-            headers: { 'RequestVerificationToken': csrf() },
-            body: formData
-        });
-        if (res.status === 401) { location.href = '/Login'; return; }
-        const data = await res.json();
-        if (data.error) {
-            stopUploadAnimation('❌ ' + data.error);
-        } else {
-            stopUploadAnimation(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.');
-            // Actualizar sidebar sin reload
-            const summarySpan = document.querySelector('.sidebar-panel summary span');
-            if (summarySpan) summarySpan.textContent = '📄 ' + file.name;
-            // Recargar sidebar para mostrar secciones
-            setTimeout(() => location.reload(), 1200);
-        }
-    } catch(e) {
-        stopUploadAnimation('Hubo un problema al subir el archivo. Intentá de nuevo.');
-    } finally {
-        input.disabled = false;
-        input.value = '';
-        document.getElementById('btn-attach').disabled = false;
-    }
+    uploadPdf(this.files[0]);
 });
 
 const btnQuiz  = document.getElementById('btn-quiz');
