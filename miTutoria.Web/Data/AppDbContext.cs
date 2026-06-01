@@ -63,6 +63,18 @@ public class AppDbContext : DbContext
             .Property(f => f.ParentRole)
             .HasConversion<string>();
 
+        modelBuilder.Entity<Classroom>()
+            .Property(c => c.MaterialSections)
+            .HasColumnName("material_sections");
+
+        modelBuilder.Entity<Classroom>()
+            .Property(c => c.MaterialSectionIndex)
+            .HasColumnName("material_section_index");
+
+        modelBuilder.Entity<Classroom>()
+            .Property(c => c.MaterialOcrSource)
+            .HasColumnName("material_ocr_source");
+
         modelBuilder.Entity<Family>()
             .Property(f => f.CreatedAt)
             .HasColumnName("created_at");
