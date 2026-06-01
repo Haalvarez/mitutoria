@@ -398,7 +398,14 @@ public class IndexModel : PageModel
             if (string.IsNullOrWhiteSpace(extracted))
                 return new JsonResult(new { error = "No pude leer el contenido de ese PDF. Probá pegando el texto directamente." });
             classroom.Material = extracted;
-            classroom.MaterialSections = await SegmentMaterialAsync(extracted);
+            try
+            {
+                classroom.MaterialSections = await SegmentMaterialAsync(extracted);
+            }
+            catch
+            {
+                classroom.MaterialSections = null; // sin secciones — el aula sigue funcionando con Material completo
+            }
             classroom.MaterialSectionIndex = 0;
             classroom.MaterialOcrSource = pdfFile.FileName;
             materialNuevo = true;
@@ -410,7 +417,15 @@ public class IndexModel : PageModel
         }
         // textarea vacío sin clearMaterial explícito → no tocar el material existente
 
-        await _dbContext.SaveChangesAsync();
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            if (pdfFile != null) return new JsonResult(new { error = $"Error al guardar: {ex.InnerException?.Message ?? ex.Message}" });
+            throw;
+        }
 
         // Si se cargó material nuevo, el tutor lo reconoce con un mensaje al chat
         string? ackReply = null;
