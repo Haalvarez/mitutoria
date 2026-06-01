@@ -156,9 +156,9 @@
         </div>
 
         <div class="chat-toolbar" id="chat-toolbar">
-            <button id="btn-quiz" class="toolbar-btn" title="Generá un quiz basado en el material cargado">Quiz</button>
-            <button id="btn-cards" class="toolbar-btn" title="Generá tarjetas de estudio (flashcards)">Tarjetas</button>
-            <button id="btn-exam" class="toolbar-btn" title="Generá un simulacro con preguntas de opción múltiple">Simulacro</button>
+            <button id="btn-quiz" class="toolbar-btn" title="Quiz rápido con 5 preguntas sobre el material">Quiz</button>
+            <button id="btn-cards" class="toolbar-btn" title="Tarjetas para repasar los conceptos clave">Tarjetas</button>
+            <button id="btn-exam" class="toolbar-btn" title="Practicá con preguntas de opción múltiple como en un examen real">Examen de práctica</button>
         </div>
 
         <div class="chat-input-bar">
@@ -313,8 +313,8 @@ async function toolbarAction(handler, label) {
         typing.style.display = 'none';
         if (data.type === 'flashcards') {
             addFlashcards(data.cards);
-        } else if (data.type === 'exam') {
-            openExam(data.questions);
+        } else if (data.type === 'exam' || data.type === 'quiz') {
+            openExam(data.questions, label);
         } else if (data.reply) {
             addBubble(data.reply, 'assistant');
         } else {
@@ -385,26 +385,28 @@ document.querySelector('#cards-modal .cards-modal__backdrop').addEventListener('
 // Simulacro de examen
 let _questions = [], _qIdx = 0, _score = 0, _answered = [];
 
-function openExam(questions) {
+function openExam(questions, label) {
     _questions = questions;
     _qIdx = 0; _score = 0; _answered = [];
-    renderQuestion();
+    const title = label || 'Examen de práctica';
+    renderQuestion(title);
     document.getElementById('exam-modal').style.display = 'flex';
     // Burbuja en el chat
     const wrap = document.createElement('div');
     wrap.className = 'msg msg--assistant';
     wrap.innerHTML = `<div class="msg__avatar msg__avatar--assistant">T</div>
         <div class="msg__body"><span class="msg__label">Tutor</span>
-        <div class="msg__bubble">📝 Simulacro listo — ${questions.length} preguntas.
-        <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="document.getElementById('exam-modal').style.display='flex'">Retomar simulacro</button>
+        <div class="msg__bubble">📝 ${title} listo — ${questions.length} preguntas.
+        <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="document.getElementById('exam-modal').style.display='flex'">Retomar ${title.toLowerCase()}</button>
         </div></div>`;
     messagesEl.insertBefore(wrap, typing);
     scrollBottom();
 }
 
-function renderQuestion() {
+function renderQuestion(title) {
     const q = _questions[_qIdx];
-    document.getElementById('exam-counter').textContent = `Pregunta ${_qIdx + 1} de ${_questions.length}`;
+    const label = title || 'Examen de práctica';
+    document.getElementById('exam-counter').textContent = `${label} · Pregunta ${_qIdx + 1} de ${_questions.length}`;
     document.getElementById('exam-question').textContent = q.question;
     document.getElementById('exam-result').style.display = 'none';
     const opts = document.getElementById('exam-options');
@@ -449,10 +451,9 @@ function selectOption(key, btn) {
 document.getElementById('exam-close').addEventListener('click', () => { document.getElementById('exam-modal').style.display = 'none'; });
 document.querySelector('#exam-modal .cards-modal__backdrop').addEventListener('click', () => { document.getElementById('exam-modal').style.display = 'none'; });
 
-btnQuiz.addEventListener('click', () => toolbarAction('Quiz', 'Quiz'));
+btnQuiz.addEventListener('click',  () => toolbarAction('Quiz',       'Quiz'));
 btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
-
-btnExam.addEventListener('click', () => toolbarAction('Exam', 'Simulacro'));
+btnExam.addEventListener('click',  () => toolbarAction('Exam',       'Examen de práctica'));
 
 // Navegación de secciones
 const btnPrev = document.getElementById('btn-prev-section');

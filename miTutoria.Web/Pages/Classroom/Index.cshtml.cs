@@ -199,26 +199,25 @@ public class IndexModel : PageModel
             return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para que pueda armar el quiz." });
 
         var material = classroom.Material.Length > 10_000 ? classroom.Material[..10_000] : classroom.Material;
+        var jsonExample = """[{"question":"¿Qué es X?","options":{"a":"...","b":"...","c":"...","d":"..."},"correct":"b"}]""";
         var userMsg = $"""
-            Generá un quiz de 5 preguntas de opción múltiple basado en este material:
+            Generá 5 preguntas de opción múltiple para un quiz rápido basado en este material:
             ---
             {material}
             ---
-            Formato exacto para cada pregunta:
-            **Pregunta N:** [texto]
-            a) [opción]  b) [opción]  c) [opción]  d) [opción]
-
-            No incluyas las respuestas correctas. Al final escribí: "Cuando estés listo/a, escribí tus respuestas (ej: 1-a, 2-c...) y las revisamos juntos."
+            Respondé ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin bloques de código.
+            Formato exacto (5 objetos): {jsonExample}
+            Reglas: preguntas cortas y claras, opciones plausibles, una sola respuesta correcta, dificultad media.
             """;
 
         try
         {
-            var (reply, tokensIn, tokensOut) = await CallClaudeRawAsync(
-                "Sos un generador de quizzes educativos. Respondé solo con el quiz, sin introducciones.",
-                userMsg, maxTokens: 800);
+            var (raw, tokensIn, tokensOut) = await CallClaudeRawAsync(
+                "Sos un generador de quizzes educativos. Respondés solo con JSON válido, nada más.",
+                userMsg, maxTokens: 1000);
             var arsRate = await _exchangeRate.GetMepRateAsync();
 
-            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = "📝 Quiz generado." });
             _dbContext.TokenEvents.Add(new TokenEvent
             {
                 FamilyId = student.FamilyId, UserId = student.Id,
@@ -227,11 +226,16 @@ public class IndexModel : PageModel
                 ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
-            return new JsonResult(new { reply });
+
+            var questions = ExtractJsonArray(raw);
+            if (questions is not null)
+                return new JsonResult(new { type = "quiz", questions });
+            return new JsonResult(new { reply = raw });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+            await _errorLog.LogAsync("OnPostQuiz", ex, $"studentId={studentId}");
+            return new JsonResult(new { error = "Error al generar el quiz." }) { StatusCode = 500 };
         }
     }
 
@@ -276,20 +280,15 @@ public class IndexModel : PageModel
             });
             await _dbContext.SaveChangesAsync();
 
-            // Intentar parsear JSON; si falla, devolver como texto plano
-            try
-            {
-                using var parsed = JsonDocument.Parse(raw.Trim());
-                return new JsonResult(new { type = "flashcards", cards = parsed.RootElement });
-            }
-            catch
-            {
-                return new JsonResult(new { reply = raw });
-            }
+            var cards = ExtractJsonArray(raw);
+            if (cards is not null)
+                return new JsonResult(new { type = "flashcards", cards });
+            return new JsonResult(new { reply = raw });
         }
         catch (Exception ex)
         {
-            return new JsonResult(new { error = ex.Message }) { StatusCode = 500 };
+            await _errorLog.LogAsync("OnPostFlashcards", ex, $"studentId={studentId}");
+            return new JsonResult(new { error = "Error al generar las tarjetas." }) { StatusCode = 500 };
         }
     }
 
@@ -334,15 +333,10 @@ public class IndexModel : PageModel
             });
             await _dbContext.SaveChangesAsync();
 
-            try
-            {
-                using var parsed = JsonDocument.Parse(raw.Trim());
-                return new JsonResult(new { type = "exam", questions = parsed.RootElement });
-            }
-            catch
-            {
-                return new JsonResult(new { reply = raw });
-            }
+            var questions = ExtractJsonArray(raw);
+            if (questions is not null)
+                return new JsonResult(new { type = "exam", questions });
+            return new JsonResult(new { reply = raw });
         }
         catch (Exception ex)
         {
@@ -801,6 +795,22 @@ public class IndexModel : PageModel
             - NUNCA uses regionalismos de otros países: no "brete" (chileno), no "órale" (mexicano), no "chévere" (venezolano), no "bacán" en sentido chileno.
             - Sé cálido y directo, como un tutor particular porteño de confianza.
             """;
+    }
+
+    // Extrae el primer array JSON de un string que puede tener markdown u otro texto extra
+    private static object? ExtractJsonArray(string raw)
+    {
+        var start = raw.IndexOf('[');
+        var end   = raw.LastIndexOf(']');
+        if (start < 0 || end < 0 || end <= start) return null;
+        try
+        {
+            var json = raw[start..(end + 1)];
+            using var doc = JsonDocument.Parse(json);
+            // Serializar para devolver un objeto desacoplado del using
+            return JsonSerializer.Deserialize<object>(json);
+        }
+        catch { return null; }
     }
 
     // ── Segmentación ────────────────────────────────────────────────────────
