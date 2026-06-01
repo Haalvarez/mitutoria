@@ -6,6 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
+    <link rel="icon" type="image/jpeg" href="/img/logo.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,900;1,400;1,700&family=Instrument+Sans:wght@300;400;500&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
@@ -28,7 +29,7 @@
             _             => $"🔥 {streak} días — ¡sos imparable!"
         };
         <nav class="classroom-nav">
-            <a href="/Dashboard" class="logo classroom-nav__logo">mi<b>Tutor</b><i>IA</i></a>
+            <a href="/Dashboard" class="classroom-nav__logo"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
             <span class="classroom-nav__student">@studentName</span>
             <span class="classroom-nav__streak">@streakMsg</span>
         </nav>
@@ -36,7 +37,7 @@
     else
     {
         <nav>
-            <div class="logo">mi<b>Tutor</b><i>IA</i></div>
+            <a href="/"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
             <div class="nav-right">
                 <a href="/Entrar" class="nav-btn-student">Soy estudiante</a>
                 <a href="/Login" class="nav-btn-family">Acceso familiar</a>
@@ -51,7 +52,7 @@
     @if (ViewData["BodyClass"]?.ToString() != "classroom-page")
     {
         <footer>
-            <div class="footer-logo">mi<b>Tutor</b><i>IA</i></div>
+            <img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" style="height:24px;" />
             <span>mitutoria.app · Hecho en Argentina 🧉</span>
         </footer>
     }

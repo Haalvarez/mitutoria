@@ -1418,6 +1418,14 @@ footer{
 
 body.classroom-page { overflow: hidden; }
 
+/* Logo imagen */
+.nav-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
 /* Nav contextual del aula */
 .classroom-nav {
   position: fixed;
