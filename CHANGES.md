@@ -1,3 +1,64 @@
+## [Sesión 12] — 2026-05-31
+
+### feat — Secciones de material (Opción B)
+- Classroom: segmentación automática del PDF en secciones temáticas
+  - `SegmentMaterialAsync`: llama Haiku tras el OCR, devuelve `[{title, content}]`
+  - Si el parse falla o el texto es corto → fallback a sección única automática
+  - Máximo 5 secciones, máximo 40k chars al segmentador
+- Classroom: progreso entre sesiones
+  - `material_section_index` persiste en DB — el alumno continúa donde quedó
+  - "Nueva sesión" solo borra mensajes y CompactSummary; el material y las secciones se preservan
+- Classroom sidebar: barra de progreso visual ✅/▶/○ + botones Siguiente/Anterior
+  - AJAX: `OnPostAdvanceSectionAsync` actualiza el índice y recarga la página
+  - Si hay una sola sección: muestra solo el título, sin botones de navegación
+  - Label "Apunte extra del docente" cuando hay PDF cargado (texto pegado = material complementario)
+- BuildSystemPrompt: inyecta `sections[index].content` + "Sección X de N: título. Ya trabajadas: ..."
+  - Fallback a `classroom.Material` si no hay secciones (texto pegado sin PDF)
+  - Quiz, flashcards y simulacro siguen usando `classroom.Material` completo (sin cambio)
+- Nuevas columnas en `academic.classrooms`: `material_sections jsonb`, `material_section_index int`, `material_ocr_source text`
+- Migración vacía `20260531000000_AddMaterialSections` (SQL aplicado manualmente en TablePlus)
+
+### feat — Estado de suscripción y guard de acceso
+- `Family`: nuevos campos `CreatedAt`, `SubscriptionStatus`, `TrialEndsAt`, `PaidUntil`, propiedad `IsAccessAllowed`
+  - `SubscriptionStatus` valores: `waitlist` / `trial` / `active` / `trial_expired` / `suspended` / `cancelled`
+  - `IsAccessAllowed` = `status` es `trial` o `active`
+- Guard en `Verify.cshtml.cs` (magic link padre): si `!IsAccessAllowed` → `/Blocked?status=...`
+- Guard en `Entrar.cshtml.cs` (login alumno): igual, Include Family antes de verificar PIN
+- Nueva página `/Blocked`: mensaje diferenciado según `trial_expired` vs `suspended`/`cancelled`
+- Migración vacía `20260531100000_AddFamilyBilling` (SQL aplicado manualmente en TablePlus)
+- Activación de familias del piloto: manual vía TablePlus (`UPDATE families SET subscription_status='trial'...`)
+
+### feat — Monitor de piloto en admin
+- Admin: nueva sección "Monitor de Piloto" antes de la Waitlist
+  - Cohorte = familias con `subscription_status = 'trial' OR 'active'`
+  - KR1 Retención: familias con ≥ N intercambios en últimos 7 días ("X de Y"), badge rojo si > 3 días sin actividad
+  - KR2 Hábito: hijos con racha ≥ 7 días ("X de Y"), tabla con racha actual de cada alumno
+  - KR3 Intención de pago: input manual (número + nota libre), no persiste en DB
+  - KR4 Referidos: input manual (contador + nombres), no persiste en DB
+  - Semáforo 🟢🟡🔴 para los 4 KR con umbrales configurables por env var (`PILOT_KR1_THRESHOLD`, etc.)
+  - KR3/KR4 se calculan en el render desde query params — se completan al cierre del piloto
+- Admin: señal de vencimiento — lista familias con `trial_ends_at` o `paid_until` ≤ 3 días
+- Umbrales default: KR1≥6, KR2≥5, KR3≥5, KR4≥3 (ajustables por config)
+- `Kr1MinExchanges` default 3 (configurable con `PILOT_KR1_MIN_EXCHANGES`)
+
+### decisiones de arquitectura
+- Cobro futuro: plano mensual (NO créditos, NO `credit_accounts`, NO `credit_events`)
+- Activación del piloto: manual desde TablePlus, sin portal de pago
+- KR3/KR4: no persisten en DB por diseño — son datos de cierre, se completan una vez
+- Secciones en Classroom (no en Subject/Topic): suficiente para el piloto, migrable a jerarquía en V2
+- Texto pegado: no pasa por segmentación (sección única implícita, sin llamar a Claude)
+
+### env vars nuevas (Railway — opcionales, tienen default)
+| Variable | Default | Uso |
+|---|---|---|
+| `PILOT_KR1_MIN_EXCHANGES` | 3 | Intercambios mínimos en 7 días para considerar familia activa |
+| `PILOT_KR1_THRESHOLD` | 6 | Umbral semáforo KR1 |
+| `PILOT_KR2_THRESHOLD` | 5 | Umbral semáforo KR2 |
+| `PILOT_KR3_THRESHOLD` | 5 | Umbral semáforo KR3 |
+| `PILOT_KR4_THRESHOLD` | 3 | Umbral semáforo KR4 |
+
+---
+
 ## [Sesión 11] — 2026-05-31
 
 ### feat

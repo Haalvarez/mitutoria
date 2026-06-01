@@ -13,22 +13,32 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 11
-- **Fase activa:** Fase 1 — MVP Familia (casi completa)
+- **Sesión:** 12
+- **Fase activa:** Fase 1 — MVP Familia (lista para piloto)
 - **Branch activo:** `main`
-- **Último commit:** feat: admin panel + alertas Telegram waitlist
+- **Último commit:** feat: secciones de material, guard de acceso y monitor de piloto
 
 ## Funciona hoy
 - ✅ Login de alumno `/Entrar` — usuario + PIN configurado por el padre desde `/Students/Edit`
+- ✅ Guard de acceso: `subscription_status` chequeado en Verify (padre) y Entrar (alumno)
+  - `trial` / `active` → acceso normal
+  - `trial_expired` / `suspended` / `cancelled` → página `/Blocked` con mensaje claro
+  - Familias sin estado o en `waitlist` → bloqueadas automáticamente
 - ✅ Aula acepta sesión de alumno o de padre
 - ✅ Racha de días 🔥 visible en el aula y en el dashboard del padre
 - ✅ Botonera del aula: Quiz · Tarjetas (modal flip) · Simulacro (modal a/b/c/d con puntaje)
 - ✅ Prompt caching — ahorro ~90% en tokens del material por sesión activa
 - ✅ Prompt anti-bucle: tutor avanza cuando el alumno solo confirma lo sabido
 - ✅ PDF upload AJAX (sin reload) con OCR fallback vía Claude Vision para PDFs escaneados
+- ✅ **Secciones de material:** PDF segmentado automáticamente en secciones temáticas por Haiku
+  - Progreso persistente entre sesiones (`material_section_index` en DB)
+  - Sidebar con barra ✅/▶/○ y botones Siguiente/Anterior
+  - "Nueva sesión" preserva material y secciones — solo borra mensajes
+  - Texto pegado = apunte complementario (no reemplaza secciones del PDF)
 - ✅ Tipo de cambio MEP en tiempo real (dolarapi.com, cache 60 min)
 - ✅ Dashboard padre rediseñado: intercambios hoy/semana/mes, gasto ARS, racha por hijo
 - ✅ Admin `/admin?token=ADMIN_TOKEN` — familias, señales de riesgo, tokens por feature, waitlist
+- ✅ **Monitor de piloto en admin:** KR1 (retención), KR2 (hábito/racha), KR3/KR4 inputs manuales, semáforo 🟢🟡🔴, señal de vencimientos ≤3 días
 - ✅ Alertas Telegram al anotarse en waitlist (TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID)
 - ✅ Landing: nav con 3 botones persistentes, hero en 2 columnas sin botones redundantes
 - ✅ Waitlist guarda en DB — formulario funcional desde sesión 9
@@ -52,38 +62,34 @@ y chatean en su aula desde mitutoria.app.
   - Typing indicator (tres puntos animados)
   - Burbujas de chat con avatar circular, alineación asimétrica usuario/tutor
   - Input dinámico (crece con el texto), Enter envía, Shift+Enter nueva línea
-  - Sidebar: material (PDF hasta 5MB con itext7 + texto pegado), config tutor, resumen compacto
-  - Botones Compactar (Claude resume → borra mensajes) y Nueva sesión (borra todo)
+  - Sidebar: material (PDF hasta 20MB con itext7 + texto pegado), secciones, resumen compacto
   - Footer oculto en el aula, layout 100dvh
 - ✅ Integración Anthropic API — Haiku 4.5, prompt socrático v1 con género y preferencias inyectadas
 - ✅ token_events registrado después de cada llamada — FamilyId, UserId, tokens in/out, CostUsd, Feature
 - ✅ Límite mensual configurable `MONTHLY_TOKEN_LIMIT` (default 500k tokens)
-- ✅ Límite de material `MAX_MATERIAL_CHARS` (default 15k chars, trunca con aviso)
 - ✅ Migraciones todas aplicadas en Railway vía `db.Database.Migrate()` en startup
 - ✅ TablePlus conectado a Railway DB (conexión pública)
 - ✅ PostgreSQL en Railway: esquemas `auth`, `academic`, `billing`, `public` (__EFMigrations)
 
 ## No funciona / pendiente
 
-### Fase 2 — Auth del alumno (decisión de arquitectura)
-- ⬜ Login de alumno con usuario (slug, ej: `vika`) + PIN de 4-6 dígitos hasheado
-  - El padre genera las credenciales desde `/Students/Edit/{id}` y se las da al hijo
-  - Página `/Entrar` — formulario usuario + PIN, sesión separada a la del padre
-  - El aula detecta el tipo de sesión: alumno → chat activo / padre → lectura solamente
-  - El botón "Abrir aula" del padre pasa a ser historial en modo lectura (supervisión, no impersonación)
-  - **Requiere:** columnas `StudentUsername` + `StudentPinHash` en `users`, nueva migración, nueva página de login, lógica de sesión dual en el aula
+### Piloto (pasos manuales antes de lanzar)
+- ⬜ Correr SQL de migración `AddMaterialSections` en TablePlus (columnas `material_sections`, `material_section_index`, `material_ocr_source` en `academic.classrooms`)
+- ⬜ Correr SQL de migración `AddFamilyBilling` en TablePlus (columnas `created_at`, `subscription_status`, `trial_ends_at`, `paid_until` en `auth.families` + backfill)
+- ⬜ Activar familias del piloto manualmente: `UPDATE auth.families SET subscription_status='trial', trial_ends_at=now()+interval '30 days' WHERE email='...'`
+- ⬜ Configurar env vars Railway: `ADMIN_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 ### Fase 2 — Producto
-- ⬜ MercadoPago — sistema de créditos en ARS (diseño detallado abajo)
-- ⬜ Panel de admin — uso por familia, saldo API maestra, pagos recibidos
+- ⬜ MercadoPago — suscripción mensual plana (NO créditos)
+  - Un solo plan, webhook de pago confirmado → `UPDATE families SET subscription_status='active', paid_until=...`
+  - Sin portal de auto-gestión por ahora — activación manual post-piloto
 - ⬜ Consentimiento parental (condición legal de lanzamiento)
-- ⬜ Resumen cualitativo automático al cerrar sesión (killer feature dashboard)
+- ⬜ Resumen cualitativo automático al cerrar sesión (killer feature dashboard) — descartado para piloto
+- ⬜ Modo lectura del padre en `/Classroom/{id}` — punto ciego de seguridad identificado
 - ⬜ Alertas de inactividad + CTA para hijos sin actividad en el dashboard
 - ⬜ Historial de sesiones en modo lectura para el padre
-- ⬜ Acordeón de materias/temas por aula (base para mapa curricular y metas)
 - ⬜ Quiz aprobado trackeable (requiere flujo estructurado a/b/c/d)
-- ⬜ Logros/achievements calculados (primera sesión, 7 días de racha, etc.)
-- ⬜ Mergear ramas pendientes: `feature/fix-login-flow`, `feature/fix-landing-login-link`, `feature/dashboard-parent`
+- ⬜ Jerarquía Materia → Tema → Secciones (hoy: secciones viven en Classroom — migrable en V2)
 
 ---
 
@@ -100,65 +106,20 @@ y chatean en su aula desde mitutoria.app.
 >
 > Así Railway arranca sin intentar migrar nada que ya esté aplicado.
 
-## Próximos pasos (Sesión 12)
-1. Modo lectura para el padre en `/Classroom/{id}` — punto ciego de seguridad identificado
-2. MercadoPago — créditos en ARS con webhook casi desatendido (diseño detallado en sección billing)
-3. Resumen cualitativo automático por sesión (killer feature del dashboard padre)
-4. Configurar env vars Railway: `ADMIN_TOKEN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+## Decisión de arquitectura — modelo de cobro
 
----
+> **Cobro plano mensual (NO créditos).** Se descartó el modelo de `credit_accounts` / `credit_events`.
+> El padre paga una suscripción fija. El control de abuso se hace con `MONTHLY_TOKEN_LIMIT` y las
+> señales de riesgo del admin, no con un saldo en ARS.
+>
+> **MercadoPago Suscripciones** (API `preapproval`) es la implementación target para V2.
+> Durante el piloto: activación manual desde TablePlus.
 
-## 💡 MercadoPago — plan casi desatendido (pendiente implementar)
-
-**Arquitectura:**
-- `billing.credit_accounts` — `family_id` (FK único), `balance_ars` decimal, `updated_at`
-- `billing.credit_events` — `family_id`, `amount_ars` (+compra / -consumo), `type` ('purchase'/'consume'), `mp_payment_id` nullable, `created_at`
-- Reemplaza el límite de tokens (`MONTHLY_TOKEN_LIMIT`) por chequeo de saldo
-
-**Flujo de compra:**
-1. Padre va a `/Billing/Recargar` — elige paquete ($2.000 / $5.000 / $10.000 ARS)
-2. Sistema crea preferencia MP con `external_reference = family_id` (no email, más confiable)
-3. Padre paga por link o QR de MP
-4. MP envía webhook a `/api/mp-webhook` (firmado, verificar con `x-signature`)
-5. Webhook: verificar firma → acreditar `credit_accounts.balance_ars` → insertar `credit_event` tipo 'purchase'
-
-**Flujo de consumo:**
-- Cada llamada a Claude: descontar `cost_usd * ars_rate` del saldo
-- Si saldo ≤ 0: bloquear con mensaje al alumno y notificación al padre
-- Registrar `credit_event` tipo 'consume'
-
-**Panel de admin:**
-- Ruta protegida por env var `ADMIN_TOKEN` — `GET /admin?token=...`
-- Ver: todas las familias, saldo, consumo del mes en USD y ARS, pagos recibidos
-- Ver: saldo total API maestra (suma de cost_usd de todos los token_events)
-
-**Margen:**
-- Precio al usuario en ARS incluye ~50% margen sobre costo real en USD × MEP
-- Ej: paquete $5.000 ARS → costo API real ≈ $2.500 ARS → ganancia $2.500
-
-## 💡 Modelo de negocio — créditos en ARS (diseñado, pendiente implementar)
-
-El padre **no quiere ver tokens**. Quiere ver pesos y saldo disponible.
-
-**Flujo:**
-- El padre compra créditos en ARS vía MercadoPago (QR o link de pago)
-- Cada llamada a Claude descuenta del saldo según costo real en USD convertido a ARS
-- El sistema bloquea cuando el saldo llega a cero
-- MercadoPago webhook → acredita automáticamente al recibir pago confirmado
-
-**Margen:**
-- Precio al usuario: $X ARS → 50% margen → mitad cubre costo API en USD
-- Ejemplo: usuario paga $10 USD equivalente en ARS → $5 USD va a API, $5 es ganancia
-- El exchange rate debe revisarse periódicamente (hardcodeado o via API de tipo de cambio)
-
-**Tablas a agregar:**
-- `billing.credit_accounts` — saldo_ars, family_id, updated_at
-- `billing.credit_events` — family_id, amount_ars, type (purchase/consume), mp_payment_id, created_at
-- Reemplaza el límite de tokens por límite de saldo ARS
-
-**Dashboard padre:**
-- Mostrar: "Crédito disponible: $X.XX" y "Gastado este mes: $X.XX"
-- No mostrar tokens ni USD al padre final
+## Próximos pasos (Sesión 13)
+1. Correr los dos SQLs pendientes en TablePlus y verificar que Railway arranca sin errores
+2. Activar familias del piloto (5-6) manualmente
+3. MercadoPago — suscripción plana, un solo plan, webhook → actualiza `subscription_status`
+4. Consentimiento parental (condición legal antes de cobrar)
 
 ---
 
@@ -175,8 +136,10 @@ El padre **no quiere ver tokens**. Quiere ver pesos y saldo disponible.
 | `20260602140000_AddClassroomExtras` | Columna `CompactSummary` en classrooms |
 | `20260602150000_AddStudentProfile2` | Gender, ExplanationLevel, 7 columnas Pref* en users |
 | `20260602160000_AddWaitlist` | Tabla `auth.waitlist_entries` |
+| `20260531000000_AddMaterialSections` | `material_sections jsonb`, `material_section_index int`, `material_ocr_source text` en classrooms — **PENDIENTE TABLEPLUS** |
+| `20260531100000_AddFamilyBilling` | `created_at`, `subscription_status`, `trial_ends_at`, `paid_until` en families — **PENDIENTE TABLEPLUS** |
 
-> Todas aplicadas. `AddHasAdhdToUser` nunca existió — sus columnas están en `AddStudentProfile`.
+> Todas aplicadas salvo las dos últimas (pendiente SQL manual en TablePlus).
 
 ---
 
@@ -191,7 +154,6 @@ El padre **no quiere ver tokens**. Quiere ver pesos y saldo disponible.
 | UseForwardedHeaders | Railway termina TLS en proxy — magic link debe salir con `https` |
 | `db.Database.Migrate()` en startup | Railway no corre `dotnet ef` — auto-migrate al arrancar |
 | Migraciones manuales con raw SQL | SDK local incompatible — se escriben a mano con `migrationBuilder.Sql()` |
-| `AddHasAdhdToUser` nunca existió | Columnas absorbidas en `AddStudentProfile` |
 | `itext7` para extracción de PDF | PdfPig no tiene versión estable en NuGet |
 | AJAX chat con handler `OnPostSendAsync` | Evita reload de página — mejor UX |
 | `IAntiforgery` inyectado en `_Layout` | CSRF token en meta tag para fetch() desde JS |
@@ -199,7 +161,10 @@ El padre **no quiere ver tokens**. Quiere ver pesos y saldo disponible.
 | `DateTimeKind.Utc` en queries Npgsql | Npgsql rechaza DateTime sin zona en comparaciones con timestamptz |
 | Chart.js vía CDN | Sin NuGet extra — gráfico de barras funcional en el dashboard |
 | Demo público `/api/demo` en minimal API | Sin auth, limitado a 10 mensajes, llama Haiku directamente |
-| Créditos en ARS (pendiente) | El padre entiende pesos, no tokens ni USD |
+| Cobro plano mensual (NO créditos) | El padre entiende pesos, no tokens; créditos agregan complejidad sin valor |
+| Secciones en Classroom (no Subject/Topic) | Suficiente para piloto; jerarquía completa es V2 |
+| KR3/KR4 no persisten en DB | Son datos de cierre de piloto, se completan una vez — query params en admin |
+| Guard por `subscription_status` | Cerrar acceso indefinido por magic link sin romper familias activas |
 
 ---
 
@@ -213,28 +178,35 @@ mitutoria/
 │   │   ├── AppDbContextFactory.cs
 │   │   ├── Entities/
 │   │   │   ├── Auth/
-│   │   │   │   ├── Family.cs
-│   │   │   │   ├── User.cs         ← Gender, ExplanationLevel, Pref* enums
+│   │   │   │   ├── Family.cs           ← + CreatedAt, SubscriptionStatus, TrialEndsAt, PaidUntil, IsAccessAllowed
+│   │   │   │   ├── User.cs             ← Gender, ExplanationLevel, Pref* enums, StudentUsername
 │   │   │   │   └── WaitlistEntry.cs
 │   │   │   ├── Academic/
 │   │   │   │   ├── Subject.cs
-│   │   │   │   ├── Classroom.cs    ← Material, CompactSummary, SubjectId nullable
+│   │   │   │   ├── Classroom.cs        ← Material, CompactSummary, SubjectId nullable, MaterialSections, MaterialSectionIndex, MaterialOcrSource
 │   │   │   │   └── Message.cs
 │   │   │   └── Billing/
 │   │   │       └── TokenEvent.cs
 │   │   └── Migrations/
 │   ├── Pages/
-│   │   ├── Index.cshtml            ← Landing + demo + waitlist
+│   │   ├── Index.cshtml                ← Landing + demo + waitlist
 │   │   ├── Login.cshtml
-│   │   ├── Auth/Verify.cshtml
-│   │   ├── Dashboard/Index.cshtml  ← Cards + Chart.js por hijo
+│   │   ├── Blocked.cshtml              ← Nueva — trial_expired / suspended / cancelled
+│   │   ├── Auth/Verify.cshtml          ← + guard subscription_status
+│   │   ├── Entrar.cshtml               ← + guard subscription_status (Include Family)
+│   │   ├── Dashboard/Index.cshtml      ← Cards + Chart.js por hijo
 │   │   ├── Profile/Index.cshtml
 │   │   ├── Students/Add.cshtml
-│   │   ├── Students/Edit.cshtml    ← Género + prefs + TDAH config
-│   │   ├── Classroom/Index.cshtml  ← Two-panel, AJAX, typing indicator
-│   │   └── Shared/_Layout.cshtml   ← CSRF meta, body class, footer condicional
-│   ├── wwwroot/css/site.css
-│   └── Program.cs                  ← /api/demo endpoint público
+│   │   ├── Students/Edit.cshtml        ← Género + prefs + TDAH config + usuario/PIN alumno
+│   │   ├── Classroom/Index.cshtml      ← Two-panel, AJAX, typing indicator, secciones sidebar
+│   │   ├── Admin/Index.cshtml          ← + Monitor de piloto KR1-KR4 + vencimientos
+│   │   └── Shared/_Layout.cshtml       ← CSRF meta, body class, footer condicional
+│   ├── Infrastructure/
+│   │   ├── ExchangeRateService.cs
+│   │   ├── TelegramService.cs
+│   │   └── VersionPageFilter.cs
+│   ├── wwwroot/css/site.css            ← + estilos section-progress, section-nav
+│   └── Program.cs                      ← /api/demo endpoint público
 ├── railway.json
 ├── global.json
 ├── CHANGES.md
@@ -267,34 +239,27 @@ mitutoria/
 | `ADMIN_TOKEN` | Protege `/admin` — string largo elegido por el operador |
 | `TELEGRAM_BOT_TOKEN` | Token del bot Telegram (BotFather → `/newbot`) |
 | `TELEGRAM_CHAT_ID` | Chat ID del operador — ver `/getUpdates` de la API |
+| `PILOT_KR1_MIN_EXCHANGES` | Intercambios mínimos 7d para familia activa (default: 3) |
+| `PILOT_KR1_THRESHOLD` | Umbral semáforo KR1 (default: 6) |
+| `PILOT_KR2_THRESHOLD` | Umbral semáforo KR2 (default: 5) |
+| `PILOT_KR3_THRESHOLD` | Umbral semáforo KR3 (default: 5) |
+| `PILOT_KR4_THRESHOLD` | Umbral semáforo KR4 (default: 3) |
 | `ConnectionStrings__DefaultConnection` | PostgreSQL Railway |
 
 ---
 
 ## Backlog — ideas anotadas
-- [ ] Botonera del aula: Modo Examen, Generar Quiz, Simulacro desde PDF
-- [ ] Botones contextuales mid-chat ("¿Querés un ejemplo?", "¿Lo vemos de otra forma?")
 - [ ] TTS y reconocimiento de voz (especialmente útil con TDAH)
-- [ ] Materias por aula con temas en accordion
+- [ ] Materias → Temas → Secciones (jerarquía completa, V2)
 - [ ] Agenda con fechas de examen y registro de notas
 - [ ] Resumen de sesión para el padre (qué trabajó, qué logró)
 - [ ] PWA — instalar como app desde el celular (sin stores)
-- [ ] OCR para PDFs escaneados vía Claude Vision (registrar como `feature=pdf_ocr`)
 - [ ] Auth estudiante via slug: mitutoria.app/u/{apodo} → Fase 2
 - [ ] Ambiente staging (develop → staging.mitutoria.app)
-- [ ] Consentimiento parental explícito (condición legal antes de lanzar)
+- [ ] Consentimiento parental explícito (condición legal antes de cobrar)
+- [ ] Modo lectura padre en el aula (supervisión sin chat)
+- [ ] Alertas de inactividad en dashboard padre
 
 ---
 
-## POST-CAMBIO — Sesión 9
-- Classroom `/Classroom/{studentId}` — aula completa con Anthropic API integrada
-- Chat AJAX sin reload, typing indicator, burbujas con avatar, layout dos paneles
-- token_events registrado por cada mensaje (Feature=chat) y compactación (Feature=compact)
-- `/Students/Edit/{id}` — género, preferencias de aprendizaje, config TDAH con tacto
-- Prompt socrático v1 usa pronombres según género y ajusta según preferencias
-- Landing: demo en vivo (5 mensajes) + lista de espera cableada a DB
-- Diseño del modelo de créditos en ARS para Fase 2 (pendiente implementar)
-
----
-
-*Actualizado al cierre de Sesión 9 / inicio de Sesión 10*
+*Actualizado al cierre de Sesión 12*
