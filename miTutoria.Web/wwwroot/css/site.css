@@ -1728,6 +1728,15 @@ body.classroom-page { overflow: hidden; }
   30%            { transform: translateY(-6px); opacity: 1; }
 }
 
+/* Avatar del tutor animado mientras piensa */
+#typing-indicator .msg__avatar--assistant {
+  animation: tutor-thinking 1.8s ease-in-out infinite;
+}
+@keyframes tutor-thinking {
+  0%, 100% { background: var(--sage);      box-shadow: 0 0 0 0 transparent; }
+  50%       { background: #C1440E;          box-shadow: 0 0 0 5px rgba(193,68,14,.15); }
+}
+
 /* ── Input bar ── */
 .chat-input-bar {
   padding: 1rem 1.5rem;
