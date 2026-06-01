@@ -1529,6 +1529,38 @@ body.classroom-page { overflow: hidden; }
 .sidebar-panel summary::after { content: '›'; color: var(--dust); transition: transform 0.2s; }
 .sidebar-panel[open] summary::after { transform: rotate(90deg); }
 
+/* Secciones de material */
+.section-progress {
+  padding: .5rem 1rem .25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+}
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .82rem;
+  padding: .2rem 0;
+}
+.section-item--done   { opacity: .55; }
+.section-item--current { font-weight: 600; color: var(--brand, #5b4fcf); }
+.section-item--pending { opacity: .45; }
+.section-icon { font-size: .75rem; width: 1.1rem; text-align: center; flex-shrink: 0; }
+.section-title { line-height: 1.3; }
+.section-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .4rem 1rem .6rem;
+  gap: .5rem;
+}
+.section-counter {
+  font-size: .78rem;
+  color: var(--dust);
+  white-space: nowrap;
+}
+
 .sidebar-form {
   padding: 0.75rem 1rem 1rem;
   display: flex;

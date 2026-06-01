@@ -135,6 +135,139 @@ a{color:#0066cc;text-decoration:none}
     </tbody>
 </table>
 
+@* ── Monitor de Piloto ────────────────────────────────────────────────── *@
+@{
+    var pilotTotal = Model.PilotFamilies.Count;
+    // KR3 y KR4 vienen del form manual
+    int.TryParse(Request.Query["kr3"].ToString(), out var kr3Val);
+    int.TryParse(Request.Query["kr4"].ToString(), out var kr4Val);
+    var kr3Note = Request.Query["kr3note"].ToString();
+    var kr4Names = Request.Query["kr4names"].ToString();
+
+    static string Semaforo(int val, int threshold, int total) =>
+        total == 0 ? "⚪" : val >= threshold ? "🟢" : val >= threshold * 0.6 ? "🟡" : "🔴";
+
+    var t = Model.Thresholds; // [kr1, kr2, kr3, kr4]
+}
+
+<h2>📊 Monitor de Piloto — @pilotTotal @(pilotTotal == 1 ? "familia" : "familias")</h2>
+
+@if (pilotTotal == 0)
+{
+    <p style="color:#888;margin-bottom:1.5rem;">No hay familias en estado <code>trial</code> o <code>active</code>. Activá familias desde TablePlus.</p>
+}
+else
+{
+    @* Semáforo resumen *@
+    <div class="grid" style="margin-bottom:1.5rem;">
+        <div class="card">
+            <div class="card__label">KR1 Retención</div>
+            <div class="card__value">@Semaforo(Model.Kr1Active, t[0], pilotTotal) @Model.Kr1Active/@pilotTotal</div>
+            <div class="card__sub">activas últimos 7 días (umbral @t[0])</div>
+        </div>
+        <div class="card">
+            <div class="card__label">KR2 Hábito</div>
+            <div class="card__value">@Semaforo(Model.Kr2HabitStudents, t[1], Model.Kr2TotalStudents) @Model.Kr2HabitStudents/@Model.Kr2TotalStudents</div>
+            <div class="card__sub">hijos con racha ≥7 días (umbral @t[1])</div>
+        </div>
+        <div class="card">
+            <div class="card__label">KR3 Intención de pago</div>
+            <div class="card__value">@Semaforo(kr3Val, t[2], pilotTotal) @kr3Val/@pilotTotal</div>
+            <div class="card__sub">manual · umbral @t[2]</div>
+        </div>
+        <div class="card">
+            <div class="card__label">KR4 Referidos</div>
+            <div class="card__value">@Semaforo(kr4Val, t[3], pilotTotal) @kr4Val</div>
+            <div class="card__sub">manual · umbral @t[3]</div>
+        </div>
+    </div>
+
+    @* Tabla de cohorte KR1 *@
+    <h2 style="margin-top:0;">KR1 — Actividad por familia</h2>
+    <table>
+        <thead><tr><th>Familia</th><th>Intercambios 7d</th><th>Último acceso</th><th>Estado</th></tr></thead>
+        <tbody>
+        @foreach (var f in Model.PilotFamilies)
+        {
+            <tr>
+                <td>@f.Name<br><span class="dim" style="font-size:.75rem;">@f.Email</span></td>
+                <td>@f.ChatLast7Days</td>
+                <td>@(f.LastActivity.HasValue ? f.LastActivity.Value.ToString("dd/MM HH:mm") : "—")</td>
+                <td>
+                    @if (f.Active)
+                    { <span class="badge badge-ok">activa</span> }
+                    else if (f.Cooling)
+                    { <span class="badge badge-danger">🧊 enfriándose</span> }
+                    else
+                    { <span class="badge badge-warn">inactiva</span> }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @* Tabla KR2 — racha por hijo *@
+    <h2>KR2 — Racha por hijo</h2>
+    <table>
+        <thead><tr><th>Alumno</th><th>Racha actual</th><th>≥7 días</th></tr></thead>
+        <tbody>
+        @foreach (var (name, streak) in Model.Kr2StudentRows)
+        {
+            <tr>
+                <td>@name</td>
+                <td>@(streak > 0 ? $"🔥 {streak}" : "—")</td>
+                <td>@(streak >= 7 ? "✅" : "—")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @* Inputs manuales KR3 y KR4 *@
+    <h2>KR3 y KR4 — Datos de cierre (manual)</h2>
+    <form method="get" action="/admin" style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
+        <input type="hidden" name="token" value="@token" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+            <div>
+                <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR3 — Familias con intención de pago</label>
+                <input type="number" name="kr3" value="@kr3Val" min="0" max="@pilotTotal"
+                       style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
+                <span style="font-size:.8rem;color:#888;margin-left:.5rem;">de @pilotTotal</span>
+                <textarea name="kr3note" rows="2" placeholder="Notas (sí/no/depende por familia...)"
+                          style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr3Note</textarea>
+            </div>
+            <div>
+                <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR4 — Referidos</label>
+                <input type="number" name="kr4" value="@kr4Val" min="0"
+                       style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
+                <textarea name="kr4names" rows="2" placeholder="Nombres referidos..."
+                          style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr4Names</textarea>
+            </div>
+        </div>
+        <button type="submit" style="margin-top:1rem;padding:.4rem 1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;">
+            Actualizar semáforo
+        </button>
+    </form>
+}
+
+@* Señal de vencimiento *@
+@if (Model.ExpiringFamilies.Count > 0)
+{
+    <h2>⏰ Vencimientos próximos (≤ 3 días)</h2>
+    <table>
+        <thead><tr><th>Familia</th><th>Tipo</th><th>Vence</th></tr></thead>
+        <tbody>
+        @foreach (var (name, status, expiry) in Model.ExpiringFamilies)
+        {
+            <tr>
+                <td>@name</td>
+                <td><span class="badge badge-warn">@status</span></td>
+                <td style="color:#c94a1f;font-weight:600;">@(expiry.HasValue ? expiry.Value.ToString("dd/MM/yyyy HH:mm") : "—")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
 @* ── Waitlist ─────────────────────────────────────────────────────────── *@
 <h2>Waitlist (@Model.Waitlist.Count)</h2>
 <table>

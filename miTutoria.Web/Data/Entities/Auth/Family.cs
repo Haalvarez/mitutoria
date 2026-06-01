@@ -11,5 +11,12 @@ public class Family
     public ParentRole ParentRole { get; set; }
     public string? MagicToken { get; set; }
     public DateTime? MagicTokenExpiry { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string SubscriptionStatus { get; set; } = "waitlist";
+    public DateTime? TrialEndsAt { get; set; }
+    public DateTime? PaidUntil { get; set; }
     public ICollection<User> Users { get; set; } = new List<User>();
+
+    public bool IsAccessAllowed =>
+        SubscriptionStatus is "trial" or "active";
 }

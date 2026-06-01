@@ -1,0 +1,29 @@
+@page
+@model miTutoria.Web.Pages.BlockedModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Acceso no disponible";
+}
+
+<div style="max-width:480px;margin:6rem auto;padding:2rem;text-align:center;">
+    @if (Model.Status == "trial_expired")
+    {
+        <h1 style="font-size:2rem;margin-bottom:1rem;">⏰ Tu período de prueba terminó</h1>
+        <p style="opacity:.75;line-height:1.6;">
+            El acceso gratuito de tu familia venció. Próximamente vas a poder
+            continuar con un plan mensual.<br><br>
+            Si creés que es un error, escribinos a
+            <a href="mailto:hola@mitutoria.app">hola@mitutoria.app</a>.
+        </p>
+    }
+    else
+    {
+        <h1 style="font-size:2rem;margin-bottom:1rem;">🔒 Cuenta no disponible</h1>
+        <p style="opacity:.75;line-height:1.6;">
+            El acceso de tu familia está suspendido o cancelado.<br><br>
+            Escribinos a <a href="mailto:hola@mitutoria.app">hola@mitutoria.app</a>
+            para resolver cualquier inconveniente.
+        </p>
+    }
+    <a href="/" style="display:inline-block;margin-top:2rem;opacity:.5;font-size:.9rem;">← Volver al inicio</a>
+</div>

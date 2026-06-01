@@ -28,6 +28,32 @@ public class IndexModel : PageModel
 
     public List<FamilyRow> Families { get; private set; } = [];
 
+    // ── Monitor de piloto ────────────────────────────────────────────────────
+
+    public record PilotStudentRow(string Name, int Streak);
+    public record PilotFamilyRow(
+        int Id, string Name, string Email,
+        int ChatLast7Days, DateTime? LastActivity,
+        bool Cooling,   // > 3 días sin actividad
+        bool Active,    // >= KR1MinExchanges en últimos 7 días
+        List<PilotStudentRow> Students);
+
+    public List<PilotFamilyRow> PilotFamilies { get; private set; } = [];
+    public int Kr1Active { get; private set; }
+    public int Kr2HabitStudents { get; private set; }
+    public int Kr2TotalStudents { get; private set; }
+    public List<(string Name, int Streak)> Kr2StudentRows { get; private set; } = [];
+    public List<(string Name, string Status, DateTime? Expiry)> ExpiringFamilies { get; private set; } = [];
+
+    // KR1: intercambios mínimos en 7 días para considerar familia activa
+    private int Kr1MinExchanges => _config.GetValue<int>("PILOT_KR1_MIN_EXCHANGES", 3);
+    // Umbrales semáforo (sobre total de cohorte)
+    private int Kr1Threshold => _config.GetValue<int>("PILOT_KR1_THRESHOLD", 6);
+    private int Kr2Threshold => _config.GetValue<int>("PILOT_KR2_THRESHOLD", 5);
+    private int Kr3Threshold => _config.GetValue<int>("PILOT_KR3_THRESHOLD", 5);
+    private int Kr4Threshold => _config.GetValue<int>("PILOT_KR4_THRESHOLD", 3);
+    public int[] Thresholds => [Kr1Threshold, Kr2Threshold, Kr3Threshold, Kr4Threshold];
+
     // ── Waitlist ─────────────────────────────────────────────────────────────
 
     public record WaitlistRow(string Email, string? Name, DateTime CreatedAt);
@@ -100,6 +126,79 @@ public class IndexModel : PageModel
                 StudentsWithoutMaterial: studentsWithoutMaterial
             );
         }).OrderByDescending(f => f.LastActivity).ToList();
+
+        // ── Monitor de piloto ────────────────────────────────────────────────
+        var pilotFamilies = await _db.Families
+            .Include(f => f.Users.Where(u => u.Role == Data.Entities.Auth.UserRole.Student))
+            .Where(f => f.SubscriptionStatus == "trial" || f.SubscriptionStatus == "active")
+            .ToListAsync();
+
+        var sevenDaysAgo = now.AddDays(-7);
+        var allPilotFamilyIds = pilotFamilies.Select(f => f.Id).ToHashSet();
+        var allPilotStudentIds = pilotFamilies.SelectMany(f => f.Users).Select(u => u.Id).ToHashSet();
+
+        var pilotEvents = await _db.TokenEvents
+            .Where(t => allPilotFamilyIds.Contains(t.FamilyId) && t.Feature == "chat")
+            .ToListAsync();
+
+        // Racha por alumno (misma lógica que CalculateStreakAsync en Classroom)
+        static int CalcStreak(IEnumerable<DateTime> dates)
+        {
+            var today = DateTime.UtcNow.Date;
+            var activeDays = dates.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+            if (activeDays.Count == 0) return 0;
+            var start = activeDays.Contains(today) ? today : today.AddDays(-1);
+            if (!activeDays.Contains(start)) return 0;
+            int streak = 0;
+            var expected = start;
+            foreach (var day in activeDays.Where(d => d <= start).OrderByDescending(d => d))
+            {
+                if (day == expected) { streak++; expected = expected.AddDays(-1); }
+                else break;
+            }
+            return streak;
+        }
+
+        PilotFamilies = pilotFamilies.Select(f =>
+        {
+            var fEvents = pilotEvents.Where(e => e.FamilyId == f.Id).ToList();
+            var last7 = fEvents.Where(e => e.CreatedAt >= sevenDaysAgo).Count();
+            var lastAct = fEvents.Any() ? fEvents.Max(e => e.CreatedAt) : (DateTime?)null;
+            var cooling = lastAct.HasValue && (now - lastAct.Value).TotalDays > 3;
+            var active = last7 >= Kr1MinExchanges;
+
+            var students = f.Users.Select(u =>
+            {
+                var uDates = pilotEvents.Where(e => e.UserId == u.Id).Select(e => e.CreatedAt);
+                return new PilotStudentRow(u.Nickname ?? u.FullName, CalcStreak(uDates));
+            }).ToList();
+
+            return new PilotFamilyRow(f.Id, f.Nickname ?? f.Name, f.Email,
+                last7, lastAct, cooling, active, students);
+        }).OrderByDescending(f => f.ChatLast7Days).ToList();
+
+        Kr1Active = PilotFamilies.Count(f => f.Active);
+
+        Kr2StudentRows = PilotFamilies
+            .SelectMany(f => f.Students)
+            .OrderByDescending(s => s.Streak)
+            .Select(s => (s.Name, s.Streak))
+            .ToList();
+        Kr2TotalStudents = Kr2StudentRows.Count;
+        Kr2HabitStudents = Kr2StudentRows.Count(s => s.Streak >= 7);
+
+        // Señal de vencimiento (trial_ends_at o paid_until vence en ≤ 3 días)
+        var warnDate = now.AddDays(3);
+        ExpiringFamilies = (await _db.Families
+            .Where(f => (f.TrialEndsAt != null && f.TrialEndsAt <= warnDate && f.TrialEndsAt >= now)
+                     || (f.PaidUntil   != null && f.PaidUntil   <= warnDate && f.PaidUntil   >= now))
+            .ToListAsync())
+            .Select(f =>
+            {
+                var expiry = f.PaidUntil ?? f.TrialEndsAt;
+                var label  = f.PaidUntil.HasValue ? "pago" : "trial";
+                return (f.Nickname ?? f.Name, label, expiry);
+            }).ToList();
 
         // Waitlist
         Waitlist = await _db.WaitlistEntries

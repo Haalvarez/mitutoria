@@ -32,6 +32,7 @@ public class EntrarModel : PageModel
         var username = Username.Trim().ToLowerInvariant();
 
         var student = await _dbContext.Users
+            .Include(u => u.Family)
             .SingleOrDefaultAsync(u =>
                 u.Role == UserRole.Student &&
                 u.StudentUsername != null &&
@@ -51,6 +52,9 @@ public class EntrarModel : PageModel
             ModelState.AddModelError(string.Empty, "Usuario o PIN incorrecto.");
             return Page();
         }
+
+        if (!student.Family.IsAccessAllowed)
+            return RedirectToPage("/Blocked", new { status = student.Family.SubscriptionStatus });
 
         HttpContext.Session.SetInt32("StudentId", student.Id);
         HttpContext.Session.SetInt32("StudentFamilyId", student.FamilyId);

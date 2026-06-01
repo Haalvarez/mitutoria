@@ -31,6 +31,9 @@ public class VerifyModel : PageModel
         family.MagicTokenExpiry = null;
         await _dbContext.SaveChangesAsync();
 
+        if (!family.IsAccessAllowed)
+            return RedirectToPage("/Blocked", new { status = family.SubscriptionStatus });
+
         HttpContext.Session.SetInt32("FamilyId", family.Id);
 
         return RedirectToPage("/Dashboard/Index");

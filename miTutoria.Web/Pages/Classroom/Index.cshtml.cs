@@ -44,6 +44,11 @@ public class IndexModel : PageModel
     public bool IsExamMode { get; private set; }
     public int StreakDays { get; private set; }
     public List<Message> Messages { get; private set; } = new();
+    public List<SectionInfo> Sections { get; private set; } = new();
+    public int SectionIndex { get; private set; }
+    public string? OcrSource { get; private set; }
+
+    public record SectionInfo(string Title, string Content);
 
     [BindProperty]
     public new string Content { get; set; } = string.Empty;
@@ -114,6 +119,9 @@ public class IndexModel : PageModel
         IsExamMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
         StreakDays = await CalculateStreakAsync(studentId);
         Messages = await LoadMessagesAsync(classroom.Id);
+        Sections = ParseSections(classroom.MaterialSections);
+        SectionIndex = classroom.MaterialSectionIndex;
+        OcrSource = classroom.MaterialOcrSource;
 
         ViewData["BodyClass"] = "classroom-page";
         return Page();
@@ -390,6 +398,9 @@ public class IndexModel : PageModel
             if (string.IsNullOrWhiteSpace(extracted))
                 return new JsonResult(new { error = "No pude leer el contenido de ese PDF. Probá pegando el texto directamente." });
             classroom.Material = extracted;
+            classroom.MaterialSections = await SegmentMaterialAsync(extracted);
+            classroom.MaterialSectionIndex = 0;
+            classroom.MaterialOcrSource = pdfFile.FileName;
             materialNuevo = true;
         }
         else if (!string.IsNullOrWhiteSpace(material))
@@ -507,12 +518,40 @@ public class IndexModel : PageModel
         if (classroom is not null)
         {
             _dbContext.Messages.RemoveRange(classroom.Messages);
-            classroom.Material = null;
             classroom.CompactSummary = null;
+            // Material y secciones se preservan — el alumno continúa donde quedó
             await _dbContext.SaveChangesAsync();
         }
 
         return RedirectToPage(new { studentId });
+    }
+
+    // ── POST: avanzar / retroceder sección ──────────────────────────────────
+
+    public async Task<IActionResult> OnPostAdvanceSectionAsync(int studentId, string direction)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var classroom = await _dbContext.Classrooms.SingleOrDefaultAsync(c => c.StudentId == studentId);
+        if (classroom is null) return new JsonResult(new { error = "no-classroom" }) { StatusCode = 404 };
+
+        var sections = ParseSections(classroom.MaterialSections);
+        if (sections.Count == 0) return new JsonResult(new { error = "no-sections" }) { StatusCode = 400 };
+
+        var newIndex = direction == "prev"
+            ? Math.Max(0, classroom.MaterialSectionIndex - 1)
+            : Math.Min(sections.Count - 1, classroom.MaterialSectionIndex + 1);
+
+        classroom.MaterialSectionIndex = newIndex;
+        await _dbContext.SaveChangesAsync();
+
+        return new JsonResult(new
+        {
+            index = newIndex,
+            total = sections.Count,
+            title = sections[newIndex].Title
+        });
     }
 
     // ── Claude ───────────────────────────────────────────────────────────────
@@ -630,15 +669,40 @@ public class IndexModel : PageModel
             ? "\nAjustes de estilo para este estudiante:\n" + string.Join("\n", prefs.Select(p => $"- {p}"))
             : string.Empty;
 
-        var maxChars = 15_000;
-        var material = classroom.Material;
-        var materialSection = string.IsNullOrWhiteSpace(material) ? string.Empty : $"""
+        var sections = ParseSections(classroom.MaterialSections);
+        string materialSection;
+        if (sections.Count > 0)
+        {
+            var idx = Math.Clamp(classroom.MaterialSectionIndex, 0, sections.Count - 1);
+            var current = sections[idx];
+            var worked = idx > 0
+                ? $"Secciones ya trabajadas: {string.Join(", ", sections.Take(idx).Select(s => s.Title))}. "
+                : string.Empty;
+            var nav = sections.Count > 1
+                ? $"Estás en la sección {idx + 1} de {sections.Count}: \"{current.Title}\". {worked}"
+                : string.Empty;
+            var content = current.Content.Length > 15_000
+                ? current.Content[..15_000] + "\n[Sección truncada]"
+                : current.Content;
+            materialSection = $"""
 
-            Material de trabajo (trabajá siempre sobre este texto):
-            ---
-            {(material.Length > maxChars ? material[..maxChars] + "\n[Material truncado]" : material)}
-            ---
-            """;
+                {nav}Material de trabajo (trabajá siempre sobre esta sección):
+                ---
+                {content}
+                ---
+                """;
+        }
+        else
+        {
+            var material = classroom.Material;
+            materialSection = string.IsNullOrWhiteSpace(material) ? string.Empty : $"""
+
+                Material de trabajo (trabajá siempre sobre este texto):
+                ---
+                {(material.Length > 15_000 ? material[..15_000] + "\n[Material truncado]" : material)}
+                ---
+                """;
+        }
 
         var summarySection = string.IsNullOrWhiteSpace(classroom.CompactSummary) ? string.Empty : $"""
 
@@ -718,6 +782,64 @@ public class IndexModel : PageModel
             - NUNCA uses regionalismos de otros países: no "brete" (chileno), no "órale" (mexicano), no "chévere" (venezolano), no "bacán" en sentido chileno.
             - Sé cálido y directo, como un tutor particular porteño de confianza.
             """;
+    }
+
+    // ── Segmentación ────────────────────────────────────────────────────────
+
+    private async Task<string> SegmentMaterialAsync(string text)
+    {
+        var textSlice = text.Length > 40_000 ? text[..40_000] : text;
+        var prompt = $"""
+            Dividí el siguiente texto educativo en secciones temáticas naturales.
+            Reglas:
+            - Si el texto tiene una sola idea o es muy corto, devolvé un array de UN solo elemento.
+            - Máximo 5 secciones.
+            - Cada sección debe tener un título breve (3-6 palabras) y el contenido correspondiente del texto.
+            - Respondé ÚNICAMENTE con un array JSON válido. Sin preámbulo, sin markdown, sin bloques de código.
+            - Formato exacto: [{"{"}"title":"...","content":"..."{"}"}]
+
+            TEXTO:
+            {textSlice}
+            """;
+
+        try
+        {
+            var (raw, _, _) = await CallClaudeRawAsync(
+                "Sos un asistente que segmenta textos educativos en secciones temáticas. Solo respondés con JSON.",
+                prompt, maxTokens: 4096);
+
+            // Extraer JSON aunque venga con texto extra
+            var start = raw.IndexOf('[');
+            var end   = raw.LastIndexOf(']');
+            if (start < 0 || end < 0) throw new InvalidOperationException("No JSON array found");
+            var json = raw[start..(end + 1)];
+
+            using var doc = JsonDocument.Parse(json);
+            // Validar que tenga al menos title y content
+            _ = doc.RootElement[0].GetProperty("title").GetString();
+            _ = doc.RootElement[0].GetProperty("content").GetString();
+            return json;
+        }
+        catch
+        {
+            // Fallback: una sola sección con todo el contenido
+            return JsonSerializer.Serialize(new[] { new { title = "Material", content = text } });
+        }
+    }
+
+    private static List<SectionInfo> ParseSections(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.EnumerateArray()
+                .Select(e => new SectionInfo(
+                    e.GetProperty("title").GetString() ?? "Sección",
+                    e.GetProperty("content").GetString() ?? string.Empty))
+                .ToList();
+        }
+        catch { return new(); }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
