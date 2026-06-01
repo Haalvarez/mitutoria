@@ -1733,6 +1733,43 @@ body.classroom-page { overflow: hidden; }
 .chat-send-btn:hover { opacity: 0.85; }
 .chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* Botón adjuntar PDF */
+.chat-attach-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--dust, #aaa);
+  cursor: pointer;
+  padding: .4rem .45rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  transition: color .15s, background .15s;
+}
+.chat-attach-btn:hover { color: var(--ink); background: var(--line, #eee); }
+.chat-attach-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* Burbuja de carga de PDF */
+.upload-thinking {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.upload-icon { font-size: 1.3rem; }
+.upload-filename {
+  font-size: .75rem;
+  opacity: .6;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.upload-msg {
+  font-size: .9rem;
+  transition: opacity .3s ease;
+}
+
 .chat-hint {
   font-size: 0.72rem;
   color: var(--dust);

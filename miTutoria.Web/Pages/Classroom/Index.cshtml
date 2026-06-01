@@ -79,24 +79,18 @@
                 <p class="sidebar-hint" style="margin:.4rem 0 .6rem;">📌 @Model.Sections[0].Title</p>
             }
 
-            @* PDF — upload AJAX *@
-            <div class="sidebar-form" id="pdf-section" style="margin-top:.6rem;">
-                <label class="sidebar-label" for="pdf-input">
-                    @(Model.Sections.Count > 0 ? "Reemplazar PDF" : "Subir PDF") <small>(máx. 20 MB)</small>
-                </label>
-                <input type="file" name="PdfFile" accept="application/pdf" id="pdf-input" />
-                <div id="pdf-status" style="display:none;" class="sidebar-hint"></div>
-            </div>
+            @* Input de archivo oculto — disparado desde el botón del chat *@
+            <input type="file" name="PdfFile" accept="application/pdf" id="pdf-input" style="display:none;" />
 
-            @* Apunte extra (complementario, no reemplaza el PDF) *@
+            @* Apunte extra (complementario al PDF) *@
             <form method="post" asp-page-handler="SaveMaterial" enctype="multipart/form-data"
                   class="sidebar-form" style="margin-top:.6rem;">
                 <input type="hidden" name="StudentId" value="@Model.StudentId" />
                 <label class="sidebar-label">
-                    @(Model.Sections.Count > 0 ? "📝 Apunte extra del docente" : "O pegá el texto")
+                    @(Model.Sections.Count > 0 ? "📝 Apunte extra" : "Pegá el texto del tema")
                 </label>
                 <textarea name="Material" rows="3"
-                    placeholder="@(Model.Sections.Count > 0 ? "Instrucción puntual, ejercicio, nota de la profe..." : "Enunciado, fotocopia...")">@(Model.Sections.Count > 0 ? string.Empty : Model.Material)</textarea>
+                    placeholder="@(Model.Sections.Count > 0 ? "Nota de la profe, ejercicio puntual..." : "Enunciado, apunte, fotocopia...")">@(Model.Sections.Count > 0 ? string.Empty : Model.Material)</textarea>
                 <div class="sidebar-form-actions">
                     <button type="submit" class="btn-main btn-sm">Guardar</button>
                     @if (!string.IsNullOrEmpty(Model.Material) && Model.Sections.Count == 0)
@@ -163,6 +157,11 @@
 
         <div class="chat-input-bar">
             <div class="chat-input-row">
+                <button id="btn-attach" class="chat-attach-btn" title="Subir PDF">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
                 <textarea id="chat-input" rows="1"
                     placeholder="Escribí tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"></textarea>
                 <button id="chat-send" class="chat-send-btn" title="Enviar">
@@ -172,7 +171,7 @@
                     </svg>
                 </button>
             </div>
-            <p class="chat-hint">Ctrl+Enter también envía</p>
+            <p class="chat-hint">Ctrl+Enter también envía · 📎 para subir PDF</p>
         </div>
     </div>
 </div>
@@ -251,16 +250,70 @@ function addBubble(text, role) {
     scrollBottom();
 }
 
+// Botón adjuntar → dispara el input oculto
+document.getElementById('btn-attach').addEventListener('click', () => {
+    document.getElementById('pdf-input').click();
+});
+
+// Mensajes animados durante la carga del PDF
+const uploadMessages = [
+    'Dame un momento, estoy abriendo tu archivo...',
+    'Leyendo página por página... hay bastante para ver 👀',
+    'Esto se ve interesante, seguí...',
+    'Procesando el contenido, ya casi...',
+    'Identificando los temas principales...',
+    'Armando todo para que podamos arrancar juntos 🎯',
+    'Un poquito más, prometido...',
+    'Ya lo tengo casi listo, esperame...',
+];
+
+let _uploadBubble = null;
+let _uploadMsgInterval = null;
+
+function startUploadAnimation(fileName) {
+    messagesEl.querySelector('.empty-state')?.remove();
+    _uploadBubble = document.createElement('div');
+    _uploadBubble.className = 'msg msg--assistant';
+    _uploadBubble.id = 'upload-bubble';
+    _uploadBubble.innerHTML = `
+        <div class="msg__avatar msg__avatar--assistant">T</div>
+        <div class="msg__body">
+            <span class="msg__label">Tutor</span>
+            <div class="msg__bubble upload-thinking">
+                <span class="upload-icon">📄</span>
+                <span class="upload-filename">${fileName}</span>
+                <span class="upload-msg" id="upload-msg">${uploadMessages[0]}</span>
+            </div>
+        </div>`;
+    messagesEl.insertBefore(_uploadBubble, typing);
+    scrollBottom();
+
+    let idx = 1;
+    _uploadMsgInterval = setInterval(() => {
+        const el = document.getElementById('upload-msg');
+        if (el) { el.style.opacity = '0'; setTimeout(() => { el.textContent = uploadMessages[idx % uploadMessages.length]; el.style.opacity = '1'; idx++; }, 300); }
+    }, 2500);
+}
+
+function stopUploadAnimation(replyText) {
+    clearInterval(_uploadMsgInterval);
+    if (_uploadBubble) {
+        const bubble = _uploadBubble.querySelector('.msg__bubble');
+        bubble.className = 'msg__bubble';
+        bubble.innerHTML = replyText || '¡Material cargado! Escribime cuando estés listo para arrancar.';
+        _uploadBubble = null;
+    }
+}
+
 // Upload PDF vía AJAX
 document.getElementById('pdf-input').addEventListener('change', async function() {
     if (!this.files.length) return;
     const file = this.files[0];
-    const statusEl = document.getElementById('pdf-status');
     const input = this;
 
-    statusEl.style.display = 'block';
-    statusEl.textContent = 'Subiendo y leyendo el PDF…';
     input.disabled = true;
+    document.getElementById('btn-attach').disabled = true;
+    startUploadAnimation(file.name);
 
     const formData = new FormData();
     formData.append('StudentId', studentId);
@@ -275,18 +328,21 @@ document.getElementById('pdf-input').addEventListener('change', async function()
         if (res.status === 401) { location.href = '/Login'; return; }
         const data = await res.json();
         if (data.error) {
-            statusEl.textContent = data.error;
+            stopUploadAnimation('❌ ' + data.error);
         } else {
-            statusEl.textContent = '✓ ' + (data.chars ? `${data.chars.toLocaleString()} caracteres cargados` : 'Material cargado');
-            document.querySelector('.sidebar-panel summary span').textContent = '📄 Material cargado';
-            messagesEl.querySelector('.empty-state')?.remove();
-            addBubble(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.', 'assistant');
+            stopUploadAnimation(data.reply || '¡Material cargado! Escribime cuando estés listo para arrancar.');
+            // Actualizar sidebar sin reload
+            const summarySpan = document.querySelector('.sidebar-panel summary span');
+            if (summarySpan) summarySpan.textContent = '📄 ' + file.name;
+            // Recargar sidebar para mostrar secciones
+            setTimeout(() => location.reload(), 1200);
         }
     } catch(e) {
-        statusEl.textContent = 'Error al subir. Intentá de nuevo.';
+        stopUploadAnimation('Hubo un problema al subir el archivo. Intentá de nuevo.');
     } finally {
         input.disabled = false;
         input.value = '';
+        document.getElementById('btn-attach').disabled = false;
     }
 });
 
