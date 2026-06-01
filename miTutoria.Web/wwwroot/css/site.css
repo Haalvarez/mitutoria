@@ -1418,6 +1418,40 @@ footer{
 
 body.classroom-page { overflow: hidden; }
 
+/* Nav contextual del aula */
+.classroom-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line, #eee);
+  z-index: 200;
+  gap: 1rem;
+}
+.classroom-nav__logo {
+  font-size: 1rem;
+  text-decoration: none;
+  color: inherit;
+  flex-shrink: 0;
+}
+.classroom-nav__student {
+  font-weight: 600;
+  font-size: .95rem;
+  color: var(--ink);
+  opacity: .75;
+}
+.classroom-nav__streak {
+  font-size: .82rem;
+  color: var(--brand, #5b4fcf);
+  font-weight: 500;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 .classroom-layout {
   display: grid;
   grid-template-columns: 280px 1fr;

@@ -127,6 +127,8 @@ public class IndexModel : PageModel
         OcrSource = classroom.MaterialOcrSource;
 
         ViewData["BodyClass"] = "classroom-page";
+        ViewData["ClassroomStudentName"] = StudentName;
+        ViewData["ClassroomStreak"] = StreakDays;
         return Page();
     }
 

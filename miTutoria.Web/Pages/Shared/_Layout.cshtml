@@ -16,15 +16,35 @@
     <div id="cursor" class="cursor"></div>
     <div id="cursorRing" class="cursor-ring"></div>
 
-    <nav>
-        <div class="logo">mi<b>Tutor</b><i>IA</i></div>
-        <div class="nav-right">
-            <a href="/Entrar" class="nav-btn-student">Soy estudiante</a>
-            <a href="/Login" class="nav-btn-family">Acceso familiar</a>
-            <a href="#probalo" class="nav-btn-live">Probarlo en vivo</a>
-            <span class="nav-tag">Próximamente</span>
-        </div>
-    </nav>
+    @if (ViewData["BodyClass"]?.ToString() == "classroom-page")
+    {
+        var studentName = ViewData["ClassroomStudentName"]?.ToString() ?? "";
+        var streak      = ViewData["ClassroomStreak"] is int s ? s : 0;
+        var streakMsg   = streak switch {
+            0          => "¡Hoy puede ser el día uno! 🌱",
+            1          => "¡Primer día de racha, arrancaste! 🔥",
+            >= 2 and < 7  => $"🔥 {streak} días seguidos — ¡no pares!",
+            >= 7 and < 14 => $"🔥 {streak} días — ¡una semana entera, increíble!",
+            _             => $"🔥 {streak} días — ¡sos imparable!"
+        };
+        <nav class="classroom-nav">
+            <a href="/Dashboard" class="logo classroom-nav__logo">mi<b>Tutor</b><i>IA</i></a>
+            <span class="classroom-nav__student">@studentName</span>
+            <span class="classroom-nav__streak">@streakMsg</span>
+        </nav>
+    }
+    else
+    {
+        <nav>
+            <div class="logo">mi<b>Tutor</b><i>IA</i></div>
+            <div class="nav-right">
+                <a href="/Entrar" class="nav-btn-student">Soy estudiante</a>
+                <a href="/Login" class="nav-btn-family">Acceso familiar</a>
+                <a href="#probalo" class="nav-btn-live">Probarlo en vivo</a>
+                <span class="nav-tag">Próximamente</span>
+            </div>
+        </nav>
+    }
 
     @RenderBody()
 
