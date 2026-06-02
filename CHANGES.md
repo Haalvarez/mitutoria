@@ -1,3 +1,31 @@
+## [Sesión 14] — 2026-06-02
+
+### fix — Prompt maestro (a partir de incidentes reales con una alumna)
+- El tutor ya no menciona el diagnóstico: recibe comportamientos ("sé paciente,
+  celebrá micro-logros"), nunca la etiqueta TDAH — la mención desmotivaba y distraía
+- El tutor ya no usa insultos coloquiales ("boludo"); regla explícita de autoridad cercana
+- Sacado `"qué fiaca"` de los ejemplos de vocabulario (modelaba desgano)
+
+### feat — Modelo de tono: registro elástico, foco rígido
+- Cuatro bloques nuevos en `BuildSystemPrompt`: Cómo respondés (brevedad, texto plano,
+  no inventar) · Registro (espejá la energía del alumno, exigí esfuerzo no formalidad) ·
+  Foco innegociable (el puente: un beat + gancho, nunca dos mensajes fuera de tema;
+  contención sin hacer de psicólogo) · Tono y lenguaje
+- Instrucciones del padre y resumen previo se aplican en silencio (nunca se revelan)
+
+### feat — El padre ve cómo acompañará el tutor
+- `/Students/Edit`: al guardar queda en la página y muestra automáticamente un mensaje
+  cálido en prosa, redactado por Claude desde la configuración (1ª persona, sin etiquetas)
+- Registrado como `token_event` Feature="explain"; fallback cálido si la API falla
+- Tarjeta suave, sin borde-acento de alerta
+
+### tooling — Backtest del prompt
+- `tools/prompt-harness.ps1`: 12 escenarios (jailbreaks + derrape) con juez Haiku que
+  puntúa leakage/insulto/etiqueta/regionalismo/drift. Corrida inicial: 12/12 verde
+- Correr antes de mergear cambios del prompt (hoy el prompt vive duplicado en el script)
+
+---
+
 ## [Sesión 13] — 2026-06-01
 
 ### feat — UX del aula

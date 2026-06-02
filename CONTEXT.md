@@ -13,12 +13,23 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 13
+- **Sesión:** 14
 - **Fase activa:** Fase 1 — MVP Familia (lista para piloto)
 - **Branch activo:** `main`
-- **Último commit:** feat: avatar del tutor pulsa en terracota mientras procesa la respuesta
+- **Último commit:** feat: el padre ve, al guardar, cómo el tutor acompañará a su hijo
 
 ## Funciona hoy
+- ✅ Prompt maestro endurecido (Sesión 14)
+  - Nunca menciona diagnósticos/etiquetas — recibe comportamientos, no la etiqueta TDAH
+  - Nunca usa insultos coloquiales; figura de autoridad cercana
+  - Registro elástico (espeja la energía del alumno) + foco rígido (el puente: trae de
+    vuelta en el mismo mensaje, nunca dos seguidos fuera de tema)
+  - Exige esfuerzo, no formalidad; brevedad y texto plano por defecto
+  - Instrucciones del padre y resumen previo se aplican en silencio
+- ✅ Backtest del prompt: `tools/prompt-harness.ps1` (12 escenarios, juez Haiku, 12/12 verde)
+  - ⚠️ El prompt está duplicado en el script — sincronizar al tocar `BuildSystemPrompt`
+- ✅ `/Students/Edit`: al guardar muestra un mensaje cálido del tutor (redactado por Claude)
+  explicando cómo acompañará al hijo — token_event Feature="explain", fallback si la API falla
 - ✅ Login de alumno `/Entrar` — usuario + PIN configurado por el padre desde `/Students/Edit`
 - ✅ Guard de acceso: `subscription_status` chequeado en Verify (padre) y Entrar (alumno)
   - `trial` / `active` → acceso normal
@@ -104,11 +115,13 @@ y chatean en su aula desde mitutoria.app.
 > Cobro **plano mensual** (NO créditos). Activación manual durante el piloto desde TablePlus.
 > MercadoPago Suscripciones es el target para V2.
 
-## Próximos pasos (Sesión 14)
+## Próximos pasos (Sesión 15) — la carrera para el piloto, requiere cerebro dedicado
 1. Verificar que los SQLs pendientes están aplicados en Railway
 2. Invitar las primeras familias del piloto
 3. MercadoPago — suscripción plana, un solo plan
 4. Consentimiento parental
+5. Higiene: rotar la API key (estuvo en texto plano en el harness) + `git remote set-url`
+   (GitHub renombró el repo a `Haalvarez/mitutoria`)
 
 ---
 
@@ -244,4 +257,4 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 13*
+*Actualizado al cierre de Sesión 14*
