@@ -25,6 +25,30 @@
             </form>
         </div>
 
+        @* ── Mochila: selector de materia ─────────────────────────────── *@
+        <div class="sidebar-mochila">
+            <label class="sidebar-label">🎒 Materia</label>
+            <form method="post" asp-page-handler="SwitchSubject" id="switch-subject-form">
+                <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                <select name="classroomId" class="mochila-select"
+                        onchange="document.getElementById('switch-subject-form').submit()">
+                    @foreach (var s in Model.Subjects)
+                    {
+                        <option value="@s.Id" selected="@(s.Id == Model.ActiveClassroomId)">@s.Name</option>
+                    }
+                </select>
+            </form>
+            <details class="mochila-new">
+                <summary>＋ Nueva materia</summary>
+                <form method="post" asp-page-handler="CreateSubject" class="sidebar-form" style="margin-top:.4rem;">
+                    <input type="hidden" name="StudentId" value="@Model.StudentId" />
+                    <input type="text" name="subjectName" maxlength="40" autocomplete="off"
+                           placeholder="Historia, Matemática, Francés..." required />
+                    <button type="submit" class="btn-main btn-sm" style="margin-top:.4rem;">Crear materia</button>
+                </form>
+            </details>
+        </div>
+
         @if (!string.IsNullOrEmpty(Model.CompactSummary))
         {
             <div class="sidebar-summary">

@@ -69,6 +69,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ErrorLog>().Property(e => e.CreatedAt).HasColumnName("created_at");
 
         modelBuilder.Entity<Classroom>()
+            .Property(c => c.Name)
+            .HasColumnName("name");
+
+        modelBuilder.Entity<Classroom>()
+            .Property(c => c.Mode)
+            .HasColumnName("mode");
+
+        modelBuilder.Entity<Classroom>()
+            .Property(c => c.LastActiveAt)
+            .HasColumnName("last_active_at");
+
+        modelBuilder.Entity<Classroom>()
             .Property(c => c.MaterialSections)
             .HasColumnName("material_sections")
             .HasColumnType("jsonb");
