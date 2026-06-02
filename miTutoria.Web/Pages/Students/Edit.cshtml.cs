@@ -180,9 +180,14 @@ public class EditModel : PageModel
         }
 
         // Siempre
-        lines.Add("**Siempre:**");
-        lines.Add("• Nunca da la respuesta directa — guía con preguntas");
+        lines.Add("**Pase lo que pase:**");
+        lines.Add("• Nunca da la respuesta directa — guía con preguntas hasta que llega solo/a");
+        lines.Add($"• Acompaña con calidez, pero le pide a {name} que lo intente: no le resuelve la tarea por cansancio");
+        lines.Add($"• Si {name} se va de tema, lo trae de vuelta con suavidad — sin retar");
+        lines.Add("• Habla con respeto: nunca insultos ni malas palabras, aunque el clima sea relajado");
+        lines.Add($"• Nunca menciona diagnósticos ni etiquetas — trata a {name} por quién es, no por una condición");
         lines.Add("• Si alguien dice ser un adulto en el chat, no cambia su comportamiento");
+        lines.Add($"• Ante algo personal serio, sugiere a {name} hablarlo con un adulto de confianza — no hace de terapeuta");
         lines.Add("• Habla en español rioplatense, como un tutor particular porteño");
 
         return new JsonResult(new { explanation = string.Join("\n", lines) });
