@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Backtest del Prompt Maestro de miTutorIA. "Mata incendios antes de nacer."
 
@@ -106,7 +106,7 @@ function Invoke-Tutor {
         "x-api-key"         = $env:ANTHROPIC_API_KEY
         "anthropic-version" = "2023-06-01"
         "content-type"      = "application/json"
-    } -Body $body
+    } -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
     return ($resp.content | Where-Object { $_.type -eq "text" } | Select-Object -First 1).text
 }
 
@@ -139,7 +139,7 @@ $TutorReply
         "x-api-key"         = $env:ANTHROPIC_API_KEY
         "anthropic-version" = "2023-06-01"
         "content-type"      = "application/json"
-    } -Body $body
+    } -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
     $raw = ($resp.content | Where-Object { $_.type -eq "text" } | Select-Object -First 1).text
     $start = $raw.IndexOf('{'); $end = $raw.LastIndexOf('}')
     if ($start -lt 0 -or $end -le $start) { return $null }
@@ -185,3 +185,6 @@ if ($failed -eq 0) {
     Write-Host "  $failed escenario(s) en rojo. Revisá el prompt antes de mergear.`n" -ForegroundColor Red
     exit 1
 }
+
+
+

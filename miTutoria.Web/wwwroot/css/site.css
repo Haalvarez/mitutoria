@@ -1086,26 +1086,24 @@ footer{
   margin-top: 1rem;
   background: var(--warm);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--sage, #4a7c6b);
-  border-radius: 4px;
-  padding: 1.2rem 1.4rem;
-  font-size: 0.87rem;
-  line-height: 1.6;
+  border-radius: 10px;
+  padding: 1.3rem 1.5rem;
+  font-size: 0.92rem;
+  line-height: 1.65;
 }
 
-.tutor-explain-panel .explain-title {
-  margin: 0.6rem 0 0.2rem;
+.tutor-explain-panel p {
+  margin: 0 0 0.7rem;
   color: var(--ink);
 }
 
-.tutor-explain-panel .explain-title:first-child { margin-top: 0; }
+.tutor-explain-panel p:last-child { margin-bottom: 0; }
 
-.tutor-explain-panel .explain-item {
-  margin: 0.15rem 0 0.15rem 0.8rem;
-  color: var(--dust);
+.tutor-explain__intro {
+  margin: 0 0 0.2rem;
+  color: var(--sage, #4a7c6b);
+  font-size: 0.9rem;
 }
-
-.tutor-explain-panel br { display: block; margin: 0.3rem 0; content: ''; }
 
 /* ── Student edit ── */
 .edit-section {

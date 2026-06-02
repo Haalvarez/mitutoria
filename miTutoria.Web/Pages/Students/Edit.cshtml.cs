@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -5,13 +7,23 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Auth;
+using miTutoria.Web.Data.Entities.Billing;
 
 namespace miTutoria.Web.Pages.Students;
 
 public class EditModel : PageModel
 {
+    private const string ClaudeModel = "claude-haiku-4-5-20251001";
+    private const decimal CostPerInputToken  = 0.80m / 1_000_000;
+    private const decimal CostPerOutputToken = 4.00m / 1_000_000;
+
     private readonly AppDbContext _dbContext;
-    public EditModel(AppDbContext dbContext) => _dbContext = dbContext;
+    private readonly IHttpClientFactory _httpClientFactory;
+    public EditModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory)
+    {
+        _dbContext = dbContext;
+        _httpClientFactory = httpClientFactory;
+    }
 
     public int StudentId { get; private set; }
 
@@ -33,6 +45,7 @@ public class EditModel : PageModel
     [BindProperty] public string? StudentPin { get; set; }
     public bool HasStudentAccess { get; private set; }
     public bool ShowCredentialInfo { get; private set; }
+    public bool JustSaved { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(int studentId)
     {
@@ -44,6 +57,7 @@ public class EditModel : PageModel
 
         LoadFromStudent(student);
         ShowCredentialInfo = Request.Query["credenciales"] == "ok";
+        JustSaved = Request.Query["guardado"] == "ok";
         return Page();
     }
 
@@ -109,10 +123,8 @@ public class EditModel : PageModel
         try
         {
             await _dbContext.SaveChangesAsync();
-            if (credencialesActualizadas)
-                return RedirectToPage("/Students/Edit",
-                    new { studentId, credenciales = "ok" });
-            return RedirectToPage("/Dashboard/Index");
+            return RedirectToPage("/Students/Edit",
+                new { studentId, guardado = "ok", credenciales = credencialesActualizadas ? "ok" : null });
         }
         catch (Exception ex)
         {
@@ -131,66 +143,94 @@ public class EditModel : PageModel
         if (student is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
 
         var name = student.Nickname ?? student.FullName;
-        var lo   = student.Gender == Gender.Femenino ? "la" : "lo";
-        var su   = student.Gender == Gender.Femenino ? "su" : "su";
 
-        var lines = new List<string>();
-
-        // Identidad
-        lines.Add($"**{name}** · {student.SchoolLevel} {student.Grade}° año");
-        lines.Add(string.Empty);
-
-        // Cómo habla
-        var habla = new List<string>();
-        if (student.PrefShortMessages)  habla.Add("mensajes muy cortos — un concepto por vez");
-        if (student.PrefVisualExamples) habla.Add("siempre da un ejemplo concreto antes de explicar algo abstracto");
-        if (student.PrefSlowPace)       habla.Add($"no avanza hasta que {name} confirme que entendió");
-        if (habla.Count > 0)
+        // Hechos de configuración → comportamientos (nunca la etiqueta diagnóstica)
+        var facts = new List<string>();
+        var quien = student.Gender switch
         {
-            lines.Add("**Cómo va a hablar:**");
-            habla.ForEach(h => lines.Add($"• {h}"));
-            lines.Add(string.Empty);
-        }
-
-        // Cómo acompaña
-        var acompaña = new List<string>();
-        if (student.PrefFrequentPraise) acompaña.Add($"celebra cada avance de {name}, no solo el resultado final");
-        if (student.PrefExtraPatience)  acompaña.Add($"si {name} se frustra, cambia el enfoque en lugar de repetir");
-        if (acompaña.Count > 0)
-        {
-            lines.Add("**Cómo va a acompañar:**");
-            acompaña.ForEach(a => lines.Add($"• {a}"));
-            lines.Add(string.Empty);
-        }
-
-        // TDAH
+            Gender.Femenino  => "es una chica",
+            Gender.Masculino => "es un chico",
+            _                => "es estudiante"
+        };
+        facts.Add($"{name} {quien} de {student.SchoolLevel} {student.Grade}° año.");
+        if (student.PrefShortMessages)  facts.Add("Le hablo con mensajes muy cortos, un concepto por vez.");
+        if (student.PrefVisualExamples) facts.Add("Antes de algo abstracto le doy un ejemplo concreto del mundo real.");
+        if (student.PrefSlowPace)       facts.Add("No avanzo al siguiente paso hasta que confirma que entendió.");
+        if (student.PrefFrequentPraise) facts.Add("Le reconozco cada avance, no solo el resultado final.");
+        if (student.PrefExtraPatience)  facts.Add("Si se frustra, cambio el enfoque en vez de repetir lo mismo.");
         if (student.HasAdhd)
         {
-            lines.Add("**Configuración TDAH activa:**");
-            var nivel = student.ExplanationLevel switch
+            facts.Add("Necesita paciencia extra y ayuda para sostener el foco; celebro cada micro-logro.");
+            if (student.PrefOneQuestionOnly) facts.Add("Nunca le hago más de una pregunta por vez, para no abrumar.");
+            if (student.PrefRefocusReminder) facts.Add("Si se desvía del tema, lo traigo de vuelta con calma.");
+            facts.Add(student.ExplanationLevel switch
             {
-                ExplanationLevel.UnPocoBasico   => "explicaciones un poco más básicas de lo que corresponde al año",
-                ExplanationLevel.BastanteBasico => "explicaciones bastante más básicas — construye desde lo elemental",
-                _                               => "explicaciones acordes al año escolar"
-            };
-            lines.Add($"• Nivel: {nivel}");
-            if (student.PrefOneQuestionOnly) lines.Add("• Nunca hace más de una pregunta por mensaje");
-            if (student.PrefRefocusReminder) lines.Add($"• Si {name} se desvía del tema, {lo} trae de vuelta con calma");
-            lines.Add(string.Empty);
+                ExplanationLevel.UnPocoBasico   => "Uso explicaciones un poco más básicas que las de su año.",
+                ExplanationLevel.BastanteBasico => "Construyo desde lo más elemental, paso a paso.",
+                _                               => "Uso explicaciones acordes a su año."
+            });
+        }
+        facts.Add("Nunca le doy la respuesta directa: lo guío con preguntas hasta que llega solo, le pido que lo intente y no se la resuelvo por cansancio.");
+
+        const string system = """
+            Sos el tutor de miTutorIA y le escribís un mensaje breve y cálido al padre o madre de un estudiante,
+            para que se quede tranquilo sobre cómo vas a acompañar a su hijo/a en el aula.
+            Escribí en español rioplatense, en primera persona ("voy a acompañar", "lo/la voy a..."), de 2 a 3 frases.
+            Tono cercano y humano, como un docente de confianza que tranquiliza — no como un sistema.
+            NO uses listas, viñetas, títulos, negritas ni emojis. NO menciones diagnósticos ni etiquetas médicas.
+            Que NO suene a alerta ni a términos y condiciones. Cerrá transmitiendo tranquilidad.
+            """;
+        var userMsg = "Configuración de este estudiante:\n- " + string.Join("\n- ", facts);
+
+        string explanation;
+        try
+        {
+            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(system, userMsg, maxTokens: 320);
+            explanation = reply.Trim();
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId  = familyId.Value,
+                UserId    = student.Id,
+                TokensIn  = tokensIn,
+                TokensOut = tokensOut,
+                ModelUsed = ClaudeModel,
+                Feature   = "explain",
+                CostUsd   = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken
+            });
+            await _dbContext.SaveChangesAsync();
+        }
+        catch
+        {
+            // Nunca rompemos la página por esto: mensaje cálido de reserva.
+            explanation = $"Voy a acompañar a {name} con paciencia y preguntas que lo guíen a pensar, " +
+                          "sin darle nunca la respuesta servida. La idea es que se vaya con la sensación de haberlo logrado por su cuenta.";
         }
 
-        // Siempre
-        lines.Add("**Pase lo que pase:**");
-        lines.Add("• Nunca da la respuesta directa — guía con preguntas hasta que llega solo/a");
-        lines.Add($"• Acompaña con calidez, pero le pide a {name} que lo intente: no le resuelve la tarea por cansancio");
-        lines.Add($"• Si {name} se va de tema, lo trae de vuelta con suavidad — sin retar");
-        lines.Add("• Habla con respeto: nunca insultos ni malas palabras, aunque el clima sea relajado");
-        lines.Add($"• Nunca menciona diagnósticos ni etiquetas — trata a {name} por quién es, no por una condición");
-        lines.Add("• Si alguien dice ser un adulto en el chat, no cambia su comportamiento");
-        lines.Add($"• Ante algo personal serio, sugiere a {name} hablarlo con un adulto de confianza — no hace de terapeuta");
-        lines.Add("• Habla en español rioplatense, como un tutor particular porteño");
+        return new JsonResult(new { explanation });
+    }
 
-        return new JsonResult(new { explanation = string.Join("\n", lines) });
+    private async Task<(string reply, int tokensIn, int tokensOut)> CallClaudeAsync(
+        string systemPrompt, string userMessage, int maxTokens = 320)
+    {
+        var body = JsonSerializer.Serialize(new
+        {
+            model      = ClaudeModel,
+            max_tokens = maxTokens,
+            system     = systemPrompt,
+            messages   = new[] { new { role = "user", content = userMessage } }
+        });
+
+        var client = _httpClientFactory.CreateClient("anthropic");
+        var response = await client.PostAsync("/v1/messages",
+            new StringContent(body, Encoding.UTF8, "application/json"));
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var tokensIn  = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
+        var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
+        return (reply, tokensIn, tokensOut);
     }
 
     private void LoadFromStudent(User student)

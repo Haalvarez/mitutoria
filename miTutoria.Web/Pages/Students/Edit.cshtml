@@ -199,9 +199,13 @@
         </div>
     </form>
 
-    <div style="margin-top:1.5rem;">
+    <div class="tutor-explain" style="margin-top:1.5rem;">
+        @if (Model.JustSaved)
+        {
+            <p class="tutor-explain__intro">Guardado. Así voy a acompañar a <strong>@Model.FullName</strong> en el aula:</p>
+        }
         <button id="btn-explain" class="btn-secondary" type="button">
-            ¿Cómo va a actuar el tutor con @Model.FullName?
+            Ver cómo voy a acompañar a @Model.FullName
         </button>
         <div id="tutor-explain-panel" class="tutor-explain-panel" style="display:none;"></div>
     </div>
@@ -212,35 +216,47 @@
         document.getElementById('tdah-section').style.display = this.checked ? '' : 'none';
     });
 
-    document.getElementById('btn-explain').addEventListener('click', async function() {
-        const btn   = this;
-        const panel = document.getElementById('tutor-explain-panel');
+    const btnExplain = document.getElementById('btn-explain');
+    const explainPanel = document.getElementById('tutor-explain-panel');
+    let explainLoaded = false;
 
-        if (panel.style.display !== 'none') { panel.style.display = 'none'; btn.textContent = '¿Cómo va a actuar el tutor con @Model.FullName?'; return; }
+    btnExplain.addEventListener('click', async function() {
+        if (explainPanel.style.display !== 'none') {
+            explainPanel.style.display = 'none';
+            btnExplain.textContent = 'Ver cómo voy a acompañar a @Model.FullName';
+            return;
+        }
+        if (explainLoaded) { explainPanel.style.display = 'block'; btnExplain.textContent = 'Ocultar'; return; }
 
-        btn.disabled = true;
-        btn.textContent = 'Cargando...';
+        btnExplain.disabled = true;
+        btnExplain.textContent = 'Escribiendo...';
 
         try {
             const res  = await fetch(`/Students/Edit/@Model.StudentId?handler=Explain`);
             const data = await res.json();
 
-            panel.innerHTML = data.explanation
-                .split('\n')
-                .map(line => {
-                    if (!line.trim()) return '<br>';
-                    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-                    return line.startsWith('•') ? `<p class="explain-item">${line}</p>` : `<p class="explain-title">${line}</p>`;
-                })
+            explainPanel.innerHTML = data.explanation
+                .split(/\n{2,}/)
+                .map(p => p.trim())
+                .filter(p => p)
+                .map(p => `<p>${p.replace(/\n/g, ' ')}</p>`)
                 .join('');
 
-            panel.style.display = 'block';
-            btn.textContent = 'Ocultar';
+            explainPanel.style.display = 'block';
+            explainLoaded = true;
+            btnExplain.textContent = 'Ocultar';
         } catch(e) {
-            panel.innerHTML = '<p>Error al cargar la explicación.</p>';
-            panel.style.display = 'block';
+            explainPanel.innerHTML = '<p>No pude cargar el mensaje ahora. Probá de nuevo en un momento.</p>';
+            explainPanel.style.display = 'block';
         } finally {
-            btn.disabled = false;
+            btnExplain.disabled = false;
         }
     });
+
+@if (Model.JustSaved)
+{
+    <text>
+    btnExplain.click(); // al guardar, mostramos el mensaje del tutor automáticamente
+    </text>
+}
 </script>
