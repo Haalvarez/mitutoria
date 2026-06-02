@@ -1,3 +1,29 @@
+## [Sesión 15] — 2026-06-02
+
+### feat — Mochila: materias por alumno (Classroom = cuaderno de materia)
+- Un alumno puede tener varias materias; cada una es un Classroom con su nombre,
+  modo pedagógico, historia de chat y material. "Mismo pupitre, distinto cuaderno":
+  no cambia de ambiente, cambia el foco del tutor
+- Selector de materia 🎒 en el sidebar (arriba del material) + "＋ Nueva materia"
+- `GetActiveClassroomAsync`: resuelve el cuaderno activo (sesión → más reciente → crea "General")
+- Handlers `CreateSubject` (infiere el modo del nombre) y `SwitchSubject`
+- Fix: las 3 queries que hacían `SingleOrDefault(c.StudentId==studentId)` habrían
+  reventado con varias materias — ahora resuelven el cuaderno activo
+
+### feat — Modo pedagógico por tipo de materia
+- `PedagogicalMode` (Resolución / Comprensión), inferido del nombre de la materia
+- El prompt se ramifica: en Resolución (mate/física) no da el resultado; en Comprensión
+  (historia/lengua) explica conceptos pero el alumno sintetiza — no le escribe el resumen
+- La regla de resumen, antes hardcodeada en "no resumís", ahora es condicional al modo
+- Foco de materia: si el alumno trae otra materia, el tutor sugiere cambiarla arriba (no pelea)
+- Calibración fina del modo Comprensión = TODO post-piloto (anotado en el harness)
+
+### chore
+- Migración `20260603120000_AddSubjectMochila` (name, mode, last_active_at) — aplicada en TablePlus
+- harness sincronizado con la estructura nueva + escenario "trae otra materia"
+
+---
+
 ## [Sesión 14] — 2026-06-02
 
 ### fix — Prompt maestro (a partir de incidentes reales con una alumna)

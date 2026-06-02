@@ -13,12 +13,22 @@ y chatean en su aula desde mitutoria.app.
 ---
 
 ## Estado actual
-- **Sesión:** 14
+- **Sesión:** 15
 - **Fase activa:** Fase 1 — MVP Familia (lista para piloto)
 - **Branch activo:** `main`
-- **Último commit:** feat: el padre ve, al guardar, cómo el tutor acompañará a su hijo
+- **Último commit:** feat: mochila — el alumno crea materias (cuadernos) y cambia de contexto
 
 ## Funciona hoy
+- ✅ Mochila — materias por alumno (Sesión 15)
+  - `Classroom` = cuaderno de materia: un alumno tiene varias, cada una con nombre,
+    modo pedagógico, historia de chat y material propios
+  - Selector 🎒 en el sidebar + "＋ Nueva materia" (infiere modo del nombre)
+  - `GetActiveClassroomAsync` resuelve el cuaderno activo (sesión → reciente → crea "General")
+  - Modo pedagógico (Resolución / Comprensión): el prompt se ramifica — en Comprensión
+    explica y el alumno sintetiza; en Resolución no da el resultado
+  - Foco de materia: si el alumno trae otra materia, el tutor sugiere cambiarla arriba
+  - ⬜ Falta: borrar/renombrar materia, ícono y orden manual (hoy alfabético)
+  - ⬜ Calibración fina del modo Comprensión (que no rechace pero tampoco regale la síntesis)
 - ✅ Prompt maestro endurecido (Sesión 14)
   - Nunca menciona diagnósticos/etiquetas — recibe comportamientos, no la etiqueta TDAH
   - Nunca usa insultos coloquiales; figura de autoridad cercana
@@ -115,13 +125,14 @@ y chatean en su aula desde mitutoria.app.
 > Cobro **plano mensual** (NO créditos). Activación manual durante el piloto desde TablePlus.
 > MercadoPago Suscripciones es el target para V2.
 
-## Próximos pasos (Sesión 15) — la carrera para el piloto, requiere cerebro dedicado
+## Próximos pasos (Sesión 16) — la carrera para el piloto, requiere cerebro dedicado
 1. Verificar que los SQLs pendientes están aplicados en Railway
 2. Invitar las primeras familias del piloto
 3. MercadoPago — suscripción plana, un solo plan
 4. Consentimiento parental
 5. Higiene: rotar la API key (estuvo en texto plano en el harness) + `git remote set-url`
    (GitHub renombró el repo a `Haalvarez/mitutoria`)
+6. Mochila — pulido: borrar/renombrar materia; config del padre por materia (ahora que la materia "nace")
 
 ---
 
@@ -140,6 +151,7 @@ y chatean en su aula desde mitutoria.app.
 | `20260602160000_AddWaitlist` | `auth.waitlist_entries` |
 | `20260531000000_AddMaterialSections` | `material_sections jsonb`, `material_section_index`, `material_ocr_source` — **verificar TablePlus** |
 | `20260531100000_AddFamilyBilling` | `created_at`, `subscription_status`, `trial_ends_at`, `paid_until` en families — **verificar TablePlus** |
+| `20260603120000_AddSubjectMochila` | `name`, `mode`, `last_active_at` en classrooms — **aplicado en TablePlus (Sesión 15)** |
 
 > `public.error_logs` — crear manualmente, no tiene migración EF.
 
@@ -257,4 +269,4 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 14*
+*Actualizado al cierre de Sesión 15*
