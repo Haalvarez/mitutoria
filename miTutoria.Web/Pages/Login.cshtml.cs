@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
-using miTutoria.Web.Data.Entities.Auth;
 using Resend;
 
 namespace miTutoria.Web.Pages;
@@ -41,15 +40,11 @@ public class LoginModel : PageModel
         var normalizedEmail = email.Trim().ToLowerInvariant();
         Email = normalizedEmail;
 
-        var family = await _dbContext.Families.SingleOrDefaultAsync(f => f.Email == normalizedEmail);
-        if (family is null)
+        var family = await _dbContext.Families.FirstOrDefaultAsync(f => f.Email == normalizedEmail);
+        if (family is null || family.SubscriptionStatus == "waitlist")
         {
-            family = new Family
-            {
-                Email = normalizedEmail,
-                Name = normalizedEmail
-            };
-            _dbContext.Families.Add(family);
+            ModelState.AddModelError(string.Empty, "Este email no tiene acceso todavía. ¿Querés anotarte en la lista de espera?");
+            return Page();
         }
 
         var token = Guid.NewGuid().ToString("N");
