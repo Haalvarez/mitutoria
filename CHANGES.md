@@ -37,6 +37,13 @@
 - Barra de suscripción: estado (prueba/activa) + cuánto falta para el vencimiento
   (la misma lógica sirve para fin de trial y renovación mensual) + botón
   "Quiero pagar" deshabilitado (se habilita al activar el cobro; generará el link MP)
+- Sparkline de actividad de los últimos 15 días por hijo en cada tarjeta (barras
+  CSS, sin JS extra) — hace visible el hábito y ayuda a justificar el pago
+
+### feat — layout más ancho en Dashboard y Editar perfil
+- Variante `.page-main--wide` (920px) para páginas con contenido en columnas
+- `Students/Edit`: las secciones del formulario fluyen en 2 columnas (`.edit-grid`)
+  en pantallas anchas — menos scroll, mejor uso del ancho
 
 ### chore
 - Migración `20260603210000_AddConsentToFamily` — aplicar en TablePlus antes de push:

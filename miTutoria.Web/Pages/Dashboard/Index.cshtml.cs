@@ -19,6 +19,7 @@ public class StudentSummary
     public int StreakDays { get; set; }
     public DateTime? LastActivity { get; set; }
     public Dictionary<int, int> ExchangesByDay { get; set; } = new();
+    public int[] Last15Days { get; set; } = new int[15];
 }
 
 public class IndexModel : PageModel
@@ -95,7 +96,13 @@ public class IndexModel : PageModel
         {
             var mine = events.Where(t => t.UserId == student.Id).ToList();
             var chatMine = mine.Where(t => t.Feature == "chat").ToList();
-            var allDates = allChatDates.Where(t => t.UserId == student.Id).Select(t => t.CreatedAt);
+            var myDates = allChatDates.Where(t => t.UserId == student.Id).Select(t => t.CreatedAt).ToList();
+            var allDates = myDates;
+
+            // Últimos 15 días (día -14 .. hoy), cuenta de intercambios por día
+            var last15 = Enumerable.Range(0, 15)
+                .Select(i => myDates.Count(d => d.Date == now.Date.AddDays(-14 + i)))
+                .ToArray();
 
             StudentSummaries.Add(new StudentSummary
             {
@@ -108,7 +115,8 @@ public class IndexModel : PageModel
                 LastActivity       = mine.Any() ? mine.Max(t => t.CreatedAt) : null,
                 ExchangesByDay     = chatMine
                     .GroupBy(t => t.CreatedAt.Day)
-                    .ToDictionary(g => g.Key, g => g.Count())
+                    .ToDictionary(g => g.Key, g => g.Count()),
+                Last15Days         = last15
             });
         }
 

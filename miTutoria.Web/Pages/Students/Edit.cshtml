@@ -6,7 +6,7 @@
     ViewData["Title"] = "Editar perfil de " + Model.FullName;
 }
 
-<main class="page-main">
+<main class="page-main page-main--wide">
     <div class="dashboard-header">
         <h1>Editar perfil</h1>
         <div class="dashboard-nav-links"><a href="/Dashboard">← Volver</a></div>
@@ -37,6 +37,8 @@
 
     <form method="post">
         <input type="hidden" name="StudentId" value="@Model.StudentId" />
+
+        <div class="edit-grid">
 
         @* ── Datos básicos ── *@
         <section class="edit-section">
@@ -193,6 +195,8 @@
                 <small style="color:var(--dust); font-size:0.78rem;">Si ya tiene PIN y no querés cambiarlo, dejá este campo vacío.</small>
             </div>
         </section>
+
+        </div>@* /edit-grid *@
 
         <div class="form-actions" style="margin-top:1.5rem;">
             <button type="submit" class="btn-main">Guardar cambios</button>

@@ -18,7 +18,7 @@
     string ExchangeWord(int n) => n == 1 ? "intercambio" : "intercambios";
 }
 
-<main class="page-main">
+<main class="page-main page-main--wide">
 
     <div class="dashboard-header">
         <div>
@@ -135,6 +135,22 @@
                             </div>
                         </div>
                         <p class="stat__hint">@ExchangeWord(s.ExchangesThisMonth) con el tutor</p>
+
+                        @if (s.Last15Days.Sum() > 0)
+                        {
+                            var max15 = s.Last15Days.Max();
+                            <div>
+                                <div class="sparkline" title="Actividad de los últimos 15 días">
+                                    @foreach (var c in s.Last15Days)
+                                    {
+                                        var pct = max15 > 0 ? (int)Math.Round(c * 100.0 / max15) : 0;
+                                        <span class="spark-bar @(c == 0 ? "spark-bar--empty" : "")"
+                                              style="height:@(c == 0 ? 12 : Math.Max(pct, 25))%"></span>
+                                    }
+                                </div>
+                                <div class="sparkline-caption">últimos 15 días</div>
+                            </div>
+                        }
 
                         <div class="student-card__actions">
                             <a href="/Students/Edit/@s.Id" class="btn-secondary btn-sm">Editar</a>

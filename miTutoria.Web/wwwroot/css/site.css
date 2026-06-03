@@ -598,6 +598,42 @@ footer{
   margin: 0 auto;
 }
 
+/* Variante ancha para páginas con layout en columnas (Dashboard, Editar perfil) */
+.page-main--wide {
+  max-width: 920px;
+}
+
+/* Grilla de secciones del formulario de edición — 2 columnas en pantallas anchas */
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 0 2.5rem;
+  align-items: start;
+}
+
+/* Sparkline de actividad (barras CSS, sin JS) */
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 30px;
+}
+.spark-bar {
+  flex: 1;
+  background: var(--sage, #5C7A5E);
+  border-radius: 1px;
+  min-height: 2px;
+}
+.spark-bar--empty {
+  background: var(--line, #ececec);
+}
+.sparkline-caption {
+  font-size: 0.72rem;
+  color: #999;
+  margin-top: 0.35rem;
+  letter-spacing: 0.02em;
+}
+
 .page-main h1 {
   font-family: 'Playfair Display', serif;
   font-size: clamp(1.8rem, 3vw, 2.6rem);
