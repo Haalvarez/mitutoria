@@ -1,5 +1,13 @@
 ## [Sesión 17] — 2026-06-03
 
+### fix — chat en texto plano de verdad + caras en las burbujas
+- El tutor a veces filtraba markdown (`**Gerunds**`, `*enjoy*`). Doble arreglo:
+  prompt reforzado (prohíbe explícitamente asteriscos/markdown) + limpieza en el
+  render (`FormatMessage` server + `plainText` en JS) — garantía aunque el modelo resbale
+- Las burbujas del chat ahora muestran la **cara del tutor** (TutorAvatar) y la **cara
+  del alumno** (Avatar) en vez de "T" y la inicial; el label usa el nombre del tutor
+- Cubre todas las burbujas: server, JS (addBubble), typing, upload, quiz, examen
+
 ### feat — ciclo de facturación por familia + scheduler de alertas + tope en USD
 - **Ciclo anclado en la familia** (no calendario): ciclo = `[ancla - 1 mes, ancla)` con
   `ancla = PaidUntil ?? TrialEndsAt`. Pagó el 23 → vence el 23 (AddMonths, sin derivar)

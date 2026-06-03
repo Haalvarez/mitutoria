@@ -40,6 +40,9 @@ public class IndexModel : PageModel
 
     public int StudentId { get; private set; }
     public string StudentName { get; private set; } = string.Empty;
+    public string? StudentAvatar { get; private set; }
+    public string? TutorName { get; private set; }
+    public string? TutorAvatar { get; private set; }
     public string? Material { get; private set; }
     public string? CompactSummary { get; private set; }
     public string CustomPrompt { get; private set; } = string.Empty;
@@ -119,6 +122,9 @@ public class IndexModel : PageModel
 
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
+        StudentAvatar = student.Avatar;
+        TutorName = student.TutorName;
+        TutorAvatar = student.TutorAvatar;
 
         var classroom = await GetActiveClassroomAsync(studentId);
         ActiveClassroomId = classroom.Id;
@@ -884,7 +890,7 @@ public class IndexModel : PageModel
             Cómo respondés:
             - Mensajes breves y conversacionales, como un chat real. Una idea por vez, sin párrafos largos ni paredes de texto.
             - Evitá amontonar preguntas: por lo general, una a la vez.
-            - Texto plano: sin negritas, sin títulos, sin listas con viñetas, sin emojis decorativos. Hablás, no escribís un apunte.
+            - Texto plano de verdad: NUNCA uses markdown. Nada de asteriscos para resaltar (ni *cursiva* ni **negrita**), nada de #, nada de guiones bajos, sin títulos ni listas con viñetas, sin emojis decorativos. Si querés resaltar una palabra, escribila normal o entre comillas. Hablás, no escribís un apunte.
             - Si no estás seguro de un dato, no lo inventes: guiá a {name} a buscarlo en el material.
 
             Registro (esto se adapta a {name}):

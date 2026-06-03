@@ -4,6 +4,20 @@
     Layout = "_Layout";
     ViewData["Title"] = "Aula · " + Model.StudentName;
     var initial = (Model.StudentName.Length > 0 ? Model.StudentName[0].ToString() : "?").ToUpper();
+    var tutorAvatar   = string.IsNullOrEmpty(Model.TutorAvatar) ? "T" : Model.TutorAvatar;
+    var studentAvatar = string.IsNullOrEmpty(Model.StudentAvatar) ? initial : Model.StudentAvatar;
+    var tutorLabel    = string.IsNullOrEmpty(Model.TutorName) ? "Tutor" : Model.TutorName;
+}
+@functions {
+    // Texto plano de verdad: saca markdown (** * __ _) y escapa HTML; \n → <br>
+    static string FormatMessage(string? raw)
+    {
+        var s = System.Net.WebUtility.HtmlEncode(raw ?? "");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\*\*(.+?)\*\*", "$1");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\*(.+?)\*", "$1");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"__(.+?)__", "$1");
+        return s.Replace("\n", "<br>");
+    }
 }
 
 <div class="classroom-layout">
@@ -157,13 +171,13 @@
                 {
                     var isUser = msg.Role == miTutoria.Web.Data.Entities.Academic.MessageRole.User;
                     var roleClass = isUser ? "user" : "assistant";
-                    var label = isUser ? Model.StudentName : "Tutor";
-                    var avatarLetter = isUser ? initial : "T";
+                    var label = isUser ? Model.StudentName : tutorLabel;
+                    var avatarLetter = isUser ? studentAvatar : tutorAvatar;
                     <div class="msg msg--@roleClass">
                         <div class="msg__avatar msg__avatar--@roleClass">@avatarLetter</div>
                         <div class="msg__body">
                             <span class="msg__label">@label</span>
-                            <div class="msg__bubble">@msg.Content</div>
+                            <div class="msg__bubble">@Html.Raw(FormatMessage(msg.Content))</div>
                         </div>
                     </div>
                 }
@@ -171,9 +185,9 @@
 
             @* Typing indicator *@
             <div class="msg msg--assistant" id="typing-indicator" style="display:none;">
-                <div class="msg__avatar msg__avatar--assistant">T</div>
+                <div class="msg__avatar msg__avatar--assistant">@tutorAvatar</div>
                 <div class="msg__body">
-                    <span class="msg__label">Tutor</span>
+                    <span class="msg__label">@tutorLabel</span>
                     <div class="msg__bubble typing-dots">
                         <span></span><span></span><span></span>
                     </div>
@@ -244,6 +258,11 @@
 const studentId = @Model.StudentId;
 const studentName = '@Html.Raw(Model.StudentName)';
 const initial = '@initial';
+const tutorAv    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tutorAvatar));
+const studentAv  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(studentAvatar));
+const tutorLabel = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(tutorLabel));
+// Saca markdown (** * __) — el tutor debe hablar en texto plano
+function plainText(t){ return (t || '').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/__(.+?)__/g,'$1'); }
 
 const messagesEl = document.getElementById('chat-messages');
 const inputEl    = document.getElementById('chat-input');
@@ -268,15 +287,15 @@ sendBtn.addEventListener('click', sendMessage);
 
 function addBubble(text, role) {
     const isUser = role === 'user';
-    const label  = isUser ? studentName : 'Tutor';
-    const av     = isUser ? initial : 'T';
+    const label  = isUser ? studentName : tutorLabel;
+    const av     = isUser ? studentAv : tutorAv;
     const div = document.createElement('div');
     div.className = `msg msg--${role}`;
     div.innerHTML = `
         <div class="msg__avatar msg__avatar--${role}">${av}</div>
         <div class="msg__body">
             <span class="msg__label">${label}</span>
-            <div class="msg__bubble">${text.replace(/\n/g, '<br>')}</div>
+            <div class="msg__bubble">${plainText(text).replace(/\n/g, '<br>')}</div>
         </div>`;
     messagesEl.insertBefore(div, typing);
     scrollBottom();
@@ -368,9 +387,9 @@ function startUploadAnimation(fileName) {
     _uploadBubble.className = 'msg msg--assistant';
     _uploadBubble.id = 'upload-bubble';
     _uploadBubble.innerHTML = `
-        <div class="msg__avatar msg__avatar--assistant">T</div>
+        <div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
         <div class="msg__body">
-            <span class="msg__label">Tutor</span>
+            <span class="msg__label">${tutorLabel}</span>
             <div class="msg__bubble upload-thinking">
                 <span class="upload-icon">📄</span>
                 <span class="upload-filename">${fileName}</span>
@@ -392,7 +411,7 @@ function stopUploadAnimation(replyText) {
     if (_uploadBubble) {
         const bubble = _uploadBubble.querySelector('.msg__bubble');
         bubble.className = 'msg__bubble';
-        bubble.innerHTML = replyText || '¡Material cargado! Escribime cuando estés listo para arrancar.';
+        bubble.innerHTML = plainText(replyText || '').replace(/\n/g, '<br>') || '¡Material cargado! Escribime cuando estés listo para arrancar.';
         _uploadBubble = null;
     }
 }
@@ -449,9 +468,9 @@ function addFlashcards(cards) {
     const wrap = document.createElement('div');
     wrap.className = 'msg msg--assistant';
     wrap.innerHTML = `
-        <div class="msg__avatar msg__avatar--assistant">T</div>
+        <div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
         <div class="msg__body">
-            <span class="msg__label">Tutor</span>
+            <span class="msg__label">${tutorLabel}</span>
             <div class="msg__bubble">
                 Armé ${cards.length} tarjetas de estudio.
                 <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="openCards()">📇 Abrir tarjetas</button>
@@ -507,8 +526,8 @@ function openExam(questions, label) {
     // Burbuja en el chat
     const wrap = document.createElement('div');
     wrap.className = 'msg msg--assistant';
-    wrap.innerHTML = `<div class="msg__avatar msg__avatar--assistant">T</div>
-        <div class="msg__body"><span class="msg__label">Tutor</span>
+    wrap.innerHTML = `<div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
+        <div class="msg__body"><span class="msg__label">${tutorLabel}</span>
         <div class="msg__bubble">📝 ${title} listo — ${questions.length} preguntas.
         <br><button class="btn-main btn-sm" style="margin-top:.5rem" onclick="document.getElementById('exam-modal').style.display='flex'">Retomar ${title.toLowerCase()}</button>
         </div></div>`;
