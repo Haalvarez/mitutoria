@@ -28,6 +28,13 @@
 - Columna "Consentimiento" en el monitor de piloto (✅/⏳ pendiente)
 - Tarjeta "Saldo API estimado": crédito manual (`ANTHROPIC_CREDIT_USD`) − consumo histórico
 
+### feat — dashboard del padre orientado a enganche (no a costo)
+- Sacada la tarjeta "Gasto del mes" en ARS: anclar precio en un piloto gratis
+  asusta y no aporta. El costo sigue visible solo en `/admin`
+- En su lugar: "Días activos este mes" y "Materiales cargados" (señales de uso)
+- Mensaje de enganche arriba: celebra la mejor racha (≥3 días) o avisa quién
+  estudió hoy — el "recibo de valor" para quien paga
+
 ### chore
 - Migración `20260603210000_AddConsentToFamily` — aplicar en TablePlus antes de push:
   `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_at timestamptz;`

@@ -33,8 +33,9 @@ public class IndexModel : PageModel
     public string FamilyName { get; private set; } = string.Empty;
     public List<User> Students { get; private set; } = new();
     public List<StudentSummary> StudentSummaries { get; private set; } = new();
-    public decimal TotalCostArs { get; private set; }
     public int TotalExchangesMonth { get; private set; }
+    public int ActiveDaysThisMonth { get; private set; }
+    public int MaterialsCount { get; private set; }
     public int DaysInMonth { get; private set; }
     public string ChartJson { get; private set; } = "{}";
 
@@ -70,10 +71,16 @@ public class IndexModel : PageModel
             .Select(t => new { t.UserId, t.CreatedAt })
             .ToListAsync();
 
-        TotalCostArs = events.Sum(t => t.CostUsd * (t.ArsRate ?? 0m));
         TotalExchangesMonth = events.Count(t => t.Feature == "chat");
+        ActiveDaysThisMonth = events.Where(t => t.Feature == "chat")
+                                    .Select(t => t.CreatedAt.Date)
+                                    .Distinct()
+                                    .Count();
 
-        var studentMap = Students.ToDictionary(s => s.Id);
+        var studentIds = Students.Select(s => s.Id).ToList();
+        MaterialsCount = await _dbContext.Classrooms
+            .CountAsync(c => studentIds.Contains(c.StudentId)
+                          && c.Material != null && c.Material != "");
 
         foreach (var student in Students)
         {

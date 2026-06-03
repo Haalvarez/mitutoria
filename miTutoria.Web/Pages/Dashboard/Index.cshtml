@@ -28,6 +28,24 @@
         <a href="/Profile" class="btn-secondary">Editar perfil</a>
     </div>
 
+    @* ── Mensaje de enganche ── *@
+    @{
+        var topStreak = Model.StudentSummaries.OrderByDescending(s => s.StreakDays).FirstOrDefault();
+        var studiedTodayCount = Model.StudentSummaries.Count(s => s.ExchangesToday > 0);
+    }
+    @if (topStreak is { StreakDays: >= 3 })
+    {
+        <div class="dashboard-highlight" style="background:#f3f6f1;border-left:3px solid #5C7A5E;padding:.8rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;">
+            🔥 <strong>@topStreak.Name</strong> lleva <strong>@topStreak.StreakDays días seguidos</strong> estudiando — el hábito se está formando.
+        </div>
+    }
+    else if (studiedTodayCount > 0)
+    {
+        <div class="dashboard-highlight" style="background:#f3f6f1;border-left:3px solid #5C7A5E;padding:.8rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;">
+            ✨ @(studiedTodayCount == 1 ? "Uno de tus hijos ya estudió hoy" : $"{studiedTodayCount} de tus hijos ya estudiaron hoy"). ¡Buen comienzo!
+        </div>
+    }
+
     @* ── Hijos ── *@
     <section class="dashboard-section">
         <div class="section-header">
@@ -106,12 +124,14 @@
                     <span class="usage-card__value">@Model.TotalExchangesMonth.ToString("N0")</span>
                 </div>
                 <div class="usage-card">
-                    <span class="usage-card__label">Gasto del mes</span>
-                    <span class="usage-card__value">@(Model.TotalCostArs > 0 ? "$" + Model.TotalCostArs.ToString("N0") + " ARS" : "—")</span>
-                    @if (Model.TotalCostArs > 0 && Model.TotalExchangesMonth > 0)
-                    {
-                        <span class="usage-card__sub">≈ $@((Model.TotalCostArs / Model.TotalExchangesMonth).ToString("N1")) por intercambio</span>
-                    }
+                    <span class="usage-card__label">Días activos este mes</span>
+                    <span class="usage-card__value">@Model.ActiveDaysThisMonth</span>
+                    <span class="usage-card__sub">de @Model.DaysInMonth días</span>
+                </div>
+                <div class="usage-card">
+                    <span class="usage-card__label">Materiales cargados</span>
+                    <span class="usage-card__value">@Model.MaterialsCount</span>
+                    <span class="usage-card__sub">@(Model.MaterialsCount == 1 ? "materia con material" : "materias con material")</span>
                 </div>
             </div>
 
