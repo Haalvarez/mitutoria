@@ -46,6 +46,43 @@
         </div>
     }
 
+    @* ── Estado de suscripción ── *@
+    @{
+        var (subLabel, subColor) = Model.SubscriptionStatus switch
+        {
+            "trial"  => ("Período de prueba", "#5C7A5E"),
+            "active" => ("Suscripción activa", "#5C7A5E"),
+            _        => ("Cuenta", "#888")
+        };
+        string remainingText;
+        var warnExpiry = false;
+        if (Model.AccessEndsAt is null) { remainingText = ""; }
+        else if (Model.DaysRemaining <= 0) { remainingText = "Vence hoy"; warnExpiry = true; }
+        else if (Model.SubscriptionStatus == "active") { remainingText = $"Se renueva en {Model.DaysRemaining} {(Model.DaysRemaining == 1 ? "día" : "días")}"; warnExpiry = Model.DaysRemaining <= 3; }
+        else { remainingText = $"Te quedan {Model.DaysRemaining} {(Model.DaysRemaining == 1 ? "día" : "días")}"; warnExpiry = Model.DaysRemaining <= 3; }
+    }
+    <section class="subscription-bar" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;background:#fff;border:1px solid #eee;border-radius:8px;padding:1rem 1.2rem;margin-bottom:1.5rem;">
+        <div>
+            <span style="display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:@subColor;">@subLabel</span>
+            @if (!string.IsNullOrEmpty(remainingText))
+            {
+                <div style="font-size:.9rem;margin-top:.15rem;color:@(warnExpiry ? "#C94A1F" : "#555");font-weight:@(warnExpiry ? "600" : "400");">
+                    @remainingText
+                    @if (Model.AccessEndsAt is not null)
+                    {
+                        <span style="color:#aaa;font-weight:400;"> · hasta el @Model.AccessEndsAt.Value.ToLocalTime().ToString("dd/MM/yyyy")</span>
+                    }
+                </div>
+            }
+        </div>
+        @* El pago se habilita al activar el cobro (MercadoPago). El botón generará el link por familia. *@
+        <button type="button" class="btn-main" disabled
+                title="Disponible pronto — vas a poder pagar tu suscripción desde acá"
+                style="opacity:.45;cursor:not-allowed;">
+            Quiero pagar
+        </button>
+    </section>
+
     @* ── Hijos ── *@
     <section class="dashboard-section">
         <div class="section-header">

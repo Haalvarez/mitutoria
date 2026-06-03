@@ -31,6 +31,9 @@ public class IndexModel : PageModel
     }
 
     public string FamilyName { get; private set; } = string.Empty;
+    public string SubscriptionStatus { get; private set; } = "trial";
+    public DateTime? AccessEndsAt { get; private set; }   // PaidUntil ?? TrialEndsAt — sirve para fin de trial y renovación mensual
+    public int DaysRemaining { get; private set; }
     public List<User> Students { get; private set; } = new();
     public List<StudentSummary> StudentSummaries { get; private set; } = new();
     public int TotalExchangesMonth { get; private set; }
@@ -60,6 +63,12 @@ public class IndexModel : PageModel
         var weekStart  = now.Date.AddDays(-(int)now.DayOfWeek).ToUniversalTime();
         var dayStart   = now.Date.ToUniversalTime();
         DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+
+        SubscriptionStatus = family.SubscriptionStatus;
+        AccessEndsAt = family.PaidUntil ?? family.TrialEndsAt;
+        DaysRemaining = AccessEndsAt.HasValue
+            ? Math.Max(0, (int)Math.Ceiling((AccessEndsAt.Value - now).TotalDays))
+            : 0;
 
         var events = await _dbContext.TokenEvents
             .Where(t => t.FamilyId == familyId.Value && t.CreatedAt >= monthStart)

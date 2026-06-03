@@ -34,6 +34,9 @@
 - En su lugar: "Días activos este mes" y "Materiales cargados" (señales de uso)
 - Mensaje de enganche arriba: celebra la mejor racha (≥3 días) o avisa quién
   estudió hoy — el "recibo de valor" para quien paga
+- Barra de suscripción: estado (prueba/activa) + cuánto falta para el vencimiento
+  (la misma lógica sirve para fin de trial y renovación mensual) + botón
+  "Quiero pagar" deshabilitado (se habilita al activar el cobro; generará el link MP)
 
 ### chore
 - Migración `20260603210000_AddConsentToFamily` — aplicar en TablePlus antes de push:
