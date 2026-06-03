@@ -127,6 +127,7 @@ public class IndexModel : PageModel
 
     public record WaitlistRow(string Email, string? Name, DateTime CreatedAt);
     public List<WaitlistRow> Waitlist { get; private set; } = [];
+    public HashSet<string> InvitedEmails { get; private set; } = new();   // emails ya en trial/active
 
     // ── Globales ─────────────────────────────────────────────────────────────
 
@@ -289,6 +290,11 @@ public class IndexModel : PageModel
             .OrderByDescending(w => w.CreatedAt)
             .Select(w => new WaitlistRow(w.Email, w.Name, w.CreatedAt))
             .ToListAsync();
+
+        InvitedEmails = families
+            .Where(f => f.SubscriptionStatus is "trial" or "active")
+            .Select(f => (f.Email ?? "").ToLowerInvariant())
+            .ToHashSet();
 
         // Globales
         TotalCostUsdMonth = events.Sum(e => e.CostUsd);

@@ -6,10 +6,14 @@
 - Persiste `consent_at` (UTC), `consent_ip` y `consent_version="v1"` en `auth.families`
 - Familias que ya tienen sesión activa no son interrumpidas; el guard sólo aplica en el primer acceso post-magic-link
 
-### feat — Invitación de familias desde /admin (sin TablePlus)
-- Formulario "Invitar familia" en `/admin`: ingresás el email, la app crea/activa la familia con `subscription_status='trial'` y `trial_ends_at=+30d`, genera magic link válido 48hs y envía el mail de invitación vía Resend
+### feat — Invitación de familias desde la waitlist en /admin
+- El botón "Invitar al trial" vive **por fila en la waitlist** (se quitó el formulario
+  suelto de email): activa la familia como `trial` 30d, genera magic link 48hs y manda
+  el mail de bienvenida vía Resend. Confirmación antes de enviar.
+- Las filas ya invitadas muestran "✅ ya invitada" en vez del botón
 - El mail de invitación tiene texto de bienvenida al piloto (distinto al magic link de login)
-- Resultado de la invitación (ok/error) se muestra inline en el admin
+- Nota: ahora solo se invita a quien esté en la waitlist; para alguien externo, anotarlo
+  primero en la waitlist (o TablePlus)
 
 ### fix — cerrar la puerta de alta y bugs de columnas
 - `Login` ya no crea familias desconocidas: si el email no existe o está en `waitlist`,
