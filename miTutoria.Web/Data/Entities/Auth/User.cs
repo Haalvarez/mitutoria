@@ -31,6 +31,9 @@ public class User
     public bool HasAdhd { get; set; }
     public Gender Gender { get; set; } = Gender.NoEspecificado;
 
+    // Intereses personales — para que el tutor conecte (fútbol, manga, etc.)
+    public string? Interests { get; set; }
+
     // Estilo de aprendizaje
     public bool PrefShortMessages { get; set; }
     public bool PrefVisualExamples { get; set; }

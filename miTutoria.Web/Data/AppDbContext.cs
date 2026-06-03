@@ -53,6 +53,10 @@ public class AppDbContext : DbContext
             .HasColumnName("has_adhd");
 
         modelBuilder.Entity<User>()
+            .Property(u => u.Interests)
+            .HasColumnName("interests");
+
+        modelBuilder.Entity<User>()
             .Property(u => u.Nickname)
             .HasColumnName("nickname");
 

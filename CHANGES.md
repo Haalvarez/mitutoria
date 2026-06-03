@@ -1,5 +1,12 @@
 ## [Sesión 17] — 2026-06-03
 
+### feat — intereses del alumno → tutor que conecta (fidelización)
+- Campo `Interests` en el perfil del alumno (fútbol, manga, etc.), editable en `/Students/Edit`
+- El prompt del aula lo usa con mesura: "para conectar o dar un ejemplo cuando venga al pelo,
+  sin forzarlo en cada respuesta ni desviar el tema"
+- El mensaje del tutor al padre (Explain) también lo menciona
+- Migración `20260603230000_AddInterestsToUser` (idempotente, corre sola en el arranque)
+
 ### feat — admin unificado, en USD, con detalle a demanda
 - Merge de las 2 tablas de familias en **una sola, ordenable por columna** (click en header)
 - Costo por familia en **USD billete** (últimos 30 días); se quitó ARS del admin

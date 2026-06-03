@@ -30,6 +30,7 @@ public class EditModel : PageModel
     [BindProperty] public string FullName { get; set; } = string.Empty;
     [BindProperty] public string? Nickname { get; set; }
     [BindProperty] public Gender Gender { get; set; }
+    [BindProperty] public string? Interests { get; set; }
     [BindProperty] public SchoolLevel SchoolLevel { get; set; }
     [BindProperty] public int Grade { get; set; } = 1;
     [BindProperty] public bool HasAdhd { get; set; }
@@ -79,6 +80,7 @@ public class EditModel : PageModel
         student.FullName = FullName.Trim();
         student.Nickname = string.IsNullOrWhiteSpace(Nickname) ? null : Nickname.Trim();
         student.Gender = Gender;
+        student.Interests = string.IsNullOrWhiteSpace(Interests) ? null : Interests.Trim();
         student.SchoolLevel = SchoolLevel;
         student.Grade = Grade;
         student.HasAdhd = HasAdhd;
@@ -153,6 +155,8 @@ public class EditModel : PageModel
             _                => "es estudiante"
         };
         facts.Add($"{name} {quien} de {student.SchoolLevel} {student.Grade}° año.");
+        if (!string.IsNullOrWhiteSpace(student.Interests))
+            facts.Add($"Le interesa: {student.Interests}. Lo uso de a ratos para conectar y que se sienta cómodo.");
         if (student.PrefShortMessages)  facts.Add("Le hablo con mensajes muy cortos, un concepto por vez.");
         if (student.PrefVisualExamples) facts.Add("Antes de algo abstracto le doy un ejemplo concreto del mundo real.");
         if (student.PrefSlowPace)       facts.Add("No avanzo al siguiente paso hasta que confirma que entendió.");
@@ -239,6 +243,7 @@ public class EditModel : PageModel
         FullName = student.FullName;
         Nickname = student.Nickname;
         Gender = student.Gender;
+        Interests = student.Interests;
         SchoolLevel = student.SchoolLevel;
         Grade = student.Grade ?? 1;
         HasAdhd = student.HasAdhd;

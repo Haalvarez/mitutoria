@@ -92,6 +92,14 @@
             <h2 class="edit-section__title">Estilo de aprendizaje</h2>
             <p class="edit-section__desc">Estas opciones ajustan cómo el tutor le habla a tu hijo/a. Podés activar las que mejor lo describan.</p>
 
+            <div class="form-field">
+                <label for="Interests">Intereses (opcional)</label>
+                <input id="Interests" name="Interests" type="text" value="@Model.Interests"
+                       placeholder="ej: fútbol (hincha de Boca), dibujar manga, dinosaurios" maxlength="200" />
+                <small style="color:var(--dust); font-size:0.78rem;">El tutor los usa de a ratos para conectar y dar ejemplos cercanos — sin forzar.</small>
+            </div>
+
+
             <div class="pref-list">
                 <label class="pref-item">
                     <input type="checkbox" name="PrefShortMessages" value="true" @(Model.PrefShortMessages ? "checked" : "") />
