@@ -1,5 +1,12 @@
 ## [Sesión 17] — 2026-06-03
 
+### feat — avatares: cara del alumno + nombre y cara del tutor
+- 3 campos en el alumno (`Avatar`, `TutorName`, `TutorAvatar`), galería fija de emojis, sin upload
+- Picker de caras en `/Students/Edit` (alumno + tutor) + nombre del tutor
+- La cara del alumno reemplaza la inicial en el dashboard
+- El nav del aula muestra la cara + nombre del tutor; el tutor se auto-nombra en el prompt
+- Migración `20260603240000_AddAvatars` (idempotente)
+
 ### feat — intereses del alumno → tutor que conecta (fidelización)
 - Campo `Interests` en el perfil del alumno (fútbol, manga, etc.), editable en `/Students/Edit`
 - El prompt del aula lo usa con mesura: "para conectar o dar un ejemplo cuando venga al pelo,

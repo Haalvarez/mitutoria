@@ -31,6 +31,9 @@ public class EditModel : PageModel
     [BindProperty] public string? Nickname { get; set; }
     [BindProperty] public Gender Gender { get; set; }
     [BindProperty] public string? Interests { get; set; }
+    [BindProperty] public string? Avatar { get; set; }
+    [BindProperty] public string? TutorName { get; set; }
+    [BindProperty] public string? TutorAvatar { get; set; }
     [BindProperty] public SchoolLevel SchoolLevel { get; set; }
     [BindProperty] public int Grade { get; set; } = 1;
     [BindProperty] public bool HasAdhd { get; set; }
@@ -81,6 +84,9 @@ public class EditModel : PageModel
         student.Nickname = string.IsNullOrWhiteSpace(Nickname) ? null : Nickname.Trim();
         student.Gender = Gender;
         student.Interests = string.IsNullOrWhiteSpace(Interests) ? null : Interests.Trim();
+        student.Avatar = string.IsNullOrWhiteSpace(Avatar) ? null : Avatar.Trim();
+        student.TutorName = string.IsNullOrWhiteSpace(TutorName) ? null : TutorName.Trim();
+        student.TutorAvatar = string.IsNullOrWhiteSpace(TutorAvatar) ? null : TutorAvatar.Trim();
         student.SchoolLevel = SchoolLevel;
         student.Grade = Grade;
         student.HasAdhd = HasAdhd;
@@ -244,6 +250,9 @@ public class EditModel : PageModel
         Nickname = student.Nickname;
         Gender = student.Gender;
         Interests = student.Interests;
+        Avatar = student.Avatar;
+        TutorName = student.TutorName;
+        TutorAvatar = student.TutorAvatar;
         SchoolLevel = student.SchoolLevel;
         Grade = student.Grade ?? 1;
         HasAdhd = student.HasAdhd;

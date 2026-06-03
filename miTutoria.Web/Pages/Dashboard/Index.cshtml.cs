@@ -17,6 +17,7 @@ public class StudentSummary
     public int ExchangesThisWeek { get; set; }
     public int ExchangesThisMonth { get; set; }
     public int StreakDays { get; set; }
+    public string? Avatar { get; set; }
     public DateTime? LastActivity { get; set; }
     public Dictionary<int, int> ExchangesByDay { get; set; } = new();
     public int[] Last15Days { get; set; } = new int[15];
@@ -108,6 +109,7 @@ public class IndexModel : PageModel
             {
                 Id   = student.Id,
                 Name = student.Nickname ?? student.FullName,
+                Avatar = student.Avatar,
                 ExchangesToday     = chatMine.Count(t => t.CreatedAt >= dayStart),
                 ExchangesThisWeek  = chatMine.Count(t => t.CreatedAt >= weekStart),
                 ExchangesThisMonth = chatMine.Count,

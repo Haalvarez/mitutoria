@@ -57,6 +57,18 @@ public class AppDbContext : DbContext
             .HasColumnName("interests");
 
         modelBuilder.Entity<User>()
+            .Property(u => u.Avatar)
+            .HasColumnName("avatar");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.TutorName)
+            .HasColumnName("tutor_name");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.TutorAvatar)
+            .HasColumnName("tutor_avatar");
+
+        modelBuilder.Entity<User>()
             .Property(u => u.Nickname)
             .HasColumnName("nickname");
 

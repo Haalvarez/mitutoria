@@ -142,6 +142,8 @@ public class IndexModel : PageModel
         ViewData["BodyClass"] = "classroom-page";
         ViewData["ClassroomStudentName"] = StudentName;
         ViewData["ClassroomStreak"] = StreakDays;
+        ViewData["ClassroomTutorName"] = student.TutorName;
+        ViewData["ClassroomTutorAvatar"] = student.TutorAvatar;
         return Page();
     }
 
@@ -724,6 +726,8 @@ public class IndexModel : PageModel
         if (student.PrefSlowPace)        prefs.Add($"No avances al siguiente paso hasta que {name} confirme que entendió.");
         if (!string.IsNullOrWhiteSpace(student.Interests))
             prefs.Add($"A {name} le interesa: {student.Interests}. Usalo de a ratos para conectar o dar un ejemplo cuando venga al pelo — sin forzarlo en cada respuesta ni desviar el tema.");
+        if (!string.IsNullOrWhiteSpace(student.TutorName))
+            prefs.Add($"Te llamás {student.TutorName}. Si {name} te pregunta tu nombre, decíselo con naturalidad.");
 
         // TDAH
         if (student.HasAdhd)

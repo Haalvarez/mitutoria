@@ -34,6 +34,11 @@ public class User
     // Intereses personales — para que el tutor conecte (fútbol, manga, etc.)
     public string? Interests { get; set; }
 
+    // Personalización (galería fija de emojis, sin upload)
+    public string? Avatar { get; set; }        // cara del alumno
+    public string? TutorName { get; set; }      // ej: "Profe Ana"
+    public string? TutorAvatar { get; set; }    // cara del tutor
+
     // Estilo de aprendizaje
     public bool PrefShortMessages { get; set; }
     public bool PrefVisualExamples { get; set; }

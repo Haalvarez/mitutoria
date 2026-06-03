@@ -28,8 +28,17 @@
             >= 7 and < 14 => $"🔥 {streak} días — ¡una semana entera, increíble!",
             _             => $"🔥 {streak} días — ¡sos imparable!"
         };
+        var tutorName   = ViewData["ClassroomTutorName"]?.ToString();
+        var tutorAvatar = ViewData["ClassroomTutorAvatar"]?.ToString();
         <nav class="classroom-nav">
             <a href="/Dashboard" class="classroom-nav__logo"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
+            @if (!string.IsNullOrEmpty(tutorName) || !string.IsNullOrEmpty(tutorAvatar))
+            {
+                <span class="classroom-nav__tutor" style="display:inline-flex;align-items:center;gap:.35rem;font-size:.9rem;opacity:.85;">
+                    @if (!string.IsNullOrEmpty(tutorAvatar)) { <span style="font-size:1.2rem;">@tutorAvatar</span> }
+                    @if (!string.IsNullOrEmpty(tutorName)) { <span>@tutorName</span> }
+                </span>
+            }
             <span class="classroom-nav__student">@studentName</span>
             <span class="classroom-nav__streak">@streakMsg</span>
         </nav>

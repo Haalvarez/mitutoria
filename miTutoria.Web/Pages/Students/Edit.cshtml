@@ -6,6 +6,14 @@
     ViewData["Title"] = "Editar perfil de " + Model.FullName;
 }
 
+<style>
+    .emoji-grid{display:flex;flex-wrap:wrap;gap:.4rem;margin:.4rem 0}
+    .emoji-opt{cursor:pointer}
+    .emoji-opt input{position:absolute;opacity:0;width:0;height:0}
+    .emoji-opt span{display:inline-flex;align-items:center;justify-content:center;width:2.4rem;height:2.4rem;font-size:1.3rem;border:2px solid var(--line,#e0ddd5);border-radius:10px;transition:all .12s}
+    .emoji-opt input:checked + span{border-color:var(--sage,#5C7A5E);background:#f3f6f1;transform:scale(1.05)}
+    .emoji-opt:hover span{border-color:#bbb}
+</style>
 <main class="page-main page-main--wide">
     <div class="dashboard-header">
         <h1>Editar perfil</h1>
@@ -136,6 +144,43 @@
                         <span>El tutor no avanza al siguiente paso hasta que el estudiante confirme que entendió.</span>
                     </div>
                 </label>
+            </div>
+        </section>
+
+        @* ── Personalización ── *@
+        <section class="edit-section">
+            <h2 class="edit-section__title">Personalización</h2>
+            <p class="edit-section__desc">Para que el aula se sienta suya. Elegí la cara de @Model.FullName y la de su tutor.</p>
+
+            @{
+                var kidFaces   = new[] { "🦊","🐼","🦁","🐸","🐵","🦉","🐱","🐯","🚀","⚽","🎨","🎮","🦕","🌟" };
+                var tutorFaces = new[] { "👩‍🏫","👨‍🏫","🧑‍🏫","🦉","🐧","🤖","🦊","📚" };
+            }
+
+            <div class="form-field">
+                <label>Cara de @Model.FullName</label>
+                <div class="emoji-grid">
+                    @foreach (var e in kidFaces)
+                    {
+                        <label class="emoji-opt"><input type="radio" name="Avatar" value="@e" checked="@(Model.Avatar == e)" /><span>@e</span></label>
+                    }
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="TutorName">Nombre del tutor</label>
+                <input id="TutorName" name="TutorName" type="text" value="@Model.TutorName"
+                       placeholder="ej: Profe Ana, Seño Clara, Mr. Tom" maxlength="40" />
+            </div>
+
+            <div class="form-field">
+                <label>Cara del tutor</label>
+                <div class="emoji-grid">
+                    @foreach (var e in tutorFaces)
+                    {
+                        <label class="emoji-opt"><input type="radio" name="TutorAvatar" value="@e" checked="@(Model.TutorAvatar == e)" /><span>@e</span></label>
+                    }
+                </div>
             </div>
         </section>
 

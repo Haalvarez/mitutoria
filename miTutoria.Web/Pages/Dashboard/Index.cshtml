@@ -105,7 +105,7 @@
                     var studiedToday = s.ExchangesToday > 0;
                     <div class="student-card @(studiedToday ? "student-card--active" : "")">
                         <div class="student-card__top">
-                            <div class="student-card__avatar">@s.Name[0].ToString().ToUpper()</div>
+                            <div class="student-card__avatar">@(string.IsNullOrEmpty(s.Avatar) ? s.Name[0].ToString().ToUpper() : s.Avatar)</div>
                             <div class="student-card__info">
                                 <strong class="student-card__name">@s.Name</strong>
                                 <span class="student-card__last">@LastSeenText(s.LastActivity)</span>
