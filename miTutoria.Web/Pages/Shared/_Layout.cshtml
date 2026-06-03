@@ -34,6 +34,16 @@
             <span class="classroom-nav__streak">@streakMsg</span>
         </nav>
     }
+    else if (Context.Session.GetInt32("FamilyId").HasValue)
+    {
+        <nav>
+            <a href="/Dashboard"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
+            <div class="nav-right">
+                <a href="/Dashboard" class="nav-btn-family">Inicio</a>
+                <a href="/Salir" class="nav-btn-student">Salir</a>
+            </div>
+        </nav>
+    }
     else
     {
         <nav>

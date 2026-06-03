@@ -87,6 +87,12 @@ app.UseRouting();
 app.UseSession();
 app.MapRazorPages();
 
+app.MapGet("/Salir", (HttpContext ctx) =>
+{
+    ctx.Session.Clear();
+    return Results.Redirect("/");
+});
+
 // ── Demo público — sin auth, llamada directa a Claude ─────────────────────
 app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
 {
