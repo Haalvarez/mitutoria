@@ -213,7 +213,7 @@ else
     @* Tabla de cohorte KR1 *@
     <h2 style="margin-top:0;">KR1 — Actividad por familia</h2>
     <table>
-        <thead><tr><th>Familia</th><th>Intercambios 7d</th><th>Último acceso</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Familia</th><th>Intercambios 7d</th><th>Último acceso</th><th>Consentimiento</th><th>Estado</th></tr></thead>
         <tbody>
         @foreach (var f in Model.PilotFamilies)
         {
@@ -221,6 +221,7 @@ else
                 <td>@f.Name<br><span class="dim" style="font-size:.75rem;">@f.Email</span></td>
                 <td>@f.ChatLast7Days</td>
                 <td>@(f.LastActivity.HasValue ? f.LastActivity.Value.ToString("dd/MM HH:mm") : "—")</td>
+                <td>@(f.HasConsented ? "✅" : "⏳ pendiente")</td>
                 <td>
                     @if (f.Active)
                     { <span class="badge badge-ok">activa</span> }

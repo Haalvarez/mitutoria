@@ -37,7 +37,7 @@ public class IndexModel : PageModel
             return RedirectToPage(new { token });
         }
 
-        var family = await _db.Families.SingleOrDefaultAsync(f => f.Email == email);
+        var family = await _db.Families.FirstOrDefaultAsync(f => f.Email == email);
         if (family is null)
         {
             family = new Family { Email = email, Name = email };
@@ -99,6 +99,7 @@ public class IndexModel : PageModel
         int ChatLast7Days, DateTime? LastActivity,
         bool Cooling,   // > 3 días sin actividad
         bool Active,    // >= KR1MinExchanges en últimos 7 días
+        bool HasConsented,
         List<PilotStudentRow> Students);
 
     public List<PilotFamilyRow> PilotFamilies { get; private set; } = [];
@@ -242,7 +243,7 @@ public class IndexModel : PageModel
             }).ToList();
 
             return new PilotFamilyRow(f.Id, f.Nickname ?? f.Name, f.Email,
-                last7, lastAct, cooling, active, students);
+                last7, lastAct, cooling, active, f.ConsentAt.HasValue, students);
         }).OrderByDescending(f => f.ChatLast7Days).ToList();
 
         Kr1Active = PilotFamilies.Count(f => f.Active);
