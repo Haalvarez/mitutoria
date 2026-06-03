@@ -162,7 +162,7 @@ public class IndexModel : PageModel
         var thirtyAgo    = now.AddDays(-30);
         var queryFrom    = thirtyAgo < monthStart ? thirtyAgo : monthStart;
 
-        var termicaTokens = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
+        var capUsd = _config.GetValue<decimal>("TERMICA_USD", 15m);
 
         var families = await _db.Families
             .Include(f => f.Users.Where(u => u.Role == Data.Entities.Auth.UserRole.Student))
@@ -180,7 +180,6 @@ public class IndexModel : PageModel
             var chat7d = events.Count(e => e.FamilyId == f.Id && e.Feature == "chat" && e.CreatedAt >= weekStart);
 
             var costUsd30   = ev30.Sum(e => e.CostUsd);
-            var tokens30    = ev30.Sum(e => (long)e.TokensIn + e.TokensOut);
             var lastActivity = ev30.Any() ? ev30.Max(e => e.CreatedAt) : (DateTime?)null;
             var noMaterial   = f.Users.Any(u =>
                 classrooms.Any(c => c.StudentId == u.Id && string.IsNullOrWhiteSpace(c.Material)));
@@ -200,7 +199,7 @@ public class IndexModel : PageModel
                 costUsd30,
                 lastActivity,
                 f.PaidUntil ?? f.TrialEndsAt,
-                NearLimit: tokens30 > termicaTokens * 0.8m,
+                NearLimit: costUsd30 > capUsd * 0.8m,
                 Inactive7Days: isPilot && lastActivity.HasValue && (now - lastActivity.Value).TotalDays > 7,
                 NoMaterial: isPilot && noMaterial,
                 Active: isPilot && active,

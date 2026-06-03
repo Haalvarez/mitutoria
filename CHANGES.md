@@ -1,5 +1,16 @@
 ## [Sesión 17] — 2026-06-03
 
+### feat — ciclo de facturación por familia + scheduler de alertas + tope en USD
+- **Ciclo anclado en la familia** (no calendario): ciclo = `[ancla - 1 mes, ancla)` con
+  `ancla = PaidUntil ?? TrialEndsAt`. Pagó el 23 → vence el 23 (AddMonths, sin derivar)
+- **Térmica en USD** (`TERMICA_USD`, default $15): el corte del aula ahora mide el costo del
+  ciclo en USD, no tokens. Solo frena abuso real (familia normal = centavos). Reemplaza `TERMICA_TOKENS`
+- **Scheduler `PilotMonitorService`** cada 6h: avisa a Telegram SOLO en positivo —
+  (a) costo del ciclo supera `TERMICA_USD_ALERTA` (default $5), (b) trial/pago vence en ≤3 días.
+  Dedup por ciclo con `cost_alert_marker` / `renewal_alert_marker` (no repite hasta cambiar el ciclo)
+- Admin: "cerca de la térmica" ahora compara costo USD del ciclo vs `TERMICA_USD`
+- Migración `20260603250000_AddPilotAlertMarkers` (idempotente)
+
 ### feat — avatares: cara del alumno + nombre y cara del tutor
 - 3 campos en el alumno (`Avatar`, `TutorName`, `TutorAvatar`), galería fija de emojis, sin upload
 - Picker de caras en `/Students/Edit` (alumno + tutor) + nombre del tutor

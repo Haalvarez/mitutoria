@@ -18,6 +18,11 @@ public class Family
     public DateTime? ConsentAt { get; set; }
     public string? ConsentIp { get; set; }
     public string? ConsentVersion { get; set; }
+
+    // Dedup de alertas del scheduler: guardan el marcador del ciclo ya avisado (yyyy-MM-dd del ancla)
+    public string? CostAlertMarker { get; set; }
+    public string? RenewalAlertMarker { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

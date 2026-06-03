@@ -142,6 +142,14 @@ public class AppDbContext : DbContext
             .Property(f => f.ConsentVersion)
             .HasColumnName("consent_version");
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.CostAlertMarker)
+            .HasColumnName("cost_alert_marker");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.RenewalAlertMarker)
+            .HasColumnName("renewal_alert_marker");
+
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();

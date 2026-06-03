@@ -76,8 +76,7 @@ public class IndexModel : PageModel
 
         var classroom = await GetActiveClassroomAsync(studentId);
 
-        var termica = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
-        if (await GetMonthlyTokensAsync(student.FamilyId) >= termica)
+        if (await IsFamilyOverCapAsync(student.FamilyId))
             return new JsonResult(new { error = "limit", reply = "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos." }) { StatusCode = 429 };
 
         try
@@ -165,8 +164,7 @@ public class IndexModel : PageModel
 
         var classroom = await GetActiveClassroomAsync(studentId);
 
-        var termica = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
-        if (await GetMonthlyTokensAsync(student.FamilyId) >= termica)
+        if (await IsFamilyOverCapAsync(student.FamilyId))
         {
             ModelState.AddModelError(string.Empty, "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos.");
             return await ReloadPage(studentId);
@@ -1000,12 +998,22 @@ public class IndexModel : PageModel
         return Page();
     }
 
-    private async Task<long> GetMonthlyTokensAsync(int familyId)
+    // Disyuntor (térmica) en USD por ciclo de familia, anclado en PaidUntil/TrialEndsAt.
+    // Solo frena el abuso real: el costo normal de una familia es centavos a pocos dólares.
+    private async Task<bool> IsFamilyOverCapAsync(int familyId)
     {
-        var start = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        return await _dbContext.TokenEvents
-            .Where(t => t.FamilyId == familyId && t.CreatedAt >= start)
-            .SumAsync(t => (long)t.TokensIn + t.TokensOut);
+        var family = await _dbContext.Families.FindAsync(familyId);
+        if (family is null) return false;
+
+        var cap = _config.GetValue<decimal>("TERMICA_USD", 15m);
+        var anchor = family.PaidUntil ?? family.TrialEndsAt;
+        var cycleStart = anchor?.AddMonths(-1) ?? DateTime.UtcNow.AddDays(-30);
+
+        var cycleCost = await _dbContext.TokenEvents
+            .Where(t => t.FamilyId == familyId && t.CreatedAt >= cycleStart)
+            .SumAsync(t => t.CostUsd);
+
+        return cycleCost >= cap;
     }
 
     private async Task<string> ExtractPdfWithClaudeAsync(IFormFile pdfFile)

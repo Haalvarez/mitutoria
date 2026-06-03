@@ -40,6 +40,7 @@ builder.Services.AddHttpClient("dolarapi", client =>
 });
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
+builder.Services.AddHostedService<miTutoria.Web.Infrastructure.PilotMonitorService>();
 builder.Services.AddScoped<miTutoria.Web.Infrastructure.ErrorLogService>();
 builder.Services.Configure<ResendClientOptions>(o =>
 {

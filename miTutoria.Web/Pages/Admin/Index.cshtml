@@ -144,7 +144,7 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
 
 @* Contadores de riesgo — los ubicás ordenando la lista *@
 <div class="scoreboard">
-    <span class="score-chip @(Model.RiskNearLimit > 0 ? "score-chip--alert" : "")" title="Familias que superaron el 80% de la térmica (tope de tokens TERMICA_TOKENS). Ordená por $ para ubicarlas.">🔴 Cerca de la térmica: <b>@Model.RiskNearLimit</b></span>
+    <span class="score-chip @(Model.RiskNearLimit > 0 ? "score-chip--alert" : "")" title="Familias que superaron el 80% de la térmica en USD del ciclo (TERMICA_USD, default $15). Ordená por $ para ubicarlas.">🔴 Cerca de la térmica: <b>@Model.RiskNearLimit</b></span>
     <span class="score-chip @(Model.RiskNotConsented > 0 ? "score-chip--alert" : "")" title="Familias del piloto que todavía no aceptaron el consentimiento parental.">⏳ Sin consentir: <b>@Model.RiskNotConsented</b></span>
     <span class="score-chip @(Model.RiskInactive7 > 0 ? "score-chip--alert" : "")" title="Familias del piloto sin ningún uso hace más de 7 días.">💤 Inactivas 7d: <b>@Model.RiskInactive7</b></span>
     <span class="score-chip @(Model.RiskNoMaterial > 0 ? "score-chip--alert" : "")" title="Familias del piloto con al menos un hijo sin material cargado.">📄 Sin material: <b>@Model.RiskNoMaterial</b></span>
@@ -198,7 +198,7 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
             <td data-val="@(((double)f.CostUsd30d).ToString(inv))">$@f.CostUsd30d.ToString("F3")</td>
             <td data-val="@agoVal"><span class="@(f.Inactive7Days ? "signal" : "")">@agoLabel</span></td>
             <td>
-                @if (f.NearLimit)     { <span class="chip chip--risk" title="Superó el 80% de la térmica de tokens.">🔴</span> }
+                @if (f.NearLimit)     { <span class="chip chip--risk" title="Superó el 80% de la térmica en USD del ciclo (TERMICA_USD).">🔴</span> }
                 @if (f.Inactive7Days) { <span class="chip chip--risk" title="Sin uso hace +7 días.">💤</span> }
                 @if (f.NoMaterial)    { <span class="chip chip--risk" title="Un hijo sin material cargado.">📄</span> }
                 @if (notConsented)    { <span class="chip chip--risk" title="Falta aceptar el consentimiento.">⏳</span> }
