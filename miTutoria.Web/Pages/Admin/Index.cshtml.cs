@@ -26,9 +26,7 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostInviteAsync([FromQuery] string? token, string inviteEmail)
     {
-        var adminToken = _config["ADMIN_TOKEN"];
-        if (string.IsNullOrWhiteSpace(adminToken) || token != adminToken)
-            return Unauthorized();
+        if (!IsAuthorized(token)) return Unauthorized();
 
         var email = inviteEmail?.Trim().ToLowerInvariant() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(email))
@@ -79,46 +77,39 @@ public class IndexModel : PageModel
         return RedirectToPage(new { token });
     }
 
-    // ── Familias ─────────────────────────────────────────────────────────────
+    // ── Tabla unificada de familias ────────────────────────────────────────────
 
     public record FamilyRow(
-        int Id, string Name,
-        int Students,
-        int ExchangesToday, int ExchangesWeek, int ExchangesMonth,
-        decimal CostUsdMonth, decimal CostArsMonth,
-        DateTime? LastActivity,
-        bool NearLimit, bool Inactive7Days, bool StudentsWithoutMaterial);
+        int Id, string Name, string Email, string Status, bool HasConsented,
+        int Students, int Exchanges7d, decimal CostUsd30d,
+        DateTime? LastActivity, DateTime? AccessEndsAt,
+        bool NearLimit, bool Inactive7Days, bool NoMaterial,
+        bool Active, bool Cooling);
 
     public List<FamilyRow> Families { get; private set; } = [];
 
-    // ── Monitor de piloto ────────────────────────────────────────────────────
+    // ── Scoreboard ─────────────────────────────────────────────────────────────
 
-    public record PilotStudentRow(string Name, int Streak);
-    public record PilotFamilyRow(
-        int Id, string Name, string Email,
-        int ChatLast7Days, DateTime? LastActivity,
-        bool Cooling,   // > 3 días sin actividad
-        bool Active,    // >= KR1MinExchanges en últimos 7 días
-        bool HasConsented,
-        List<PilotStudentRow> Students);
-
-    public List<PilotFamilyRow> PilotFamilies { get; private set; } = [];
+    public int PilotTotal { get; private set; }
     public int Kr1Active { get; private set; }
     public int Kr2HabitStudents { get; private set; }
     public int Kr2TotalStudents { get; private set; }
-    public List<(string Name, int Streak)> Kr2StudentRows { get; private set; } = [];
-    public List<(string Name, string Status, DateTime? Expiry)> ExpiringFamilies { get; private set; } = [];
 
-    // KR1: intercambios mínimos en 7 días para considerar familia activa
+    public int RiskNearLimit { get; private set; }
+    public int RiskNotConsented { get; private set; }
+    public int RiskInactive7 { get; private set; }
+    public int RiskNoMaterial { get; private set; }
+
     private int Kr1MinExchanges => _config.GetValue<int>("PILOT_KR1_MIN_EXCHANGES", 3);
-    // Umbrales semáforo (sobre total de cohorte)
     private int Kr1Threshold => _config.GetValue<int>("PILOT_KR1_THRESHOLD", 6);
     private int Kr2Threshold => _config.GetValue<int>("PILOT_KR2_THRESHOLD", 5);
     private int Kr3Threshold => _config.GetValue<int>("PILOT_KR3_THRESHOLD", 5);
     private int Kr4Threshold => _config.GetValue<int>("PILOT_KR4_THRESHOLD", 3);
     public int[] Thresholds => [Kr1Threshold, Kr2Threshold, Kr3Threshold, Kr4Threshold];
 
-    // ── Error log ────────────────────────────────────────────────────────────
+    public List<(string Name, string Status, DateTime? Expiry)> ExpiringFamilies { get; private set; } = [];
+
+    // ── Error log ──────────────────────────────────────────────────────────────
 
     public record ErrorRow(int Id, DateTime CreatedAt, string Source, string Message, string? Context);
     public List<ErrorRow> RecentErrors { get; private set; } = [];
@@ -127,145 +118,122 @@ public class IndexModel : PageModel
 
     public record WaitlistRow(string Email, string? Name, DateTime CreatedAt);
     public List<WaitlistRow> Waitlist { get; private set; } = [];
-    public HashSet<string> InvitedEmails { get; private set; } = new();   // emails ya en trial/active
+    public HashSet<string> InvitedEmails { get; private set; } = new();
 
-    // ── Globales ─────────────────────────────────────────────────────────────
+    // ── Plata (todo en USD; el costo es en USD billete) ─────────────────────────
 
-    public decimal TotalCostUsdMonth { get; private set; }
-    public decimal TotalCostArsMonth { get; private set; }
-    public Dictionary<string, long> TokensByFeature { get; private set; } = [];
-    public long MonthlyTokenLimit { get; private set; }
+    public decimal TotalCostUsdMonth { get; private set; }    // mes calendario = tu factura Anthropic
+    public decimal ProjectionUsdMonth { get; private set; }   // proyección lineal a fin de mes
+    public decimal AllTimeCostUsd { get; private set; }       // histórico
 
-    // ── Saldo de API (estimado) ────────────────────────────────────────────────
-    // Anthropic NO expone el saldo prepago por API. Esto es una estimación:
-    // crédito cargado a mano (ANTHROPIC_CREDIT_USD) menos el consumo histórico
-    // calculado desde token_events. La verdad oficial está en la Console de Anthropic.
-    public decimal? ApiCreditUsd { get; private set; }
-    public decimal AllTimeCostUsd { get; private set; }
-    public decimal? ApiBalanceUsd => ApiCreditUsd.HasValue ? ApiCreditUsd.Value - AllTimeCostUsd : null;
+    // ── Racha (misma lógica que Classroom) ──────────────────────────────────────
+    private static int CalcStreak(IEnumerable<DateTime> dates)
+    {
+        var today = DateTime.UtcNow.Date;
+        var activeDays = dates.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+        if (activeDays.Count == 0) return 0;
+        var start = activeDays.Contains(today) ? today : today.AddDays(-1);
+        if (!activeDays.Contains(start)) return 0;
+        int streak = 0;
+        var expected = start;
+        foreach (var day in activeDays.Where(d => d <= start).OrderByDescending(d => d))
+        {
+            if (day == expected) { streak++; expected = expected.AddDays(-1); }
+            else break;
+        }
+        return streak;
+    }
+
+    private bool IsAuthorized(string? token)
+    {
+        var adminToken = _config["ADMIN_TOKEN"];
+        return !string.IsNullOrWhiteSpace(adminToken) && token == adminToken;
+    }
 
     // ── GET ──────────────────────────────────────────────────────────────────
 
     public async Task<IActionResult> OnGetAsync([FromQuery] string? token)
     {
-        var adminToken = _config["ADMIN_TOKEN"];
-        if (string.IsNullOrWhiteSpace(adminToken) || token != adminToken)
-            return Unauthorized();
+        if (!IsAuthorized(token)) return Unauthorized();
 
-        var now = DateTime.UtcNow;
-        var todayStart   = now.Date;
-        var weekStart    = todayStart.AddDays(-6);
+        var now          = DateTime.UtcNow;
+        var weekStart    = now.Date.AddDays(-6);
         var monthStart   = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var thirtyAgo    = now.AddDays(-30);
+        var queryFrom    = thirtyAgo < monthStart ? thirtyAgo : monthStart;
 
-        MonthlyTokenLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
+        var termicaTokens = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
 
-        // Todas las familias con sus usuarios
         var families = await _db.Families
             .Include(f => f.Users.Where(u => u.Role == Data.Entities.Auth.UserRole.Student))
             .ToListAsync();
 
-        // Token events del mes
         var events = await _db.TokenEvents
-            .Where(t => t.CreatedAt >= monthStart)
+            .Where(t => t.CreatedAt >= queryFrom)
             .ToListAsync();
 
-        // Classrooms con material
         var classrooms = await _db.Classrooms.ToListAsync();
 
         Families = families.Select(f =>
         {
-            var fEvents = events.Where(e => e.FamilyId == f.Id).ToList();
-            var today   = fEvents.Where(e => e.CreatedAt >= todayStart).ToList();
-            var week    = fEvents.Where(e => e.CreatedAt >= weekStart).ToList();
+            var ev30   = events.Where(e => e.FamilyId == f.Id && e.CreatedAt >= thirtyAgo).ToList();
+            var chat7d = events.Count(e => e.FamilyId == f.Id && e.Feature == "chat" && e.CreatedAt >= weekStart);
 
-            var chatToday = today.Count(e => e.Feature == "chat");
-            var chatWeek  = week.Count(e => e.Feature == "chat");
-            var chatMonth = fEvents.Count(e => e.Feature == "chat");
-
-            var costUsd = fEvents.Sum(e => e.CostUsd);
-            var costArs = fEvents.Where(e => e.ArsRate.HasValue)
-                                 .Sum(e => e.CostUsd * e.ArsRate!.Value);
-
-            var lastActivity = fEvents.Any() ? fEvents.Max(e => e.CreatedAt) : (DateTime?)null;
-            var totalTokens  = fEvents.Sum(e => (long)e.TokensIn + e.TokensOut);
-            var stuIds       = f.Users.Select(u => u.Id).ToHashSet();
-            var studentsWithoutMaterial = f.Users.Any(u =>
+            var costUsd30   = ev30.Sum(e => e.CostUsd);
+            var tokens30    = ev30.Sum(e => (long)e.TokensIn + e.TokensOut);
+            var lastActivity = ev30.Any() ? ev30.Max(e => e.CreatedAt) : (DateTime?)null;
+            var noMaterial   = f.Users.Any(u =>
                 classrooms.Any(c => c.StudentId == u.Id && string.IsNullOrWhiteSpace(c.Material)));
+
+            var isPilot   = f.SubscriptionStatus is "trial" or "active";
+            var active    = chat7d >= Kr1MinExchanges;
+            var cooling   = lastActivity.HasValue && (now - lastActivity.Value).TotalDays > 3;
 
             return new FamilyRow(
                 f.Id,
-                f.Nickname ?? f.Email,
+                f.Nickname ?? f.Name ?? f.Email,
+                f.Email,
+                f.SubscriptionStatus,
+                f.ConsentAt.HasValue,
                 f.Users.Count,
-                chatToday, chatWeek, chatMonth,
-                costUsd, costArs,
+                chat7d,
+                costUsd30,
                 lastActivity,
-                NearLimit: totalTokens > MonthlyTokenLimit * 0.8m,
-                Inactive7Days: lastActivity.HasValue && (now - lastActivity.Value).TotalDays > 7,
-                StudentsWithoutMaterial: studentsWithoutMaterial
+                f.PaidUntil ?? f.TrialEndsAt,
+                NearLimit: tokens30 > termicaTokens * 0.8m,
+                Inactive7Days: isPilot && lastActivity.HasValue && (now - lastActivity.Value).TotalDays > 7,
+                NoMaterial: isPilot && noMaterial,
+                Active: isPilot && active,
+                Cooling: isPilot && cooling
             );
-        }).OrderByDescending(f => f.LastActivity).ToList();
+        })
+        .OrderByDescending(f => f.CostUsd30d)   // money-first: el más caro arriba
+        .ToList();
 
-        // ── Monitor de piloto ────────────────────────────────────────────────
-        var pilotFamilies = await _db.Families
-            .Include(f => f.Users.Where(u => u.Role == Data.Entities.Auth.UserRole.Student))
-            .Where(f => f.SubscriptionStatus == "trial" || f.SubscriptionStatus == "active")
+        // Scoreboard
+        var pilot = Families.Where(f => f.Status is "trial" or "active").ToList();
+        PilotTotal       = pilot.Count;
+        Kr1Active        = pilot.Count(f => f.Active);
+        RiskNearLimit    = Families.Count(f => f.NearLimit);
+        RiskNotConsented = pilot.Count(f => !f.HasConsented);
+        RiskInactive7    = pilot.Count(f => f.Inactive7Days);
+        RiskNoMaterial   = pilot.Count(f => f.NoMaterial);
+
+        // KR2 — hábito (racha por hijo de las familias del piloto)
+        var pilotIds = pilot.Select(f => f.Id).ToHashSet();
+        var pilotChat = await _db.TokenEvents
+            .Where(t => pilotIds.Contains(t.FamilyId) && t.Feature == "chat" && t.UserId.HasValue)
+            .Select(t => new { t.UserId, t.CreatedAt })
             .ToListAsync();
-
-        var sevenDaysAgo = now.AddDays(-7);
-        var allPilotFamilyIds = pilotFamilies.Select(f => f.Id).ToHashSet();
-        var allPilotStudentIds = pilotFamilies.SelectMany(f => f.Users).Select(u => u.Id).ToHashSet();
-
-        var pilotEvents = await _db.TokenEvents
-            .Where(t => allPilotFamilyIds.Contains(t.FamilyId) && t.Feature == "chat")
-            .ToListAsync();
-
-        // Racha por alumno (misma lógica que CalculateStreakAsync en Classroom)
-        static int CalcStreak(IEnumerable<DateTime> dates)
-        {
-            var today = DateTime.UtcNow.Date;
-            var activeDays = dates.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
-            if (activeDays.Count == 0) return 0;
-            var start = activeDays.Contains(today) ? today : today.AddDays(-1);
-            if (!activeDays.Contains(start)) return 0;
-            int streak = 0;
-            var expected = start;
-            foreach (var day in activeDays.Where(d => d <= start).OrderByDescending(d => d))
-            {
-                if (day == expected) { streak++; expected = expected.AddDays(-1); }
-                else break;
-            }
-            return streak;
-        }
-
-        PilotFamilies = pilotFamilies.Select(f =>
-        {
-            var fEvents = pilotEvents.Where(e => e.FamilyId == f.Id).ToList();
-            var last7 = fEvents.Where(e => e.CreatedAt >= sevenDaysAgo).Count();
-            var lastAct = fEvents.Any() ? fEvents.Max(e => e.CreatedAt) : (DateTime?)null;
-            var cooling = lastAct.HasValue && (now - lastAct.Value).TotalDays > 3;
-            var active = last7 >= Kr1MinExchanges;
-
-            var students = f.Users.Select(u =>
-            {
-                var uDates = pilotEvents.Where(e => e.UserId == u.Id).Select(e => e.CreatedAt);
-                return new PilotStudentRow(u.Nickname ?? u.FullName, CalcStreak(uDates));
-            }).ToList();
-
-            return new PilotFamilyRow(f.Id, f.Nickname ?? f.Name, f.Email,
-                last7, lastAct, cooling, active, f.ConsentAt.HasValue, students);
-        }).OrderByDescending(f => f.ChatLast7Days).ToList();
-
-        Kr1Active = PilotFamilies.Count(f => f.Active);
-
-        Kr2StudentRows = PilotFamilies
-            .SelectMany(f => f.Students)
-            .OrderByDescending(s => s.Streak)
-            .Select(s => (s.Name, s.Streak))
+        var pilotStudentIds = families.Where(f => pilotIds.Contains(f.Id))
+                                      .SelectMany(f => f.Users).Select(u => u.Id).ToList();
+        var streaks = pilotStudentIds
+            .Select(id => CalcStreak(pilotChat.Where(e => e.UserId == id).Select(e => e.CreatedAt)))
             .ToList();
-        Kr2TotalStudents = Kr2StudentRows.Count;
-        Kr2HabitStudents = Kr2StudentRows.Count(s => s.Streak >= 7);
+        Kr2TotalStudents = streaks.Count;
+        Kr2HabitStudents = streaks.Count(s => s >= 7);
 
-        // Señal de vencimiento (trial_ends_at o paid_until vence en ≤ 3 días)
+        // Vencimientos próximos (≤ 3 días)
         var warnDate = now.AddDays(3);
         ExpiringFamilies = (await _db.Families
             .Where(f => (f.TrialEndsAt != null && f.TrialEndsAt <= warnDate && f.TrialEndsAt >= now)
@@ -278,14 +246,12 @@ public class IndexModel : PageModel
                 return (f.Nickname ?? f.Name, label, expiry);
             }).ToList();
 
-        // Error log — últimos 50
         RecentErrors = await _db.ErrorLogs
             .OrderByDescending(e => e.CreatedAt)
             .Take(50)
             .Select(e => new ErrorRow(e.Id, e.CreatedAt, e.Source, e.Message, e.Context))
             .ToListAsync();
 
-        // Waitlist
         Waitlist = await _db.WaitlistEntries
             .OrderByDescending(w => w.CreatedAt)
             .Select(w => new WaitlistRow(w.Email, w.Name, w.CreatedAt))
@@ -296,18 +262,63 @@ public class IndexModel : PageModel
             .Select(f => (f.Email ?? "").ToLowerInvariant())
             .ToHashSet();
 
-        // Globales
-        TotalCostUsdMonth = events.Sum(e => e.CostUsd);
-        TotalCostArsMonth = events.Where(e => e.ArsRate.HasValue)
-                                  .Sum(e => e.CostUsd * e.ArsRate!.Value);
-
-        // Saldo estimado de API (crédito manual − consumo histórico)
-        ApiCreditUsd = _config.GetValue<decimal?>("ANTHROPIC_CREDIT_USD");
-        AllTimeCostUsd = await _db.TokenEvents.SumAsync(e => e.CostUsd);
-        TokensByFeature = events
-            .GroupBy(e => e.Feature)
-            .ToDictionary(g => g.Key, g => g.Sum(e => (long)e.TokensIn + e.TokensOut));
+        // Plata (USD)
+        TotalCostUsdMonth  = events.Where(e => e.CreatedAt >= monthStart).Sum(e => e.CostUsd);
+        AllTimeCostUsd     = await _db.TokenEvents.SumAsync(e => e.CostUsd);
+        var dayOfMonth     = now.Day;
+        var daysInMonth    = DateTime.DaysInMonth(now.Year, now.Month);
+        ProjectionUsdMonth = dayOfMonth > 0 ? TotalCostUsdMonth / dayOfMonth * daysInMonth : TotalCostUsdMonth;
 
         return Page();
+    }
+
+    // ── Detalle de familia (modal ajax) ─────────────────────────────────────────
+
+    public async Task<IActionResult> OnGetDetailAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var family = await _db.Families
+            .Include(f => f.Users.Where(u => u.Role == Data.Entities.Auth.UserRole.Student))
+            .FirstOrDefaultAsync(f => f.Id == id);
+        if (family is null) return NotFound();
+
+        var thirtyAgo = DateTime.UtcNow.AddDays(-30);
+
+        var ev30 = await _db.TokenEvents
+            .Where(t => t.FamilyId == id && t.CreatedAt >= thirtyAgo)
+            .Select(t => new { t.UserId, t.Feature, t.CostUsd, t.CreatedAt })
+            .ToListAsync();
+
+        var allChat = await _db.TokenEvents
+            .Where(t => t.FamilyId == id && t.Feature == "chat" && t.UserId.HasValue)
+            .Select(t => new { t.UserId, t.CreatedAt })
+            .ToListAsync();
+
+        var members = family.Users.Select(u => new
+        {
+            name        = u.Nickname ?? u.FullName,
+            exchanges30 = ev30.Count(e => e.UserId == u.Id && e.Feature == "chat"),
+            costUsd30   = ev30.Where(e => e.UserId == u.Id).Sum(e => e.CostUsd),
+            streak      = CalcStreak(allChat.Where(e => e.UserId == u.Id).Select(e => e.CreatedAt)),
+            lastActivity = ev30.Where(e => e.UserId == u.Id).Select(e => (DateTime?)e.CreatedAt).Max()
+        }).OrderByDescending(m => m.costUsd30).ToList();
+
+        // Uso nominal por feature (cuántas veces se usó cada cosa)
+        var featureUsage = ev30
+            .GroupBy(e => e.Feature)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { feature = g.Key, count = g.Count() })
+            .ToList();
+
+        return new JsonResult(new
+        {
+            name   = family.Nickname ?? family.Name,
+            email  = family.Email,
+            status = family.SubscriptionStatus,
+            accessEndsAt = family.PaidUntil ?? family.TrialEndsAt,
+            members,
+            featureUsage
+        });
     }
 }

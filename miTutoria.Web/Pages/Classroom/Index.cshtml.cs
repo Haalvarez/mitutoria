@@ -76,9 +76,9 @@ public class IndexModel : PageModel
 
         var classroom = await GetActiveClassroomAsync(studentId);
 
-        var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
-        if (await GetMonthlyTokensAsync(student.FamilyId) >= monthlyLimit)
-            return new JsonResult(new { error = "limit", reply = "Alcanzaste el límite mensual de uso." }) { StatusCode = 429 };
+        var termica = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
+        if (await GetMonthlyTokensAsync(student.FamilyId) >= termica)
+            return new JsonResult(new { error = "limit", reply = "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos." }) { StatusCode = 429 };
 
         try
         {
@@ -163,10 +163,10 @@ public class IndexModel : PageModel
 
         var classroom = await GetActiveClassroomAsync(studentId);
 
-        var monthlyLimit = _config.GetValue<long>("MONTHLY_TOKEN_LIMIT", 500_000);
-        if (await GetMonthlyTokensAsync(student.FamilyId) >= monthlyLimit)
+        var termica = _config.GetValue<long>("TERMICA_TOKENS", 5_000_000);
+        if (await GetMonthlyTokensAsync(student.FamilyId) >= termica)
         {
-            ModelState.AddModelError(string.Empty, "Se alcanzó el límite mensual de uso.");
+            ModelState.AddModelError(string.Empty, "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos.");
             return await ReloadPage(studentId);
         }
 

@@ -1,5 +1,18 @@
 ## [Sesión 17] — 2026-06-03
 
+### feat — admin unificado, en USD, con detalle a demanda
+- Merge de las 2 tablas de familias en **una sola, ordenable por columna** (click en header)
+- Costo por familia en **USD billete** (últimos 30 días); se quitó ARS del admin
+- **Modal ajax por familia** (`?handler=Detail`): costo y actividad por hijo + uso
+  nominal por herramienta (chat/quiz/tarjetas/examen), que reemplaza el bloque global
+  "Tokens por feature"
+- **Scoreboard**: tarjetas KR1–KR4 + tira de contadores de riesgo (cerca de la térmica,
+  sin consentir, inactivas 7d, sin material) → se ubican ordenando la lista
+- Plata: Gasto mes (USD) + **Proyección fin de mes** + Histórico. Se eliminó el "saldo
+  estimado" (Anthropic no expone saldo por API; con recarga automática el env var era falso)
+- `MONTHLY_TOKEN_LIMIT` → renombrado **`TERMICA_TOKENS`** (default 5M, pilot-safe) y mensaje
+  de corte más amable. El tope en USD por ciclo queda para el bloque del scheduler.
+
 ### feat — landing: features de utilidad como argumento de venta
 - Nueva sección "No solo conversa. Lo pone a estudiar." entre "Cómo funciona" y la
   cita de tensión, con 4 tarjetas: Estudia su material · Tarjetas de repaso ·

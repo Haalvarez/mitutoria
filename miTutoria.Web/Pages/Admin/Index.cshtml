@@ -15,6 +15,7 @@
 body{font-family:system-ui,sans-serif;font-size:14px;background:#f5f5f5;color:#222;padding:2rem}
 h1{font-size:1.4rem;margin-bottom:1.5rem}
 h2{font-size:1rem;font-weight:600;margin:2rem 0 .75rem;border-bottom:1px solid #ddd;padding-bottom:.4rem}
+h3{font-size:.9rem;margin:.5rem 0}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.5rem}
 .card{background:#fff;border-radius:8px;padding:1rem 1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .card__label{font-size:.72rem;color:#888;letter-spacing:.05em;text-transform:uppercase}
@@ -33,8 +34,20 @@ tr:hover td{background:#fafafa}
 a{color:#0066cc;text-decoration:none}
 .help{cursor:help;color:#999;font-size:.78em;margin-left:.25rem}
 th .help{color:#bbb}
-.kr-family{font-weight:600;background:#f0f0f0}
-.kr-family td{padding-top:.7rem}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{background:#e8e8e8}
+th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
+.chip{display:inline-block;font-size:.7rem;padding:.15rem .45rem;border-radius:10px;background:#eee;color:#555;margin-right:.3rem;cursor:help}
+.chip--risk{background:#fde8e8;color:#c94a1f}
+.btn-mini{padding:.25rem .6rem;background:#1a1a1a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.75rem}
+.scoreboard{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem}
+.score-chip{background:#fff;border-radius:6px;padding:.5rem .8rem;box-shadow:0 1px 3px rgba(0,0,0,.06);font-size:.82rem;cursor:help}
+.score-chip b{font-size:1.05rem}
+.score-chip--alert{background:#fde8e8;color:#c94a1f}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:4rem 1rem;z-index:50}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:10px;max-width:640px;width:100%;padding:1.5rem;max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal__close{float:right;border:none;background:none;font-size:1.4rem;cursor:pointer;color:#888;line-height:1}
 </style>
 </head>
 <body>
@@ -44,262 +57,185 @@ th .help{color:#bbb}
     var inviteResult = TempData["InviteResult"]?.ToString();
     var isOk = inviteResult?.StartsWith("ok:") == true;
     var inviteMsg = inviteResult?.Substring(inviteResult.IndexOf(':') + 1);
-}
 
-@* ── Globales ──────────────────────────────────────────────────────────── *@
-<div class="grid">
-    <div class="card">
-        <div class="card__label">Familias activas</div>
-        <div class="card__value">@Model.Families.Count</div>
-    </div>
-    <div class="card">
-        <div class="card__label">Costo API mes (USD)</div>
-        <div class="card__value">$@Model.TotalCostUsdMonth.ToString("F2")</div>
-    </div>
-    <div class="card">
-        <div class="card__label">Costo API mes (ARS)</div>
-        <div class="card__value">$@((Model.TotalCostArsMonth).ToString("N0"))</div>
-    </div>
-    <div class="card">
-        <div class="card__label">Waitlist</div>
-        <div class="card__value">@Model.Waitlist.Count</div>
-        <div class="card__sub">emails registrados</div>
-    </div>
-    <div class="card" style="@(Model.ApiBalanceUsd is { } b && b < 10 ? "border:1px solid #c94a1f;" : "")">
-        <div class="card__label">
-            Saldo API estimado
-            <span class="help" title="Anthropic NO expone el saldo real por API. Esto es una estimación: el crédito que cargaste (env var ANTHROPIC_CREDIT_USD) menos el consumo histórico calculado desde token_events. La verdad oficial está en console.anthropic.com → Billing. Configurá también un alerta de saldo bajo ahí.">ⓘ</span>
-        </div>
-        @if (Model.ApiBalanceUsd is { } bal)
-        {
-            <div class="card__value" style="@(bal < 10 ? "color:#c94a1f;" : "")">$@bal.ToString("F2")</div>
-            <div class="card__sub">de $@Model.ApiCreditUsd!.Value.ToString("F0") · gastado $@Model.AllTimeCostUsd.ToString("F2")</div>
-        }
-        else
-        {
-            <div class="card__value" style="font-size:1rem;color:#888;">sin configurar</div>
-            <div class="card__sub">gastado histórico $@Model.AllTimeCostUsd.ToString("F2") · seteá ANTHROPIC_CREDIT_USD</div>
-        }
-    </div>
-</div>
-
-@* ── Tokens por feature ──────────────────────────────────────────────── *@
-<h2>Tokens por feature (mes)</h2>
-<div class="grid">
-    @foreach (var kv in Model.TokensByFeature.OrderByDescending(x => x.Value))
-    {
-        <div class="card">
-            <div class="card__label">@kv.Key</div>
-            <div class="card__value" style="font-size:1.1rem">@kv.Value.ToString("N0")</div>
-        </div>
-    }
-</div>
-
-@* ── Señales de riesgo ───────────────────────────────────────────────── *@
-@{
-    var warnings = Model.Families.Where(f => f.NearLimit || f.Inactive7Days || f.StudentsWithoutMaterial).ToList();
-}
-@if (warnings.Any())
-{
-    <h2>⚠ Señales de riesgo</h2>
-    <table>
-        <thead><tr><th>Familia</th><th>Señal</th></tr></thead>
-        <tbody>
-        @foreach (var f in warnings)
-        {
-            <tr>
-                <td>@f.Name</td>
-                <td>
-                    @if (f.NearLimit) { <span class="badge badge-danger" title="Consumió más del 80% del límite mensual de tokens de la familia (MONTHLY_TOKEN_LIMIT = @Model.MonthlyTokenLimit.ToString("N0") tokens/mes). Al llegar al 100% el chat se corta. Acción: subir el límite en Railway o avisar a la familia.">cerca del límite</span> }
-                    @if (f.Inactive7Days) { <span class="badge badge-warn" title="Más de 7 días sin ningún uso. Acción: contactar a la familia para entender qué frenó el uso.">sin actividad 7+ días</span> }
-                    @if (f.StudentsWithoutMaterial) { <span class="badge badge-warn" title="Al menos un hijo no tiene material cargado en ninguna materia. Sin material el tutor pierde su diferencial. Acción: ayudar en el onboarding a subir una fotocopia.">alumno sin material</span> }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-}
-
-@* ── Familias ────────────────────────────────────────────────────────── *@
-<h2>Familias <span class="help" title="Hoy / Semana / Mes son la cantidad de INTERCAMBIOS de chat (un intercambio = un mensaje del alumno respondido por el tutor) en ese período. Semana = últimos 7 días. Mes = mes calendario en curso.">ⓘ</span></h2>
-<table>
-    <thead>
-        <tr>
-            <th>Familia</th>
-            <th>Hijos</th>
-            <th title="Intercambios de chat hoy">Hoy</th>
-            <th title="Intercambios de chat en los últimos 7 días">Semana</th>
-            <th title="Intercambios de chat en el mes calendario en curso">Mes</th>
-            <th title="Costo de API consumido por la familia este mes, en USD">USD mes</th>
-            <th title="Mismo costo convertido a pesos al tipo de cambio MEP del momento del consumo">ARS mes</th>
-            <th title="Tiempo desde el último uso. En rojo si pasaron más de 7 días.">Último uso</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var f in Model.Families)
-    {
-        <tr>
-            <td>@f.Name</td>
-            <td>@f.Students</td>
-            <td>@f.ExchangesToday</td>
-            <td>@f.ExchangesWeek</td>
-            <td>@f.ExchangesMonth</td>
-            <td>$@f.CostUsdMonth.ToString("F3")</td>
-            <td>$@f.CostArsMonth.ToString("N0")</td>
-            <td>
-                @if (f.LastActivity.HasValue)
-                {
-                    var ago = DateTime.UtcNow - f.LastActivity.Value;
-                    var label = ago.TotalMinutes < 60 ? $"{(int)ago.TotalMinutes}m" :
-                                ago.TotalHours < 24 ? $"{(int)ago.TotalHours}h" : $"{(int)ago.TotalDays}d";
-                    <span class="@(ago.TotalDays > 7 ? "signal" : "")">@label</span>
-                }
-                else { <span class="dim">nunca</span> }
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
-
-@* ── Monitor de Piloto ────────────────────────────────────────────────── *@
-@{
-    var pilotTotal = Model.PilotFamilies.Count;
-    // KR3 y KR4 vienen del form manual
     int.TryParse(Request.Query["kr3"].ToString(), out var kr3Val);
     int.TryParse(Request.Query["kr4"].ToString(), out var kr4Val);
     var kr3Note = Request.Query["kr3note"].ToString();
     var kr4Names = Request.Query["kr4names"].ToString();
 
-    static string Semaforo(int val, int threshold, int total) =>
+    string Semaforo(int val, int threshold, int total) =>
         total == 0 ? "⚪" : val >= threshold ? "🟢" : val >= threshold * 0.6 ? "🟡" : "🔴";
 
-    var t = Model.Thresholds; // [kr1, kr2, kr3, kr4]
+    var t = Model.Thresholds;          // [kr1, kr2, kr3, kr4]
+    var pilotTotal = Model.PilotTotal;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
 }
 
-<h2>📊 Monitor de Piloto — @pilotTotal @(pilotTotal == 1 ? "familia" : "familias")</h2>
+@* ── Plata (todo en USD billete) ──────────────────────────────────────── *@
+<div class="grid">
+    <div class="card">
+        <div class="card__label">Gasto API mes (USD)</div>
+        <div class="card__value">$@Model.TotalCostUsdMonth.ToString("F2")</div>
+        <div class="card__sub">mes calendario en curso</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Proyección fin de mes</div>
+        <div class="card__value">$@Model.ProjectionUsdMonth.ToString("F2")</div>
+        <div class="card__sub">a este ritmo</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Histórico (USD)</div>
+        <div class="card__value">$@Model.AllTimeCostUsd.ToString("F2")</div>
+        <div class="card__sub">desde el día uno</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Familias piloto</div>
+        <div class="card__value">@Model.PilotTotal</div>
+        <div class="card__sub">en trial o activas</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Waitlist</div>
+        <div class="card__value">@Model.Waitlist.Count</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Saldo / recarga
+            <span class="help" title="Anthropic NO expone el saldo por API. El saldo y la recarga automática se manejan en console.anthropic.com → Billing. Configurá ahí el alerta de uso a nivel organización.">ⓘ</span>
+        </div>
+        <div class="card__value" style="font-size:.95rem;color:#888;">en Console</div>
+        <div class="card__sub">anthropic.com → Billing</div>
+    </div>
+</div>
 
-@if (pilotTotal == 0)
-{
-    <p style="color:#888;margin-bottom:1.5rem;">No hay familias en estado <code>trial</code> o <code>active</code>. Activá familias desde TablePlus.</p>
-}
-else
-{
-    @* Semáforo resumen *@
-    <p style="font-size:.8rem;color:#888;margin-bottom:.75rem;">
-        Semáforo: 🟢 alcanzó el umbral · 🟡 entre 60% y el umbral (vigilar) · 🔴 por debajo del 60% (actuar) · ⚪ sin datos.
-        Pasá el mouse por la ⓘ de cada KR para ver qué mide y qué hacer.
-    </p>
-    <div class="grid" style="margin-bottom:1.5rem;">
-        <div class="card">
-            <div class="card__label">KR1 Retención
-                <span class="help" title="Mide si las familias VUELVEN — el riesgo #1 del producto. Cuenta las familias con suficientes intercambios (config PILOT_KR1_MIN_EXCHANGES) en los últimos 7 días. 🔴 = las familias no usan: revisá onboarding y si cargaron material. Sin retención no hay piloto.">ⓘ</span>
-            </div>
-            <div class="card__value">@Semaforo(Model.Kr1Active, t[0], pilotTotal) @Model.Kr1Active/@pilotTotal</div>
-            <div class="card__sub">activas últimos 7 días (umbral @t[0])</div>
+@* ── Scoreboard del piloto ────────────────────────────────────────────── *@
+<p style="font-size:.8rem;color:#888;margin-bottom:.75rem;">
+    Semáforo: 🟢 alcanzó el umbral · 🟡 entre 60% y el umbral (vigilar) · 🔴 por debajo del 60% (actuar) · ⚪ sin datos.
+    Pasá el mouse por la ⓘ de cada KR.
+</p>
+<div class="grid" style="margin-bottom:1rem;">
+    <div class="card">
+        <div class="card__label">KR1 Retención
+            <span class="help" title="Mide si las familias VUELVEN — el riesgo #1. Familias con suficientes intercambios (PILOT_KR1_MIN_EXCHANGES) en 7 días. 🔴 = no usan: revisá onboarding y material.">ⓘ</span>
         </div>
-        <div class="card">
-            <div class="card__label">KR2 Hábito
-                <span class="help" title="Mide si el tutor se vuelve COSTUMBRE, no novedad. Cuenta hijos con racha de ≥7 días seguidos de uso. 🔴 = el valor todavía no engancha; probá ajustar el modo pedagógico o el material de la materia.">ⓘ</span>
-            </div>
-            <div class="card__value">@Semaforo(Model.Kr2HabitStudents, t[1], Model.Kr2TotalStudents) @Model.Kr2HabitStudents/@Model.Kr2TotalStudents</div>
-            <div class="card__sub">hijos con racha ≥7 días (umbral @t[1])</div>
+        <div class="card__value">@Semaforo(Model.Kr1Active, t[0], pilotTotal) @Model.Kr1Active/@pilotTotal</div>
+        <div class="card__sub">activas 7 días (umbral @t[0])</div>
+    </div>
+    <div class="card">
+        <div class="card__label">KR2 Hábito
+            <span class="help" title="Mide si se vuelve COSTUMBRE. Hijos con racha ≥7 días. 🔴 = el valor no engancha todavía.">ⓘ</span>
         </div>
-        <div class="card">
-            <div class="card__label">KR3 Intención de pago
-                <span class="help" title="Señal de monetización. Lo cargás a mano abajo: cuántas familias dirían que sí pagarían. 🔴 = el precio/valor no cierra todavía; conversá con las familias ANTES de fijar precio.">ⓘ</span>
-            </div>
-            <div class="card__value">@Semaforo(kr3Val, t[2], pilotTotal) @kr3Val/@pilotTotal</div>
-            <div class="card__sub">manual · umbral @t[2]</div>
+        <div class="card__value">@Semaforo(Model.Kr2HabitStudents, t[1], Model.Kr2TotalStudents) @Model.Kr2HabitStudents/@Model.Kr2TotalStudents</div>
+        <div class="card__sub">hijos con racha ≥7 (umbral @t[1])</div>
+    </div>
+    <div class="card">
+        <div class="card__label">KR3 Intención de pago
+            <span class="help" title="Señal de monetización. Lo cargás a mano abajo. 🔴 = el precio/valor no cierra; conversá antes de fijar precio.">ⓘ</span>
         </div>
-        <div class="card">
-            <div class="card__label">KR4 Referidos
-                <span class="help" title="Mide el boca-a-boca, el motor de crecimiento orgánico. Lo cargás a mano: familias que trajeron a otra. Un referido espontáneo vale más que cualquier anuncio pago.">ⓘ</span>
-            </div>
-            <div class="card__value">@Semaforo(kr4Val, t[3], pilotTotal) @kr4Val</div>
-            <div class="card__sub">manual · umbral @t[3]</div>
+        <div class="card__value">@Semaforo(kr3Val, t[2], pilotTotal) @kr3Val/@pilotTotal</div>
+        <div class="card__sub">manual · umbral @t[2]</div>
+    </div>
+    <div class="card">
+        <div class="card__label">KR4 Referidos
+            <span class="help" title="Boca-a-boca, el motor orgánico. Lo cargás a mano: familias que trajeron a otra.">ⓘ</span>
+        </div>
+        <div class="card__value">@Semaforo(kr4Val, t[3], pilotTotal) @kr4Val</div>
+        <div class="card__sub">manual · umbral @t[3]</div>
+    </div>
+</div>
+
+@* Contadores de riesgo — los ubicás ordenando la lista *@
+<div class="scoreboard">
+    <span class="score-chip @(Model.RiskNearLimit > 0 ? "score-chip--alert" : "")" title="Familias que superaron el 80% de la térmica (tope de tokens TERMICA_TOKENS). Ordená por $ para ubicarlas.">🔴 Cerca de la térmica: <b>@Model.RiskNearLimit</b></span>
+    <span class="score-chip @(Model.RiskNotConsented > 0 ? "score-chip--alert" : "")" title="Familias del piloto que todavía no aceptaron el consentimiento parental.">⏳ Sin consentir: <b>@Model.RiskNotConsented</b></span>
+    <span class="score-chip @(Model.RiskInactive7 > 0 ? "score-chip--alert" : "")" title="Familias del piloto sin ningún uso hace más de 7 días.">💤 Inactivas 7d: <b>@Model.RiskInactive7</b></span>
+    <span class="score-chip @(Model.RiskNoMaterial > 0 ? "score-chip--alert" : "")" title="Familias del piloto con al menos un hijo sin material cargado.">📄 Sin material: <b>@Model.RiskNoMaterial</b></span>
+</div>
+
+@* ── Familias (una sola tabla, ordenable, en USD) ──────────────────────── *@
+<h2>Familias (@Model.Families.Count)
+    <span class="help" title="Click en una columna para ordenar. $ USD = costo real de API de la familia en los últimos 30 días. Interc. 7d = mensajes del alumno respondidos en 7 días. 'Ver' abre el detalle por hijo.">ⓘ</span>
+</h2>
+<table id="famTable">
+    <thead>
+        <tr>
+            <th class="sortable" onclick="sortTable(this)">Familia</th>
+            <th class="sortable" onclick="sortTable(this)">Estado</th>
+            <th class="sortable" onclick="sortTable(this)">Hijos</th>
+            <th class="sortable" onclick="sortTable(this)">Interc. 7d</th>
+            <th class="sortable" onclick="sortTable(this)">$ USD 30d</th>
+            <th class="sortable" onclick="sortTable(this)">Últ. uso</th>
+            <th>Flags</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model.Families)
+    {
+        var isPilot = f.Status is "trial" or "active";
+        var (stCls, stTxt) = f.Status switch
+        {
+            "trial"    => ("badge-ok", "trial"),
+            "active"   => ("badge-ok", "activa"),
+            "waitlist" => ("badge-warn", "waitlist"),
+            _          => ("badge-warn", f.Status)
+        };
+        string agoLabel; long agoVal = f.LastActivity?.Ticks ?? 0;
+        if (f.LastActivity.HasValue)
+        {
+            var d = DateTime.UtcNow - f.LastActivity.Value;
+            agoLabel = d.TotalMinutes < 60 ? $"{(int)d.TotalMinutes}m" :
+                       d.TotalHours < 24 ? $"{(int)d.TotalHours}h" : $"{(int)d.TotalDays}d";
+        }
+        else { agoLabel = "nunca"; }
+        var notConsented = isPilot && !f.HasConsented;
+        <tr>
+            <td>@f.Name<br><span class="dim" style="font-size:.74rem;">@f.Email</span></td>
+            <td data-val="@f.Status">
+                <span class="badge @stCls">@stTxt</span>
+                @if (isPilot) { @Html.Raw(f.HasConsented ? " ✅" : " ⏳") }
+            </td>
+            <td data-val="@f.Students">@f.Students</td>
+            <td data-val="@f.Exchanges7d">@f.Exchanges7d</td>
+            <td data-val="@(((double)f.CostUsd30d).ToString(inv))">$@f.CostUsd30d.ToString("F3")</td>
+            <td data-val="@agoVal"><span class="@(f.Inactive7Days ? "signal" : "")">@agoLabel</span></td>
+            <td>
+                @if (f.NearLimit)     { <span class="chip chip--risk" title="Superó el 80% de la térmica de tokens.">🔴</span> }
+                @if (f.Inactive7Days) { <span class="chip chip--risk" title="Sin uso hace +7 días.">💤</span> }
+                @if (f.NoMaterial)    { <span class="chip chip--risk" title="Un hijo sin material cargado.">📄</span> }
+                @if (notConsented)    { <span class="chip chip--risk" title="Falta aceptar el consentimiento.">⏳</span> }
+            </td>
+            <td><button class="btn-mini" onclick="showDetail(@f.Id)">Ver</button></td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@* ── KR3 y KR4 — datos de cierre (manual) ──────────────────────────────── *@
+<h2>KR3 y KR4 — Datos de cierre (manual)</h2>
+<form method="get" action="/admin" style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
+    <input type="hidden" name="token" value="@token" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR3 — Familias con intención de pago</label>
+            <input type="number" name="kr3" value="@kr3Val" min="0" max="@pilotTotal"
+                   style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
+            <span style="font-size:.8rem;color:#888;margin-left:.5rem;">de @pilotTotal</span>
+            <textarea name="kr3note" rows="2" placeholder="Notas (sí/no/depende por familia...)"
+                      style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr3Note</textarea>
+        </div>
+        <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR4 — Referidos</label>
+            <input type="number" name="kr4" value="@kr4Val" min="0"
+                   style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
+            <textarea name="kr4names" rows="2" placeholder="Nombres referidos..."
+                      style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr4Names</textarea>
         </div>
     </div>
+    <button type="submit" style="margin-top:1rem;padding:.4rem 1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;">
+        Actualizar semáforo
+    </button>
+</form>
 
-    @* Tabla de cohorte KR1 *@
-    <h2 style="margin-top:0;">KR1 — Actividad por familia</h2>
-    <table>
-        <thead><tr><th>Familia</th><th>Intercambios 7d</th><th>Último acceso</th><th>Consentimiento</th><th>Estado</th></tr></thead>
-        <tbody>
-        @foreach (var f in Model.PilotFamilies)
-        {
-            <tr>
-                <td>@f.Name<br><span class="dim" style="font-size:.75rem;">@f.Email</span></td>
-                <td>@f.ChatLast7Days</td>
-                <td>@(f.LastActivity.HasValue ? f.LastActivity.Value.ToString("dd/MM HH:mm") : "—")</td>
-                <td>@(f.HasConsented ? "✅" : "⏳ pendiente")</td>
-                <td>
-                    @if (f.Active)
-                    { <span class="badge badge-ok">activa</span> }
-                    else if (f.Cooling)
-                    { <span class="badge badge-danger">🧊 enfriándose</span> }
-                    else
-                    { <span class="badge badge-warn">inactiva</span> }
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-
-    @* Tabla KR2 — racha por hijo, agrupada por familia *@
-    <h2>KR2 — Racha por hijo <span class="help" title="Racha = días consecutivos con al menos un intercambio. ≥7 días = hábito formado. Agrupado por familia para ver de quién es cada hijo.">ⓘ</span></h2>
-    <table>
-        <thead><tr><th>Alumno</th><th>Racha actual</th><th>≥7 días</th></tr></thead>
-        <tbody>
-        @foreach (var f in Model.PilotFamilies)
-        {
-            <tr class="kr-family"><td colspan="3">@f.Name</td></tr>
-            @if (f.Students.Count == 0)
-            {
-                <tr><td class="dim" colspan="3" style="padding-left:1.5rem;">sin hijos cargados</td></tr>
-            }
-            else
-            {
-                @foreach (var s in f.Students.OrderByDescending(s => s.Streak))
-                {
-                    <tr>
-                        <td style="padding-left:1.5rem;">@s.Name</td>
-                        <td>@(s.Streak > 0 ? $"🔥 {s.Streak}" : "—")</td>
-                        <td>@(s.Streak >= 7 ? "✅" : "—")</td>
-                    </tr>
-                }
-            }
-        }
-        </tbody>
-    </table>
-
-    @* Inputs manuales KR3 y KR4 *@
-    <h2>KR3 y KR4 — Datos de cierre (manual)</h2>
-    <form method="get" action="/admin" style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
-        <input type="hidden" name="token" value="@token" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-            <div>
-                <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR3 — Familias con intención de pago</label>
-                <input type="number" name="kr3" value="@kr3Val" min="0" max="@pilotTotal"
-                       style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
-                <span style="font-size:.8rem;color:#888;margin-left:.5rem;">de @pilotTotal</span>
-                <textarea name="kr3note" rows="2" placeholder="Notas (sí/no/depende por familia...)"
-                          style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr3Note</textarea>
-            </div>
-            <div>
-                <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR4 — Referidos</label>
-                <input type="number" name="kr4" value="@kr4Val" min="0"
-                       style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
-                <textarea name="kr4names" rows="2" placeholder="Nombres referidos..."
-                          style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr4Names</textarea>
-            </div>
-        </div>
-        <button type="submit" style="margin-top:1rem;padding:.4rem 1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;">
-            Actualizar semáforo
-        </button>
-    </form>
-}
-
-@* Señal de vencimiento *@
+@* ── Vencimientos próximos ─────────────────────────────────────────────── *@
 @if (Model.ExpiringFamilies.Count > 0)
 {
     <h2>⏰ Vencimientos próximos (≤ 3 días)</h2>
@@ -343,7 +279,9 @@ else
 }
 
 @* ── Waitlist ─────────────────────────────────────────────────────────── *@
-<h2>Waitlist (@Model.Waitlist.Count) <span class="help" title="Personas que se anotaron en el landing. Desde acá las invitás al piloto: el botón crea/activa la familia como trial (30 días) y le manda el magic link por mail.">ⓘ</span></h2>
+<h2>Waitlist (@Model.Waitlist.Count)
+    <span class="help" title="Personas anotadas en el landing. El botón invita al piloto: crea/activa la familia como trial (30 días) y manda el magic link.">ⓘ</span>
+</h2>
 @if (inviteMsg != null)
 {
     <p style="margin-bottom:.75rem;padding:.6rem .9rem;border-radius:6px;font-size:.85rem;
@@ -372,10 +310,7 @@ else
                           onsubmit="return confirm('¿Invitar a @w.Email al piloto? Se le activa trial de 30 días y se le manda el magic link.');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="inviteEmail" value="@w.Email" />
-                        <button type="submit"
-                                style="padding:.3rem .7rem;background:#1a1a1a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.78rem;white-space:nowrap;">
-                            Invitar al trial
-                        </button>
+                        <button type="submit" class="btn-mini">Invitar al trial</button>
                     </form>
                 }
             </td>
@@ -384,5 +319,59 @@ else
     </tbody>
 </table>
 
+@* ── Modal de detalle por familia ──────────────────────────────────────── *@
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeDetail()">
+    <div class="modal">
+        <button class="modal__close" onclick="closeDetail()">×</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+function sortTable(th){
+    const table = th.closest('table'), tbody = table.tBodies[0];
+    const idx = [...th.parentNode.children].indexOf(th);
+    const dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+    [...th.parentNode.children].forEach(h => h.removeAttribute('data-dir'));
+    th.setAttribute('data-dir', dir);
+    const rows = [...tbody.rows];
+    rows.sort((a, b) => {
+        const av = a.cells[idx].getAttribute('data-val') ?? a.cells[idx].innerText;
+        const bv = b.cells[idx].getAttribute('data-val') ?? b.cells[idx].innerText;
+        const an = parseFloat(av), bn = parseFloat(bv);
+        let r = (!isNaN(an) && !isNaN(bn)) ? an - bn : String(av).localeCompare(String(bv));
+        return dir === 'asc' ? r : -r;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+}
+
+async function showDetail(id){
+    const bg = document.getElementById('modalBg'), body = document.getElementById('modalBody');
+    body.innerHTML = 'Cargando…';
+    bg.classList.add('open');
+    try {
+        const res = await fetch(`/admin?handler=Detail&token=@token&id=${id}`);
+        if (!res.ok) { body.innerHTML = 'No se pudo cargar el detalle.'; return; }
+        const d = await res.json();
+        let h = `<h2 style="margin-top:0;border:none;padding:0">${d.name} <span style="font-weight:400;color:#888;font-size:.8rem">${d.email||''}</span></h2>`;
+        h += `<p style="color:#666;font-size:.85rem;margin-bottom:1rem">Estado: ${d.status}${d.accessEndsAt ? ` · hasta ${new Date(d.accessEndsAt).toLocaleDateString('es-AR')}` : ''}</p>`;
+        h += '<h3>Por hijo · últimos 30 días</h3>';
+        if (d.members && d.members.length){
+            h += '<table><thead><tr><th>Hijo</th><th>Interc.</th><th>$ USD</th><th>Racha</th><th>Últ. uso</th></tr></thead><tbody>';
+            d.members.forEach(m => {
+                h += `<tr><td>${m.name}</td><td>${m.exchanges30}</td><td>$${(m.costUsd30||0).toFixed(3)}</td><td>${m.streak>0?'🔥 '+m.streak:'—'}</td><td>${m.lastActivity?new Date(m.lastActivity).toLocaleDateString('es-AR'):'—'}</td></tr>`;
+            });
+            h += '</tbody></table>';
+        } else { h += '<p class="dim">Sin hijos cargados.</p>'; }
+        h += '<h3 style="margin-top:1rem">Uso por herramienta · últimos 30 días</h3>';
+        if (d.featureUsage && d.featureUsage.length){
+            h += '<div>' + d.featureUsage.map(x => `<span class="chip">${x.feature}: <b>${x.count}</b></span>`).join('') + '</div>';
+        } else { h += '<p class="dim">Sin uso registrado.</p>'; }
+        body.innerHTML = h;
+    } catch(e) { body.innerHTML = 'Error al cargar el detalle.'; }
+}
+function closeDetail(){ document.getElementById('modalBg').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+</script>
 </body>
 </html>
