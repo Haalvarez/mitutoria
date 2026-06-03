@@ -66,7 +66,12 @@ public class AppDbContext : DbContext
             .HasConversion<string>();
 
         modelBuilder.Entity<ErrorLog>().ToTable("error_logs", "public");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.Id).HasColumnName("id");
         modelBuilder.Entity<ErrorLog>().Property(e => e.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.Source).HasColumnName("source");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.Message).HasColumnName("message");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.Detail).HasColumnName("detail");
+        modelBuilder.Entity<ErrorLog>().Property(e => e.Context).HasColumnName("context");
 
         modelBuilder.Entity<Classroom>()
             .Property(c => c.Name)
