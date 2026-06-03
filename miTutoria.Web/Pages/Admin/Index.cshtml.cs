@@ -135,6 +135,14 @@ public class IndexModel : PageModel
     public Dictionary<string, long> TokensByFeature { get; private set; } = [];
     public long MonthlyTokenLimit { get; private set; }
 
+    // ── Saldo de API (estimado) ────────────────────────────────────────────────
+    // Anthropic NO expone el saldo prepago por API. Esto es una estimación:
+    // crédito cargado a mano (ANTHROPIC_CREDIT_USD) menos el consumo histórico
+    // calculado desde token_events. La verdad oficial está en la Console de Anthropic.
+    public decimal? ApiCreditUsd { get; private set; }
+    public decimal AllTimeCostUsd { get; private set; }
+    public decimal? ApiBalanceUsd => ApiCreditUsd.HasValue ? ApiCreditUsd.Value - AllTimeCostUsd : null;
+
     // ── GET ──────────────────────────────────────────────────────────────────
 
     public async Task<IActionResult> OnGetAsync([FromQuery] string? token)
@@ -286,6 +294,10 @@ public class IndexModel : PageModel
         TotalCostUsdMonth = events.Sum(e => e.CostUsd);
         TotalCostArsMonth = events.Where(e => e.ArsRate.HasValue)
                                   .Sum(e => e.CostUsd * e.ArsRate!.Value);
+
+        // Saldo estimado de API (crédito manual − consumo histórico)
+        ApiCreditUsd = _config.GetValue<decimal?>("ANTHROPIC_CREDIT_USD");
+        AllTimeCostUsd = await _db.TokenEvents.SumAsync(e => e.CostUsd);
         TokensByFeature = events
             .GroupBy(e => e.Feature)
             .ToDictionary(g => g.Key, g => g.Sum(e => (long)e.TokensIn + e.TokensOut));

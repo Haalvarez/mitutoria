@@ -11,11 +11,30 @@
 - El mail de invitación tiene texto de bienvenida al piloto (distinto al magic link de login)
 - Resultado de la invitación (ok/error) se muestra inline en el admin
 
+### fix — cerrar la puerta de alta y bugs de columnas
+- `Login` ya no crea familias desconocidas: si el email no existe o está en `waitlist`,
+  muestra mensaje. La única puerta de alta ahora es la invitación desde `/admin`
+- `error_logs`: `HasColumnName` para todas las columnas (tabla creada a mano, minúscula) —
+  resolvía el error "column e.Id does not exist" en `/admin`
+- `OnPostInviteAsync` usa `FirstOrDefaultAsync` para no explotar con emails duplicados
+- Nav autenticado: páginas internas muestran Inicio/Salir, no los links del landing
+- Endpoint `/Salir` que limpia la sesión
+
+### feat — retoques del monitor de admin
+- Tooltips (ⓘ) en KR1–KR4 explicando qué mide cada uno y qué hacer en 🔴
+- Leyenda del semáforo (🟢🟡🔴⚪) y aclaración de que Hoy/Semana/Mes = intercambios de chat
+- Tooltips en señales de riesgo (qué es "cerca del límite", etc.)
+- KR2 ahora agrupa la racha por familia (antes lista plana, era decorativa)
+- Columna "Consentimiento" en el monitor de piloto (✅/⏳ pendiente)
+- Tarjeta "Saldo API estimado": crédito manual (`ANTHROPIC_CREDIT_USD`) − consumo histórico
+
 ### chore
 - Migración `20260603210000_AddConsentToFamily` — aplicar en TablePlus antes de push:
   `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_at timestamptz;`
   `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_ip text;`
   `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_version text;`
+- Constraint pendiente en TablePlus: `ALTER TABLE auth.families ADD CONSTRAINT families_email_unique UNIQUE ("Email");`
+- Env var opcional `ANTHROPIC_CREDIT_USD` para el saldo estimado de API
 
 ---
 
