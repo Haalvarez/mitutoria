@@ -1,0 +1,48 @@
+@page
+@model miTutoria.Web.Pages.Consentimiento.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Antes de empezar";
+}
+
+<div style="max-width:520px;margin:5rem auto;padding:2rem;">
+    <h1 style="font-size:1.6rem;margin-bottom:.5rem;">Antes de empezar</h1>
+    <p style="opacity:.6;font-size:.9rem;margin-bottom:2rem;">
+        miTutorIA guarda datos de tu familia para funcionar. Necesitamos tu consentimiento como adulto responsable.
+    </p>
+
+    <div style="background:#f8f8f8;border-radius:8px;padding:1.4rem;margin-bottom:1.5rem;font-size:.9rem;line-height:1.7;">
+        <p style="font-weight:600;margin-bottom:.75rem;">¿Qué hacemos con los datos?</p>
+        <ul style="padding-left:1.2rem;margin:0 0 1rem;opacity:.8;">
+            <li>Guardamos los chats de tus hijos para que el tutor recuerde el contexto de cada sesión.</li>
+            <li>Medimos el uso (cantidad de mensajes) para gestionar el servicio.</li>
+            <li>No compartimos información personal con terceros ni usamos los chats para entrenar modelos de IA.</li>
+        </ul>
+        <p style="font-weight:600;margin-bottom:.4rem;">Tus derechos</p>
+        <p style="opacity:.8;margin:0;">
+            Podés pedir la eliminación de los datos de tu familia en cualquier momento escribiendo a
+            <a href="mailto:hola@mitutoria.app">hola@mitutoria.app</a>
+            (Ley 25.326 de Protección de Datos Personales).
+        </p>
+    </div>
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <label style="display:flex;gap:.75rem;align-items:flex-start;cursor:pointer;margin-bottom:1.5rem;">
+            <input type="checkbox" name="accepted" value="true" required
+                   style="margin-top:.2rem;width:1rem;height:1rem;flex-shrink:0;" />
+            <span style="font-size:.9rem;line-height:1.5;">
+                Entendí lo anterior y acepto que miTutorIA guarde y procese los datos de mi familia
+                para brindar el servicio de tutoría.
+            </span>
+        </label>
+        <button type="submit"
+                style="width:100%;padding:.85rem;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:500;">
+            Acepto y entro
+        </button>
+    </form>
+
+    <p style="margin-top:1.5rem;font-size:.78rem;opacity:.4;text-align:center;">
+        miTutorIA · versión de política v1 · @DateTime.UtcNow.ToString("yyyy")
+    </p>
+</div>

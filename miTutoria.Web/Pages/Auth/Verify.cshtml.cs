@@ -36,6 +36,9 @@ public class VerifyModel : PageModel
 
         HttpContext.Session.SetInt32("FamilyId", family.Id);
 
+        if (family.ConsentAt is null)
+            return RedirectToPage("/Consentimiento/Index");
+
         return RedirectToPage("/Dashboard/Index");
     }
 }

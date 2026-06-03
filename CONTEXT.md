@@ -8,15 +8,64 @@
 Lanzar una plataforma educativa multi-tenant con IA controlada por padres,
 monetizable, construida sobre ASP.NET Core 8 + Railway.
 **Criterio de éxito de Fase 1:** Vika, Dasha y Egor pueden loguearse
-y chatean en su aula desde mitutoria.app.
+y chatean en su aula desde mitutoria.app. ✅ ALCANZADO en Sesión 15.
+
+**Criterio de éxito de Fase 2 (piloto):** 5-10 familias conocidas usando la
+plataforma con uso sostenido en 2-3 semanas.
 
 ---
 
 ## Estado actual
-- **Sesión:** 15
-- **Fase activa:** Fase 1 — MVP Familia (lista para piloto)
-- **Branch activo:** `main`
-- **Último commit:** feat: mochila — el alumno crea materias (cuadernos) y cambia de contexto
+- **Sesión:** 16
+- **Fase activa:** Fase 2 — Piloto cerrado (Track 1) + Fase 4 exploratoria (Track 2)
+- **Branch activo:** `main` (Track 1) · `feature/inbox-pipeline` por abrir (Track 2)
+- **Último commit:** feat: mochila — el alumno crea materias (cuadernos) y cambia de contexto (Sesión 15)
+
+## Tracks en paralelo — disciplina de foco
+
+> Track 1 tiene prioridad. Track 2 NO mergea a main hasta que Track 1 tenga datos del piloto.
+
+### Track 1 — Piloto cerrado (rama `main`)
+Lo único que destraba invitar familias reales.
+
+1. Verificar SQLs aplicados en TablePlus:
+   - `AddMaterialSections` (material_sections jsonb, material_section_index, material_ocr_source)
+   - `AddFamilyBilling` (created_at, subscription_status, trial_ends_at, paid_until)
+   - `public.error_logs` (crear manualmente, sin migración EF)
+2. **Página de consentimiento parental mínima** en alta (checkbox + texto honesto + persistencia: fecha, IP, versión). Condición legal de lanzamiento, no negociable.
+3. Setup de **staging en Railway** (`staging.mitutoria.app`, rama `develop`, DB separada, basic auth, robots noindex).
+4. Activar familias del piloto vía TablePlus: `UPDATE auth.families SET subscription_status='trial', trial_ends_at=now()+interval '30 days' WHERE email='...'`
+5. Invitar 5-10 familias conocidas. Piloto **sin cobro** las primeras 2-3 semanas.
+6. Medición de uso real (token_events) durante 2-3 semanas.
+
+### Track 2 — Inbox / captura de Classroom (rama `feature/inbox-pipeline`)
+Feature exploratoria, condicionada a validación.
+
+**Hipótesis a validar:** "Padres dispuestos a configurar forward de Gmail para recibir alertas de tareas pendientes de sus hijos."
+
+1. **Sprint 1 (semana 1):**
+   - Setup Postmark Inbound (sandbox)
+   - DNS: subdominio `in.mitutoria.app` con MX a Postmark
+   - Endpoint webhook autenticado (validar firma Postmark)
+   - Análisis de 30-50 mails reales de Classroom (Vika, conocidos) → tabla de variantes en `docs/classroom-mail-types.md`
+   - Parser en C# como class library `miTutoria.Inbox/` con fixtures `.eml`
+   - Modelo de datos: `InboxAlias`, `InboxMessageRaw`, `DetectedAssignment`
+2. **Checkpoint: validación con 3 padres externos** antes de Sprint 2. Mockup estático del mail diario. Si <2/3 se entusiasman → parar y volver a Track 1.
+3. **Sprint 2 (semana 2):** generación de alias por usuario, página de onboarding con instrucciones de forward, captura del código de verificación de Gmail, vista "Mis tareas".
+4. **Sprint 3 (semana 3):** notificaciones (mail nueva tarea, resumen diario, alerta de urgencia 24hs antes).
+5. **Sprint 4 (semana 4):** dashboard del padre, manejo de errores, multi-hijo, testing con 1-2 padres reales en staging.
+
+**Vika como usuaria beta en staging durante todo el track.**
+
+### Track 3 — Cobro y régimen formal (PARQUEADO ~2 meses)
+No se discute hasta ~2 meses antes de cobrar de verdad. Roadmap específico al activarse.
+
+**Decisiones pendientes anotadas:**
+- CUIT activo (verificado en ARCA Sesión 16) pero **sin impuestos activos** — requiere reinscripción para facturar.
+- Camino tentativo: reinscripción monotributo categoría A → cuenta MP vendedor → cobro por QR con `external_reference` por familia → webhooks → `subscription_status`.
+- Validar antes que justifique el costo mensual del monotributo.
+
+---
 
 ## Funciona hoy
 - ✅ Mochila — materias por alumno (Sesión 15)
@@ -24,93 +73,64 @@ y chatean en su aula desde mitutoria.app.
     modo pedagógico, historia de chat y material propios
   - Selector 🎒 en el sidebar + "＋ Nueva materia" (infiere modo del nombre)
   - `GetActiveClassroomAsync` resuelve el cuaderno activo (sesión → reciente → crea "General")
-  - Modo pedagógico (Resolución / Comprensión): el prompt se ramifica — en Comprensión
-    explica y el alumno sintetiza; en Resolución no da el resultado
+  - Modo pedagógico (Resolución / Comprensión): el prompt se ramifica
   - Foco de materia: si el alumno trae otra materia, el tutor sugiere cambiarla arriba
   - ⬜ Falta: borrar/renombrar materia, ícono y orden manual (hoy alfabético)
-  - ⬜ Calibración fina del modo Comprensión (que no rechace pero tampoco regale la síntesis)
+  - ⬜ Calibración fina del modo Comprensión
 - ✅ Prompt maestro endurecido (Sesión 14)
-  - Nunca menciona diagnósticos/etiquetas — recibe comportamientos, no la etiqueta TDAH
-  - Nunca usa insultos coloquiales; figura de autoridad cercana
-  - Registro elástico (espeja la energía del alumno) + foco rígido (el puente: trae de
-    vuelta en el mismo mensaje, nunca dos seguidos fuera de tema)
-  - Exige esfuerzo, no formalidad; brevedad y texto plano por defecto
-  - Instrucciones del padre y resumen previo se aplican en silencio
+  - Nunca menciona diagnósticos/etiquetas; figura de autoridad cercana
+  - Registro elástico + foco rígido (el puente)
+  - Exige esfuerzo, no formalidad; brevedad y texto plano
 - ✅ Backtest del prompt: `tools/prompt-harness.ps1` (12 escenarios, juez Haiku, 12/12 verde)
   - ⚠️ El prompt está duplicado en el script — sincronizar al tocar `BuildSystemPrompt`
-- ✅ `/Students/Edit`: al guardar muestra un mensaje cálido del tutor (redactado por Claude)
-  explicando cómo acompañará al hijo — token_event Feature="explain", fallback si la API falla
-- ✅ Login de alumno `/Entrar` — usuario + PIN configurado por el padre desde `/Students/Edit`
-- ✅ Guard de acceso: `subscription_status` chequeado en Verify (padre) y Entrar (alumno)
-  - `trial` / `active` → acceso normal
-  - `trial_expired` / `suspended` / `cancelled` → página `/Blocked` con mensaje claro
-  - Familias sin estado o en `waitlist` → bloqueadas automáticamente
+- ✅ `/Students/Edit`: mensaje cálido del tutor al guardar (token_event Feature="explain")
+- ✅ Login alumno `/Entrar` — usuario + PIN
+- ✅ Guard de acceso por `subscription_status` → `/Blocked`
 - ✅ Aula acepta sesión de alumno o de padre
-- ✅ Racha de días 🔥 visible en el aula y en el dashboard del padre
-- ✅ Botonera del aula: **Quiz** (modal) · **Tarjetas** (modal flip) · **Examen de práctica** (modal a/b/c/d con puntaje)
-  - Quiz y Examen de práctica comparten el mismo modal — label diferenciado en el contador
-  - Fix: `ExtractJsonArray` extrae JSON aunque Claude lo envuelva en bloques markdown
-- ✅ Prompt caching — ahorro ~90% en tokens del material por sesión activa
-- ✅ Prompt anti-bucle: tutor avanza cuando el alumno solo confirma lo sabido
-- ✅ PDF upload integrado al input del chat
-  - Botón 📎 en el input bar — sin botón viejo en el sidebar
-  - Drag & drop sobre el área del chat con overlay visual
-  - Durante la carga: burbuja del tutor con mensajes rotativos simpáticos cada 2.5s
-  - Avatar del tutor pulsa en terracota `#C1440E` mientras procesa cualquier respuesta
+- ✅ Racha 🔥 en aula y dashboard
+- ✅ Botonera del aula: Quiz, Tarjetas, Examen de práctica (modales)
+- ✅ Prompt caching — ahorro ~90% en tokens del material por sesión
+- ✅ Prompt anti-bucle
+- ✅ PDF upload integrado al chat + drag&drop + mensajes animados
 - ✅ OCR fallback vía Claude Vision para PDFs escaneados
-- ✅ Secciones de material: PDF segmentado automáticamente en secciones temáticas por Haiku
-  - Progreso persistente entre sesiones (`material_section_index`)
-  - Sidebar con barra ✅/▶/○ y botones Siguiente/Anterior
-  - "Nueva sesión" preserva material y secciones — solo borra mensajes
-- ✅ Nav contextual en el aula (reemplaza el nav de landing)
-  - Logo real → link al dashboard
-  - Nombre del alumno
-  - Mensaje de racha según streak (0/1/2-6/7-13/14+ días)
-- ✅ Logo real (JPG) en nav, footer y favicon — listo para swap a SVG
-- ✅ Error log en DB (`public.error_logs`) — visible en `/admin` con últimos 50 errores
-  - `ErrorLogService` nunca tira excepción — errores internos nunca se exponen al cliente
-- ✅ Tipo de cambio MEP en tiempo real (dolarapi.com, cache 60 min)
-- ✅ Dashboard padre rediseñado: intercambios hoy/semana/mes, gasto ARS, racha por hijo
-- ✅ Admin `/admin?token=ADMIN_TOKEN` — familias, señales de riesgo, tokens por feature, waitlist
-- ✅ Monitor de piloto en admin: KR1/KR2 calculados, KR3/KR4 inputs manuales, semáforo 🟢🟡🔴, señal de vencimientos ≤3 días
+- ✅ Secciones de material persistentes (sidebar ✅/▶/○)
+- ✅ Nav contextual en el aula (logo, nombre, mensaje de racha)
+- ✅ Logo real (JPG) en nav, footer y favicon
+- ✅ Error log en DB visible en `/admin`
+- ✅ Tipo de cambio MEP en tiempo real (cache 60 min)
+- ✅ Dashboard padre rediseñado con intercambios y gasto ARS
+- ✅ Admin `/admin?token=...` con monitor de piloto (KR1/KR2/KR3/KR4)
 - ✅ Alertas Telegram al anotarse en waitlist
 
 ## Funciona desde antes
 - ✅ mitutoria.app live en Railway, deploy automático push → Railway ~2 min
-- ✅ Landing page con demo en vivo (5 mensajes sin login) + lista de espera funcional → DB
-- ✅ Auth magic link — Login + Verify, Resend integrado, APP_BASE_URL, forwarded headers
-- ✅ Sesión con cookie HttpOnly 7 días
-- ✅ Dashboard padre — lista de hijos, botones "Editar" y "Abrir aula"
-- ✅ Dashboard padre — gráfico de barras Chart.js de consumo por hijo por día del mes
-- ✅ Perfil padre `/Profile` — nombre, apodo, rol (Padre/Madre)
-- ✅ Agregar hijo `/Students/Add` — nombre, apodo, género, nivel, año, TDAH
-- ✅ Editar hijo `/Students/Edit/{id}` — datos básicos + estilo de aprendizaje + config TDAH
-- ✅ Aula `/Classroom/{studentId}` — layout dos paneles (sidebar + chat full-height)
-  - AJAX chat sin reload, typing indicator, burbujas con avatar
-  - Input dinámico, Enter envía, Shift+Enter nueva línea
-  - Sidebar: secciones del material, apunte extra, resumen compacto
-  - Footer oculto en el aula, layout 100dvh
-- ✅ Integración Anthropic API — Haiku 4.5, prompt socrático v1
-- ✅ token_events registrado después de cada llamada
-- ✅ Límite mensual configurable `MONTHLY_TOKEN_LIMIT`
-- ✅ Migraciones aplicadas en Railway vía TablePlus (manual)
-- ✅ PostgreSQL en Railway: esquemas `auth`, `academic`, `billing`, `public`
+- ✅ Landing con demo en vivo + lista de espera
+- ✅ Magic link (Resend), sesión cookie HttpOnly 7 días
+- ✅ Dashboard padre — lista de hijos, gráfico Chart.js
+- ✅ Perfil padre, agregar/editar hijo
+- ✅ Aula `/Classroom/{studentId}` con chat AJAX
+- ✅ token_events después de cada llamada
+- ✅ Migraciones manuales vía TablePlus
 
 ## No funciona / pendiente
 
-### Piloto (pasos manuales antes de invitar familias)
-- ⬜ Correr SQL `AddMaterialSections` en TablePlus (si no está aplicado)
-- ⬜ Correr SQL `AddFamilyBilling` en TablePlus (si no está aplicado)
-- ⬜ Crear tabla `public.error_logs` en TablePlus
-- ⬜ Activar familias del piloto: `UPDATE auth.families SET subscription_status='trial', trial_ends_at=now()+interval '30 days' WHERE email='...'`
+### Track 1 — Piloto (próximos pasos Sesión 16)
+- ⬜ Correr SQLs pendientes en TablePlus (ver lista arriba)
+- ⬜ Página de consentimiento parental mínima en alta
+- ⬜ Setup staging en Railway
+- ⬜ Activar familias del piloto y enviar invitaciones
 
-### Fase 2 — Producto
-- ⬜ MercadoPago — suscripción mensual plana, un solo plan, webhook → actualiza `subscription_status`
-- ⬜ Consentimiento parental (condición legal de lanzamiento)
+### Track 2 — Inbox (rama por abrir)
+- ⬜ Abrir rama `feature/inbox-pipeline` desde `develop`
+- ⬜ Postmark cuenta sandbox
+- ⬜ Sprint 1 según detalle arriba
+
+### Backlog Fase 5+ — Producto
 - ⬜ Modo lectura del padre en `/Classroom/{id}`
-- ⬜ Avatares personalizables tutor y alumno (galería fija de emojis, sin upload — post-piloto)
-- ⬜ Resumen cualitativo automático por sesión (killer feature dashboard)
-- ⬜ Jerarquía Materia → Tema → Secciones (hoy en Classroom, migrable en V2)
+- ⬜ Avatares personalizables (galería emojis, post-piloto)
+- ⬜ Resumen cualitativo automático por sesión
+- ⬜ Jerarquía Materia → Tema → Secciones (V2)
+- ⬜ PWA
 
 ---
 
@@ -123,16 +143,22 @@ y chatean en su aula desde mitutoria.app.
 ## Decisión de arquitectura — modelo de cobro
 
 > Cobro **plano mensual** (NO créditos). Activación manual durante el piloto desde TablePlus.
-> MercadoPago Suscripciones es el target para V2.
+> MercadoPago **cobro por QR con `external_reference`** es el target inicial (no `preapproval`
+> todavía: menos fricción y suficiente para piloto que se vuelca al régimen común).
+> Track 3 parqueado, retomar en ~2 meses con roadmap específico.
 
-## Próximos pasos (Sesión 16) — la carrera para el piloto, requiere cerebro dedicado
-1. Verificar que los SQLs pendientes están aplicados en Railway
-2. Invitar las primeras familias del piloto
-3. MercadoPago — suscripción plana, un solo plan
-4. Consentimiento parental
-5. Higiene: rotar la API key (estuvo en texto plano en el harness) + `git remote set-url`
-   (GitHub renombró el repo a `Haalvarez/mitutoria`)
-6. Mochila — pulido: borrar/renombrar materia; config del padre por materia (ahora que la materia "nace")
+## Decisión de arquitectura — ambientes
+
+> Staging en Railway con rama `develop` y DB separada. Track 2 vive ahí hasta que valide.
+> Track 1 sigue pusheando a `main` directamente (sin merge desde develop hasta que esté maduro).
+
+## Decisión de arquitectura — Inbox / inbound mail
+
+> Postmark Inbound como proveedor (mejor DX que SendGrid/Mailgun para este uso).
+> Subdominio dedicado `in.mitutoria.app` con MX propio para no interferir con outbound.
+> Alias **por padre** (no por hijo): un solo forward configurado, parser asigna a hijo por contenido.
+> Toggle activo/inactivo = flag en DB, no corta recepción (mails entran, se descartan si inactivo).
+> Retención: HTML crudo 30 días, datos estructurados indefinido.
 
 ---
 
@@ -154,6 +180,7 @@ y chatean en su aula desde mitutoria.app.
 | `20260603120000_AddSubjectMochila` | `name`, `mode`, `last_active_at` en classrooms — **aplicado en TablePlus (Sesión 15)** |
 
 > `public.error_logs` — crear manualmente, no tiene migración EF.
+> **Sesión 16+ (Track 2):** se agregarán tablas `inbox_aliases`, `inbox_messages_raw`, `detected_assignments` cuando arranque Sprint 1.
 
 ---
 
@@ -181,42 +208,50 @@ y chatean en su aula desde mitutoria.app.
 | `HasColumnName` obligatorio para toda propiedad nueva | Sin él EF genera nombre C# con comillas y Railway falla |
 | Logo JPG en nav/footer/favicon | SVG pendiente — listo para swap |
 | `ErrorLogService` scoped, nunca tira excepción | Errores de log no pueden romper la app |
+| **Dual-track Sesión 16+** | Track 1 (piloto) no se posterga por Track 2 (inbox exploratorio) |
+| **Postmark Inbound para Track 2** | Mejor DX, webhook JSON limpio, sandbox gratis |
+| **Alias inbox por padre, no por hijo** | Onboarding más simple, parser asigna hijo por contenido |
 
 ---
 
 ## Estructura del repo
 ```
 mitutoria/
-├── miTutoria.Web/
+├── miTutoria.Web/                    ← proyecto principal Razor Pages
 │   ├── Data/
-│   │   ├── AppDbContext.cs             ← HasColumnName para todas las props nuevas
+│   │   ├── AppDbContext.cs           ← HasColumnName para todas las props nuevas
 │   │   ├── Entities/
-│   │   │   ├── Auth/Family.cs          ← + CreatedAt, SubscriptionStatus, TrialEndsAt, PaidUntil, IsAccessAllowed
+│   │   │   ├── Auth/Family.cs        ← + CreatedAt, SubscriptionStatus, TrialEndsAt, PaidUntil
 │   │   │   ├── Auth/User.cs
-│   │   │   ├── Academic/Classroom.cs   ← + MaterialSections, MaterialSectionIndex, MaterialOcrSource
+│   │   │   ├── Academic/Classroom.cs ← + MaterialSections, MaterialSectionIndex, MaterialOcrSource
 │   │   │   ├── Academic/Message.cs
 │   │   │   ├── Billing/TokenEvent.cs
-│   │   │   └── ErrorLog.cs             ← Nuevo: public.error_logs
+│   │   │   └── ErrorLog.cs           ← public.error_logs
 │   │   └── Migrations/
 │   ├── Infrastructure/
-│   │   ├── ErrorLogService.cs          ← Nuevo
+│   │   ├── ErrorLogService.cs
 │   │   ├── ExchangeRateService.cs
 │   │   └── TelegramService.cs
 │   ├── Pages/
-│   │   ├── Index.cshtml                ← Landing
+│   │   ├── Index.cshtml              ← Landing
 │   │   ├── Login.cshtml
-│   │   ├── Blocked.cshtml              ← trial_expired / suspended / cancelled
-│   │   ├── Auth/Verify.cshtml          ← + guard subscription_status
-│   │   ├── Entrar.cshtml               ← + guard subscription_status
+│   │   ├── Blocked.cshtml
+│   │   ├── Auth/Verify.cshtml        ← guard subscription_status
+│   │   ├── Entrar.cshtml             ← guard subscription_status
 │   │   ├── Dashboard/Index.cshtml
 │   │   ├── Students/Edit.cshtml
-│   │   ├── Classroom/Index.cshtml      ← PDF drag&drop, mensajes animados, secciones, nav contextual
-│   │   ├── Admin/Index.cshtml          ← + monitor piloto + error log
-│   │   └── Shared/_Layout.cshtml       ← nav condicional classroom vs landing, logo JPG
+│   │   ├── Classroom/Index.cshtml
+│   │   ├── Admin/Index.cshtml
+│   │   └── Shared/_Layout.cshtml
 │   ├── wwwroot/
-│   │   ├── css/site.css                ← + drop-overlay, chat-attach-btn, upload-thinking, classroom-nav, tutor-thinking
-│   │   └── img/logo.jpg                ← Logo real
+│   │   ├── css/site.css
+│   │   └── img/logo.jpg
 │   └── Program.cs
+├── miTutoria.Inbox/                  ← (Track 2, por crear) class library: parser + entidades inbox
+├── tools/
+│   └── prompt-harness.ps1
+├── docs/
+│   └── classroom-mail-types.md       ← (Track 2, por crear) tabla de variantes parser
 ├── CHANGES.md
 ├── CONTEXT.md
 └── ROADMAP.md
@@ -251,22 +286,26 @@ mitutoria/
 | `PILOT_KR3_THRESHOLD` | Umbral semáforo KR3 (default: 5) |
 | `PILOT_KR4_THRESHOLD` | Umbral semáforo KR4 (default: 3) |
 | `ConnectionStrings__DefaultConnection` | PostgreSQL Railway |
+| `POSTMARK_INBOUND_TOKEN` | (Track 2) firma de webhook Postmark |
+| `INBOUND_DOMAIN` | (Track 2) `in.mitutoria.app` o `in-staging.mitutoria.app` |
 
 ---
 
 ## Backlog — ideas anotadas
-- [ ] Avatares personalizables tutor y alumno — galería fija emojis, sin upload, post-piloto
+- [ ] **Cobro / fiscalidad** — retomar en ~2 meses, roadmap específico
+- [ ] Avatares personalizables tutor y alumno — galería fija emojis, post-piloto
 - [ ] Logo en SVG (usar vectorizer.io con el JPG actual)
 - [ ] TTS y reconocimiento de voz (TDAH)
 - [ ] Materias → Temas → Secciones (jerarquía completa, V2)
 - [ ] Agenda con fechas de examen
 - [ ] Resumen de sesión para el padre
 - [ ] PWA — instalar como app desde el celular
-- [ ] Ambiente staging
-- [ ] Consentimiento parental explícito
 - [ ] Modo lectura padre en el aula
 - [ ] Alertas de inactividad en dashboard padre
+- [ ] Mochila — borrar/renombrar materia, ícono y orden manual
+- [ ] Calibración fina del modo Comprensión
+- [ ] Rotar API key de Anthropic (sin urgencia — no fue expuesta públicamente)
 
 ---
 
-*Actualizado al cierre de Sesión 15*
+*Actualizado al cierre de Sesión 16 — replanificación dual-track (Track 1 piloto + Track 2 inbox exploratorio)*

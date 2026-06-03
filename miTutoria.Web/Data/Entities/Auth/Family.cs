@@ -15,6 +15,9 @@ public class Family
     public string SubscriptionStatus { get; set; } = "waitlist";
     public DateTime? TrialEndsAt { get; set; }
     public DateTime? PaidUntil { get; set; }
+    public DateTime? ConsentAt { get; set; }
+    public string? ConsentIp { get; set; }
+    public string? ConsentVersion { get; set; }
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

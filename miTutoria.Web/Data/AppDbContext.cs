@@ -109,6 +109,18 @@ public class AppDbContext : DbContext
             .Property(f => f.PaidUntil)
             .HasColumnName("paid_until");
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.ConsentAt)
+            .HasColumnName("consent_at");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.ConsentIp)
+            .HasColumnName("consent_ip");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.ConsentVersion)
+            .HasColumnName("consent_version");
+
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();

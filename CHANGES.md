@@ -1,3 +1,24 @@
+## [Sesión 17] — 2026-06-03
+
+### feat — Consentimiento parental mínimo (condición legal de lanzamiento)
+- Nueva página `/Consentimiento` con texto honesto sobre qué datos se guardan y derechos Ley 25.326
+- Checkbox de aceptación explícito; guard en `/Auth/Verify`: si `consent_at` es null → redirige al consentimiento antes del dashboard
+- Persiste `consent_at` (UTC), `consent_ip` y `consent_version="v1"` en `auth.families`
+- Familias que ya tienen sesión activa no son interrumpidas; el guard sólo aplica en el primer acceso post-magic-link
+
+### feat — Invitación de familias desde /admin (sin TablePlus)
+- Formulario "Invitar familia" en `/admin`: ingresás el email, la app crea/activa la familia con `subscription_status='trial'` y `trial_ends_at=+30d`, genera magic link válido 48hs y envía el mail de invitación vía Resend
+- El mail de invitación tiene texto de bienvenida al piloto (distinto al magic link de login)
+- Resultado de la invitación (ok/error) se muestra inline en el admin
+
+### chore
+- Migración `20260603210000_AddConsentToFamily` — aplicar en TablePlus antes de push:
+  `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_at timestamptz;`
+  `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_ip text;`
+  `ALTER TABLE auth.families ADD COLUMN IF NOT EXISTS consent_version text;`
+
+---
+
 ## [Sesión 15] — 2026-06-02
 
 ### feat — Mochila: materias por alumno (Classroom = cuaderno de materia)

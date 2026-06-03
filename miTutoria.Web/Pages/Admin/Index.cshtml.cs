@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
+using miTutoria.Web.Data.Entities.Auth;
+using Resend;
 
 namespace miTutoria.Web.Pages.Admin;
 
@@ -9,11 +11,72 @@ public class IndexModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IResend _resend;
 
-    public IndexModel(AppDbContext db, IConfiguration config)
+    public IndexModel(AppDbContext db, IConfiguration config, IResend resend)
     {
         _db = db;
         _config = config;
+        _resend = resend;
+    }
+
+    // ── Invitación ───────────────────────────────────────────────────────────
+
+    [TempData] public string? InviteResult { get; set; }
+
+    public async Task<IActionResult> OnPostInviteAsync([FromQuery] string? token, string inviteEmail)
+    {
+        var adminToken = _config["ADMIN_TOKEN"];
+        if (string.IsNullOrWhiteSpace(adminToken) || token != adminToken)
+            return Unauthorized();
+
+        var email = inviteEmail?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            InviteResult = "error:El email es obligatorio.";
+            return RedirectToPage(new { token });
+        }
+
+        var family = await _db.Families.SingleOrDefaultAsync(f => f.Email == email);
+        if (family is null)
+        {
+            family = new Family { Email = email, Name = email };
+            _db.Families.Add(family);
+        }
+
+        family.SubscriptionStatus = "trial";
+        family.TrialEndsAt = DateTime.UtcNow.AddDays(30);
+        family.MagicToken = Guid.NewGuid().ToString("N");
+        family.MagicTokenExpiry = DateTime.UtcNow.AddHours(48);
+        await _db.SaveChangesAsync();
+
+        var baseUrl = _config["APP_BASE_URL"] ?? $"{Request.Scheme}://{Request.Host}";
+        var url = $"{baseUrl}/Auth/Verify?token={family.MagicToken}";
+        var message = new EmailMessage
+        {
+            From = _config["RESEND_FROM"] ?? "noreply@mitutoria.app",
+            Subject = "Tu acceso a miTutorIA — piloto cerrado",
+            HtmlBody = $"""
+                <p>Hola,</p>
+                <p>Te invitamos a ser parte del piloto cerrado de <strong>miTutorIA</strong>, un tutor digital con IA pensado para que tus hijos aprendan a pensar, no a copiar.</p>
+                <p>Hacé click acá para entrar (el link es válido por 48 horas):</p>
+                <p><a href="{url}" style="background:#1a1a1a;color:#fff;padding:.6rem 1.2rem;border-radius:6px;text-decoration:none;display:inline-block;">Entrar a miTutorIA</a></p>
+                <p style="margin-top:2rem;font-size:.85rem;color:#888;">Si no pediste esto, ignorá este mail.<br>miTutorIA · <a href="https://mitutoria.app">mitutoria.app</a></p>
+                """
+        };
+        message.To.Add(email);
+
+        try
+        {
+            await _resend.EmailSendAsync(message);
+            InviteResult = $"ok:Invitación enviada a {email}. Trial activo por 30 días.";
+        }
+        catch (Exception ex)
+        {
+            InviteResult = $"error:Error al enviar: {ex.Message}";
+        }
+
+        return RedirectToPage(new { token });
     }
 
     // ── Familias ─────────────────────────────────────────────────────────────
