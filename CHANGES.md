@@ -1,5 +1,18 @@
 ## [Sesión 17] — 2026-06-03
 
+### feat — landing: features de utilidad como argumento de venta
+- Nueva sección "No solo conversa. Lo pone a estudiar." entre "Cómo funciona" y la
+  cita de tensión, con 4 tarjetas: Estudia su material · Tarjetas de repaso ·
+  Simulacro de examen · Quiz rápido
+- Encuadre honesto y deliberado: "Estudia su material" NO dice "no usa internet"
+  (sería falso) — dice que se planta en la fotocopia/PDF de la clase y explica con
+  los mismos ejemplos que vio el alumno, no con una respuesta genérica de manual
+- Las tarjetas y simulacros se enmarcan como "estudio activo / ponerse a prueba",
+  nunca como "te lo resolvemos" — refuerza el diferencial en vez de diluirlo
+- Paso 02 del "Cómo funciona" ahora menciona subir el material de la clase
+- El demo público sigue siendo solo texto (el socratismo se demuestra; la utilidad se cuenta)
+
+
 ### feat — Consentimiento parental mínimo (condición legal de lanzamiento)
 - Nueva página `/Consentimiento` con texto honesto sobre qué datos se guardan y derechos Ley 25.326
 - Checkbox de aceptación explícito; guard en `/Auth/Verify`: si `consent_at` es null → redirige al consentimiento antes del dashboard
