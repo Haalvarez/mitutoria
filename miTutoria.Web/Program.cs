@@ -43,6 +43,7 @@ builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>(
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
 builder.Services.AddHostedService<miTutoria.Web.Infrastructure.PilotMonitorService>();
 builder.Services.AddScoped<miTutoria.Web.Infrastructure.ErrorLogService>();
+builder.Services.AddScoped<miTutoria.Web.Inbox.InboxProcessor>();
 builder.Services.Configure<ResendClientOptions>(o =>
 {
     o.ApiToken = builder.Configuration["RESEND_API_KEY"]
@@ -144,7 +145,7 @@ app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
 // Autenticado por token compartido (header X-Inbox-Token vs env INBOX_TOKEN).
 // NUNCA se gatea por flag: la recepción siempre entra; el procesamiento y la
 // visualización se gatean más adelante. Dedup por gmail_id.
-app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, AppDbContext db, IConfiguration cfg) =>
+app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, AppDbContext db, IConfiguration cfg, miTutoria.Web.Inbox.InboxProcessor processor) =>
 {
     var expected = cfg["INBOX_TOKEN"];
     if (string.IsNullOrEmpty(expected) ||
@@ -188,6 +189,10 @@ app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, Ap
     }
 
     if (saved > 0) await db.SaveChangesAsync();
+
+    // Procesamiento best-effort (gateado por flag). Si falla, la captura igual quedó OK.
+    try { await processor.ProcessPendingAsync(ctx.RequestAborted); } catch { /* se reintenta luego */ }
+
     return Results.Json(new { ok = true, saved, skipped });
 });
 
