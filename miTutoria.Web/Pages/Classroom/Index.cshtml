@@ -1,5 +1,6 @@
 @page "/Classroom/{studentId:int}"
 @model miTutoria.Web.Pages.Classroom.IndexModel
+@using miTutoria.Web.Inbox
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Aula · " + Model.StudentName;
@@ -62,6 +63,45 @@
                 </form>
             </details>
         </div>
+
+        @* ── Agenda del aula (Track 2, gateada por flag) ──────────────── *@
+        @if (Model.InboxEnabled)
+        {
+            <details class="sidebar-panel agenda-panel" open>
+                <summary>
+                    <span>📅 Agenda@(Model.Agenda.Count > 0 ? $" · {Model.Agenda.Count}" : "")</span>
+                </summary>
+                @if (Model.Agenda.Count == 0)
+                {
+                    <p class="sidebar-hint" style="margin:.4rem 0;">Sin novedades del aula todavía.</p>
+                }
+                else
+                {
+                    <ul class="agenda-list">
+                        @foreach (var a in Model.Agenda)
+                        {
+                            var icon = a.Type switch
+                            {
+                                ClassroomItemType.DueReminder  => "⏰",
+                                ClassroomItemType.Assignment   => "📝",
+                                ClassroomItemType.Material     => "📎",
+                                ClassroomItemType.Announcement => "📣",
+                                _                              => "•"
+                            };
+                            <li class="agenda-item@(a.Type == ClassroomItemType.DueReminder ? " agenda-item--due" : "")">
+                                <span class="agenda-item__icon">@icon</span>
+                                <div class="agenda-item__body">
+                                    <span class="agenda-item__title">@a.Title</span>
+                                    <span class="agenda-item__meta">
+                                        @a.CourseName@(string.IsNullOrEmpty(a.DueDateRaw) ? "" : $" · entrega {a.DueDateRaw}")
+                                    </span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </details>
+        }
 
         @if (!string.IsNullOrEmpty(Model.CompactSummary))
         {

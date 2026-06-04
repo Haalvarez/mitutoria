@@ -10,6 +10,7 @@ using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
+using miTutoria.Web.Inbox;
 using miTutoria.Web.Infrastructure;
 
 namespace miTutoria.Web.Pages.Classroom;
@@ -60,6 +61,12 @@ public class IndexModel : PageModel
 
     public record SectionInfo(string Title, string Content);
     public record SubjectInfo(int Id, string Name);
+
+    // Track 2: agenda de Classroom (gateada por flag).
+    public bool InboxEnabled { get; private set; }
+    public List<AgendaItem> Agenda { get; private set; } = new();
+    public record AgendaItem(ClassroomItemType Type, string Title, string CourseName,
+        int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher);
 
     [BindProperty]
     public new string Content { get; set; } = string.Empty;
@@ -134,6 +141,25 @@ public class IndexModel : PageModel
             .OrderBy(c => c.Name)
             .Select(c => new SubjectInfo(c.Id, c.Name))
             .ToListAsync();
+        // Track 2: agenda — solo si el kill-switch global y el flag de la familia están on.
+        if (_config.GetValue("INBOX_FEATURE_ENABLED", false))
+        {
+            var fam = await _dbContext.Families.FindAsync(student.FamilyId);
+            InboxEnabled = fam?.InboxEnabled ?? false;
+        }
+        if (InboxEnabled)
+        {
+            Agenda = await _dbContext.DetectedAssignments
+                .Where(d => d.StudentId == studentId)
+                .OrderBy(d => d.DueDate == null)
+                .ThenBy(d => d.DueDate)
+                .ThenByDescending(d => d.MessageDate)
+                .Take(30)
+                .Select(d => new AgendaItem(d.Type, d.Title, d.CourseName, d.ClassroomId,
+                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher))
+                .ToListAsync();
+        }
+
         Material = classroom.Material;
         CompactSummary = classroom.CompactSummary;
         CustomPrompt = classroom.SystemPrompt;
