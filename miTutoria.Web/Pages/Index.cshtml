@@ -5,6 +5,18 @@
     ViewData["Title"] = "miTutorIA — Aprendé con inteligencia";
 }
 
+<a href="#probalo" class="floating-demo" aria-label="Probalo en vivo">Probalo en vivo</a>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var fb = document.querySelector('.floating-demo');
+    var demo = document.getElementById('probalo');
+    if (!fb || !demo || !('IntersectionObserver' in window)) return;
+    new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ fb.classList.toggle('floating-demo--hidden', e.isIntersecting); });
+    }, { threshold: 0.15 }).observe(demo);
+});
+</script>
+
 <section class="hero">
     <div class="hero-watermark" aria-hidden="true">pensar</div>
 
@@ -51,44 +63,10 @@
 <section class="manifesto" id="manifiesto">
     <div class="manifesto-label">El problema real</div>
     <div class="manifesto-body reveal">
-        ChatGPT no es el problema.<br>
-        El problema es que nadie le enseñó cómo <em>usarlo para aprender.</em><br><br>
-        Sin una guía, la IA más poderosa del mundo<br>
-        se convierte en una máquina de atajos.<br>
-        Con <em>miTutorIA</em>, se convierte en un tutor que hace preguntas.
+        ChatGPT no es el problema. Pero sin una guía, la IA más poderosa del mundo se convierte en una máquina de atajos. Con <em>miTutorIA</em>, se convierte en un tutor que hace preguntas.
         <span class="aside">
-            Nació de una pregunta simple: ¿cómo ayudo a mis hijos con la tarea
-            sin hacerla por ellos? Lo que encontramos en el camino fue que
-            la IA puede ser un tutor paciente — no una máquina de respuestas.
+            Nació de una pregunta simple: ¿cómo ayudo a mis hijos con la tarea sin hacerla por ellos? La IA puede ser un tutor paciente — no una máquina de respuestas.
         </span>
-    </div>
-</section>
-
-<section class="features" id="para-quien">
-    <div class="features-header">
-        <h2>Por qué funciona diferente</h2>
-    </div>
-    <div class="features-scroll">
-        <div class="feat reveal">
-            <span class="feat-icon"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i></span>
-            <h3>Vos configurás el tutor</h3>
-            <p>Cada aula tiene su propio prompt. Vos definís el tono, el nivel de ayuda y qué tipo de preguntas responde — y cuáles no.</p>
-        </div>
-        <div class="feat reveal reveal-delay-1">
-            <span class="feat-icon"><i class="ti ti-eye" aria-hidden="true"></i></span>
-            <h3>Detecta la intención</h3>
-            <p>Hay diferencia entre "no entiendo fracciones" y "dame el resultado del ejercicio 4". El sistema las trata distinto.</p>
-        </div>
-        <div class="feat reveal reveal-delay-2">
-            <span class="feat-icon"><i class="ti ti-users" aria-hidden="true"></i></span>
-            <h3>Un perfil por hijo</h3>
-            <p>Cada chico aprende diferente. El tutor se adapta a la edad, el grado y el ritmo — sin importar cómo procesa la información.</p>
-        </div>
-        <div class="feat reveal reveal-delay-3">
-            <span class="feat-icon"><i class="ti ti-history" aria-hidden="true"></i></span>
-            <h3>Historial para padres</h3>
-            <p>Podés ver qué preguntaron, cómo respondió el tutor, y cuánto tiempo pasaron estudiando. Sin espiar — con contexto.</p>
-        </div>
     </div>
 </section>
 

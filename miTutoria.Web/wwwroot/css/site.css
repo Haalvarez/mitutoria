@@ -224,6 +224,27 @@ nav ul a:hover{color:var(--ink)}
   border-bottom-left-radius:2px;
 }
 .hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:1.3rem}
+
+/* Botón flotante persistente al demo */
+.floating-demo{
+  position:fixed;
+  right:0; top:50%;
+  transform:translateY(-50%);
+  z-index:400;
+  background:var(--rust);
+  color:#fff;
+  writing-mode:vertical-rl;
+  padding:1.1rem 0.5rem;
+  border-radius:6px 0 0 6px;
+  font-size:0.78rem; font-weight:600;
+  letter-spacing:0.08em; text-transform:uppercase;
+  text-decoration:none;
+  box-shadow:-2px 0 14px rgba(25,25,23,0.15);
+  transition:background 0.2s, padding-right 0.2s, opacity 0.3s ease, transform 0.3s ease;
+}
+.floating-demo:hover{ background:var(--ink); padding-right:0.9rem; }
+.floating-demo--hidden{ opacity:0; pointer-events:none; transform:translateY(-50%) translateX(110%); }
+@media(max-width:600px){ .floating-demo{ font-size:0.7rem; padding:0.8rem 0.4rem; } }
 .btn-main{
   background:var(--ink);
   color:var(--paper);
@@ -278,8 +299,8 @@ nav ul a:hover{color:var(--ink)}
   padding:6rem 3rem;
   border-top:1px solid var(--line);
   display:grid;
-  grid-template-columns:1fr 2fr;
-  gap:5rem;
+  grid-template-columns:180px minmax(0, 980px);
+  gap:3rem;
   align-items:start;
 }
 .manifesto-label{
@@ -292,9 +313,9 @@ nav ul a:hover{color:var(--ink)}
 }
 .manifesto-body{
   font-family:'Playfair Display',serif;
-  font-size:clamp(1.6rem,2.8vw,2.4rem);
+  font-size:clamp(1.4rem,2.4vw,2rem);
   font-weight:400;
-  line-height:1.45;
+  line-height:1.35;
   color:var(--ink);
 }
 .manifesto-body em{
@@ -390,7 +411,7 @@ nav ul a:hover{color:var(--ink)}
 
 /* ── HOW — ALTERNATING ── */
 .how{
-  padding:6rem 3rem;
+  padding:3rem 3rem;
   border-top:1px solid var(--line);
   background:var(--ink);
   color:var(--paper);
@@ -400,8 +421,8 @@ nav ul a:hover{color:var(--ink)}
   grid-template-columns:1fr 1fr;
   gap:4rem;
   align-items:baseline;
-  margin-bottom:4rem;
-  padding-bottom:3rem;
+  margin-bottom:2.5rem;
+  padding-bottom:2rem;
   border-bottom:1px solid rgba(247,243,236,0.1);
 }
 .how-header h2{
@@ -426,7 +447,7 @@ nav ul a:hover{color:var(--ink)}
   grid-template-columns:80px 1fr 1fr;
   gap:3rem;
   align-items:start;
-  padding:2.5rem 0;
+  padding:1.15rem 0;
   border-bottom:1px solid rgba(247,243,236,0.08);
   transition:background 0.2s;
 }
@@ -435,7 +456,7 @@ nav ul a:hover{color:var(--ink)}
 
 .step-n{
   font-family:'Playfair Display',serif;
-  font-size:3rem;
+  font-size:2.3rem;
   font-weight:900;
   color:rgba(247,243,236,0.12);
   line-height:1;
@@ -1501,7 +1522,7 @@ body.classroom-page { overflow: hidden; }
 
 /* Logo imagen */
 .nav-logo-img {
-  height: 44px;
+  height: 36px;
   width: auto;
   display: block;
   object-fit: contain;

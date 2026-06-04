@@ -31,7 +31,7 @@
         var tutorName   = ViewData["ClassroomTutorName"]?.ToString();
         var tutorAvatar = ViewData["ClassroomTutorAvatar"]?.ToString();
         <nav class="classroom-nav">
-            <a href="/Dashboard" class="classroom-nav__logo"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
+            <a href="/Dashboard" class="classroom-nav__logo"><img src="/img/logo-wordmark.png" alt="miTutorIA" class="nav-logo-img" /></a>
             @if (!string.IsNullOrEmpty(tutorName) || !string.IsNullOrEmpty(tutorAvatar))
             {
                 <span class="classroom-nav__tutor" style="display:inline-flex;align-items:center;gap:.35rem;font-size:.9rem;opacity:.85;">
@@ -46,7 +46,7 @@
     else if (Context.Session.GetInt32("FamilyId").HasValue)
     {
         <nav>
-            <a href="/Dashboard"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
+            <a href="/Dashboard"><img src="/img/logo-wordmark.png" alt="miTutorIA" class="nav-logo-img" /></a>
             <div class="nav-right">
                 <a href="/Dashboard" class="nav-btn-family">Inicio</a>
                 <a href="/Salir" class="nav-btn-student">Salir</a>
@@ -56,7 +56,7 @@
     else
     {
         <nav>
-            <a href="/"><img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" /></a>
+            <a href="/"><img src="/img/logo-wordmark.png" alt="miTutorIA" class="nav-logo-img" /></a>
             <div class="nav-right">
                 <a href="/Entrar" class="nav-btn-student">Soy estudiante</a>
                 <a href="/Login" class="nav-btn-family">Acceso familiar</a>
@@ -71,7 +71,7 @@
     @if (ViewData["BodyClass"]?.ToString() != "classroom-page")
     {
         <footer>
-            <img src="/img/logo.jpg" alt="miTutorIA" class="nav-logo-img" style="height:24px;" />
+            <img src="/img/logo-wordmark.png" alt="miTutorIA" class="nav-logo-img" style="height:24px;" />
             <span>mitutoria.app · Hecho en Argentina 🧉</span>
         </footer>
     }
