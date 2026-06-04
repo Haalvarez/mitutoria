@@ -182,10 +182,48 @@ nav ul a:hover{color:var(--ink)}
 }
 .hero-sub strong{color:var(--ink);font-weight:500}
 
-.hero-cta-block{display:flex;flex-direction:column;gap:.8rem;align-self:end}
+.hero-cta-block{display:flex;flex-direction:column;gap:1.1rem;align-self:end}
 .hero-cta-label{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dust);opacity:.6}
 .hero-cta-main{font-size:1.1rem;font-weight:300;line-height:1.6;color:var(--ink)}
 .hero-cta-main em{font-style:italic;color:var(--rust)}
+
+/* Réplica del chat del Aula en el hero */
+.hero-demo{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:1rem 1rem 1.1rem;
+  box-shadow:0 14px 34px rgba(25,25,23,0.07);
+  display:flex;flex-direction:column;gap:.55rem;
+  max-width:440px;
+}
+.hero-demo__head{
+  display:flex;align-items:center;gap:.45rem;
+  font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dust);
+  padding-bottom:.55rem;
+  border-bottom:1px solid var(--line);
+}
+.hero-demo__dot{width:7px;height:7px;border-radius:50%;background:var(--sage);flex:none}
+.hero-demo__msg{
+  font-size:.9rem;line-height:1.5;
+  padding:.6rem .8rem;border-radius:8px;max-width:90%;
+}
+.hero-demo__msg--user{
+  align-self:flex-end;
+  background:rgba(201,74,31,0.08);
+  border:1px solid rgba(201,74,31,0.18);
+  color:var(--ink);
+  border-bottom-right-radius:2px;
+}
+.hero-demo__msg--tutor{
+  align-self:flex-start;
+  background:var(--paper);
+  border:1px solid var(--line);
+  color:#444;
+  border-bottom-left-radius:2px;
+}
+.hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:1.3rem}
 .btn-main{
   background:var(--ink);
   color:var(--paper);
@@ -1294,8 +1332,9 @@ footer{
 /* ── Demo section ── */
 .demo-section {
   padding: 5rem 2rem;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
+  border-top: 1px solid var(--line);
 }
 
 .demo-header {
@@ -1312,7 +1351,7 @@ footer{
 
 .demo-subtitle {
   font-size: 1rem;
-  opacity: 0.7;
+  color: #555;
 }
 
 .demo-container {
@@ -1330,7 +1369,7 @@ footer{
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  opacity: 0.5;
+  color: var(--dust);
   margin-bottom: 0.65rem;
 }
 
@@ -1353,21 +1392,22 @@ footer{
 .demo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .demo-btn--honest {
-  background: rgba(92,122,94,0.25);
-  color: #9dc49f;
-  border: 1px solid rgba(92,122,94,0.4);
+  background: rgba(92,122,94,0.12);
+  color: #3f5a41;
+  border: 1px solid rgba(92,122,94,0.35);
 }
 
 .demo-btn--trap {
-  background: rgba(201,74,31,0.2);
-  color: #e8836a;
-  border: 1px solid rgba(201,74,31,0.35);
+  background: rgba(201,74,31,0.08);
+  color: var(--rust);
+  border: 1px solid rgba(201,74,31,0.3);
 }
 
 .demo-chat {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 3px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(25,25,23,0.07);
   padding: 1.25rem;
   min-height: 180px;
   max-height: 380px;
@@ -1387,22 +1427,25 @@ footer{
 }
 
 .demo-bubble--user {
-  background: rgba(201,74,31,0.2);
-  border-left: 3px solid #C94A1F;
+  background: rgba(201,74,31,0.08);
+  border: 1px solid rgba(201,74,31,0.18);
+  border-left: 3px solid var(--rust);
   align-self: flex-end;
 }
 
 .demo-bubble--assistant {
-  background: rgba(255,255,255,0.06);
-  border-left: 3px solid rgba(92,122,94,0.7);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sage);
   align-self: flex-start;
+  color: #444;
 }
 
 .demo-bubble p { margin: 0; }
 
 .demo-counter {
   font-size: 0.78rem;
-  opacity: 0.45;
+  color: var(--dust);
   text-align: right;
   margin-bottom: 0.75rem;
 }
@@ -1415,25 +1458,25 @@ footer{
 .demo-input-row input {
   flex: 1;
   padding: 0.7rem 1rem;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: #fff;
+  border: 1px solid var(--line);
   border-radius: 3px;
-  color: var(--paper);
+  color: var(--ink);
   font-family: inherit;
   font-size: 0.92rem;
 }
 
-.demo-input-row input::placeholder { opacity: 0.4; }
+.demo-input-row input::placeholder { color: var(--dust); }
 
 .demo-limit {
   text-align: center;
   padding: 1.5rem;
-  background: rgba(255,255,255,0.05);
-  border-radius: 3px;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(92,122,94,0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(92,122,94,0.25);
 }
 
-.demo-limit p { margin-bottom: 0.5rem; opacity: 0.85; }
+.demo-limit p { margin-bottom: 0.5rem; color: var(--ink); }
 
 .email-form {
   display: flex;
