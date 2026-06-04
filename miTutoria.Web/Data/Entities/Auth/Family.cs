@@ -23,6 +23,9 @@ public class Family
     public string? CostAlertMarker { get; set; }
     public string? RenewalAlertMarker { get; set; }
 
+    // Track 2: rollout de la agenda de Classroom, familia por familia (gatea UI + procesamiento)
+    public bool InboxEnabled { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

@@ -24,6 +24,10 @@ public class User
     // Login del alumno (generado por el padre)
     public string? StudentUsername { get; set; }
 
+    // Track 2: casilla del colegio del alumno (ej. ...@colegiosanramon.edu.ar).
+    // Mapea el "to" de los mails de Classroom a este alumno.
+    public string? ClassroomEmail { get; set; }
+
     // Perfil estudiante
     public SchoolLevel SchoolLevel { get; set; }
     public int? Grade { get; set; }

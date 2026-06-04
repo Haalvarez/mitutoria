@@ -152,6 +152,14 @@ public class AppDbContext : DbContext
             .Property(f => f.RenewalAlertMarker)
             .HasColumnName("renewal_alert_marker");
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.InboxEnabled)
+            .HasColumnName("inbox_enabled");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.ClassroomEmail)
+            .HasColumnName("classroom_email");
+
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();
