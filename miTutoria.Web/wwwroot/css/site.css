@@ -221,8 +221,12 @@ nav ul a:hover{color:var(--ink)}
   letter-spacing:0.1em;
   text-transform:uppercase;
   color:var(--dust);
+  text-decoration:none;
+  cursor:pointer;
+  transition:color .2s ease;
   animation:fadeIn 1s 0.8s ease both;
 }
+.scroll-hint:hover{color:var(--ink);}
 .scroll-arrow{
   width:20px;height:20px;
   border-right:1px solid var(--dust);
@@ -1454,7 +1458,7 @@ body.classroom-page { overflow: hidden; }
 
 /* Logo imagen */
 .nav-logo-img {
-  height: 32px;
+  height: 44px;
   width: auto;
   display: block;
   object-fit: contain;
