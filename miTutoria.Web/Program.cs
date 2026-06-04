@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
+using miTutoria.Web.Data.Entities.Inbox;
 using Resend;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -137,6 +138,57 @@ app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
     {
         return Results.Json(new { reply = $"Error en el demo: {ex.Message}" });
     }
+});
+
+// ── Track 2: webhook receptor de Classroom (Apps Script) ──────────────────
+// Autenticado por token compartido (header X-Inbox-Token vs env INBOX_TOKEN).
+// NUNCA se gatea por flag: la recepción siempre entra; el procesamiento y la
+// visualización se gatean más adelante. Dedup por gmail_id.
+app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, AppDbContext db, IConfiguration cfg) =>
+{
+    var expected = cfg["INBOX_TOKEN"];
+    if (string.IsNullOrEmpty(expected) ||
+        ctx.Request.Headers["X-Inbox-Token"].ToString() != expected)
+        return Results.StatusCode(401);
+
+    if (body.ValueKind != JsonValueKind.Object ||
+        !body.TryGetProperty("items", out var items) ||
+        items.ValueKind != JsonValueKind.Array)
+        return Results.BadRequest(new { error = "missing items array" });
+
+    var source = body.TryGetProperty("source", out var src) ? src.GetString() ?? "" : "";
+    int saved = 0, skipped = 0;
+
+    foreach (var it in items.EnumerateArray())
+    {
+        var gmailId = it.TryGetProperty("gmailId", out var g) ? g.GetString() : null;
+        if (string.IsNullOrEmpty(gmailId)) { skipped++; continue; }
+        if (await db.InboxMessagesRaw.AnyAsync(x => x.GmailId == gmailId)) { skipped++; continue; }
+
+        var msgDate = DateTime.UtcNow;
+        if (it.TryGetProperty("date", out var d) && d.GetString() is string ds &&
+            DateTime.TryParse(ds, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AdjustToUniversal |
+                System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed))
+            msgDate = parsed;
+
+        db.InboxMessagesRaw.Add(new InboxMessageRaw
+        {
+            Source      = source,
+            GmailId     = gmailId,
+            MessageDate = msgDate,
+            ToAddress   = it.TryGetProperty("to", out var t) ? t.GetString() ?? "" : "",
+            FromAddress = it.TryGetProperty("from", out var f) ? f.GetString() ?? "" : "",
+            Subject     = it.TryGetProperty("subject", out var s) ? s.GetString() ?? "" : "",
+            PlainBody   = it.TryGetProperty("plainBody", out var p) ? p.GetString() ?? "" : "",
+            ReceivedAt  = DateTime.UtcNow,
+            Processed   = false
+        });
+        saved++;
+    }
+
+    if (saved > 0) await db.SaveChangesAsync();
+    return Results.Json(new { ok = true, saved, skipped });
 });
 
 app.Run();

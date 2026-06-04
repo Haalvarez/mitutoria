@@ -3,6 +3,7 @@ using miTutoria.Web.Data.Entities;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
+using miTutoria.Web.Data.Entities.Inbox;
 
 namespace miTutoria.Web.Data;
 
@@ -19,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<TokenEvent> TokenEvents => Set<TokenEvent>();
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
+    public DbSet<InboxMessageRaw> InboxMessagesRaw => Set<InboxMessageRaw>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -153,5 +155,19 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)
             .HasConversion<string>();
+
+        // ── Track 2: Inbox (captura de Classroom vía Apps Script) ──
+        modelBuilder.Entity<InboxMessageRaw>().ToTable("inbox_messages_raw", "inbox");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.Source).HasColumnName("source");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.GmailId).HasColumnName("gmail_id");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.MessageDate).HasColumnName("message_date");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.ToAddress).HasColumnName("to_address");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.FromAddress).HasColumnName("from_address");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.Subject).HasColumnName("subject");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.PlainBody).HasColumnName("plain_body");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.ReceivedAt).HasColumnName("received_at");
+        modelBuilder.Entity<InboxMessageRaw>().Property(x => x.Processed).HasColumnName("processed");
+        modelBuilder.Entity<InboxMessageRaw>().HasIndex(x => x.GmailId).IsUnique();
     }
 }
