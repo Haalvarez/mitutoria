@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<WaitlistEntry> WaitlistEntries => Set<WaitlistEntry>();
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
     public DbSet<InboxMessageRaw> InboxMessagesRaw => Set<InboxMessageRaw>();
+    public DbSet<DetectedAssignment> DetectedAssignments => Set<DetectedAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -177,5 +178,22 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<InboxMessageRaw>().Property(x => x.ReceivedAt).HasColumnName("received_at");
         modelBuilder.Entity<InboxMessageRaw>().Property(x => x.Processed).HasColumnName("processed");
         modelBuilder.Entity<InboxMessageRaw>().HasIndex(x => x.GmailId).IsUnique();
+
+        modelBuilder.Entity<DetectedAssignment>().ToTable("detected_assignments", "inbox");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.StudentId).HasColumnName("student_id");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.ClassroomId).HasColumnName("classroom_id");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Type).HasColumnName("type").HasConversion<string>();
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Title).HasColumnName("title");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.CourseName).HasColumnName("course_name");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Teacher).HasColumnName("teacher");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Description).HasColumnName("description");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.DueDateRaw).HasColumnName("due_date_raw");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.DueDate).HasColumnName("due_date");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.CourseId).HasColumnName("course_id");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.ItemId).HasColumnName("item_id");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.MessageDate).HasColumnName("message_date");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.DetectedAt).HasColumnName("detected_at");
+        modelBuilder.Entity<DetectedAssignment>().HasIndex(x => x.StudentId);
     }
 }
