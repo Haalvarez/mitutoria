@@ -64,6 +64,7 @@ public class IndexModel : PageModel
 
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
+    public bool StudentHasAdhd { get; private set; }   // modo foco por defecto para la agenda
     public List<AgendaItem> Agenda { get; private set; } = new();
     public List<AgendaItem> UrgentAgenda { get; private set; } = new();
     public record AgendaItem(int Id, ClassroomItemType Type, string Title, string CourseName,
@@ -131,6 +132,7 @@ public class IndexModel : PageModel
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
         StudentAvatar = student.Avatar;
+        StudentHasAdhd = student.HasAdhd;
         TutorName = student.TutorName;
         TutorAvatar = student.TutorAvatar;
 
@@ -431,6 +433,9 @@ public class IndexModel : PageModel
         if (clearMaterial)
         {
             classroom.Material = null;
+            classroom.MaterialSections = null;       // también limpiar las secciones del PDF
+            classroom.MaterialSectionIndex = 0;
+            classroom.MaterialOcrSource = null;
         }
         else if (pdfFile is { Length: > 0 })
         {
@@ -656,6 +661,23 @@ public class IndexModel : PageModel
         da.DoneAt = da.Done ? DateTime.UtcNow : null;
         await _dbContext.SaveChangesAsync();
         return new JsonResult(new { done = da.Done });
+    }
+
+    // ── POST: marcar todos los anuncios/materiales como leídos ───────────────
+
+    public async Task<IActionResult> OnPostMarkAnnouncementsReadAsync(int studentId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
+
+        var anns = await _dbContext.DetectedAssignments
+            .Where(d => d.StudentId == studentId && !d.Done &&
+                        (d.Type == ClassroomItemType.Material || d.Type == ClassroomItemType.Announcement))
+            .ToListAsync();
+        foreach (var a in anns) { a.Done = true; a.DoneAt = DateTime.UtcNow; }
+        await _dbContext.SaveChangesAsync();
+
+        return RedirectToPage(new { studentId });
     }
 
     // ── POST: "prioridad de hoy" (agente breve, protege la atención) ─────────

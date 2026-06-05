@@ -1737,6 +1737,16 @@ body.classroom-page { overflow: hidden; }
 .agenda-item__meta { font-size: .72rem; color: var(--dust); line-height: 1.3; }
 .agenda-disclaimer { font-size: .68rem; color: var(--dust); line-height: 1.35; padding: .2rem 1rem .6rem; opacity: .85; }
 .agenda-check { background: none; border: none; cursor: pointer; font-size: .9rem; line-height: 1.2; padding: 0; flex: none; color: var(--sage); }
+.agenda-group { border-top: 1px solid var(--line); }
+.agenda-group:first-of-type { border-top: none; }
+.agenda-group__title { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--dust); padding: .5rem 1rem .1rem; }
+.agenda-group__title--red { color: var(--rust); }
+.agenda-group__title--yellow { color: #b07d12; }
+.agenda-group__title--info { cursor: pointer; }
+details.agenda-anuncios > summary { list-style: none; }
+details.agenda-anuncios > summary::-webkit-details-marker { display: none; }
+details.agenda-anuncios > summary::after { content: ' ›'; color: var(--dust); }
+details.agenda-anuncios[open] > summary::after { content: ' ⌄'; }
 .agenda-item--done { opacity: .5; }
 .agenda-item--done .agenda-item__title { text-decoration: line-through; }
 

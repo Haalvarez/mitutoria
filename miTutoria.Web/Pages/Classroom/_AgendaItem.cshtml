@@ -1,0 +1,17 @@
+@using miTutoria.Web.Inbox
+@model miTutoria.Web.Pages.Classroom.IndexModel.AgendaItem
+<li class="agenda-item@(Model.Done ? " agenda-item--done" : "")">
+    <button type="button" class="agenda-check" title="Marcar como hecho" onclick="toggleAgenda(@Model.Id, this)">@(Model.Done ? "✅" : "○")</button>
+    <span class="agenda-item__icon">@(Model.Type switch
+    {
+        ClassroomItemType.DueReminder => "⏰",
+        ClassroomItemType.Assignment => "📝",
+        ClassroomItemType.Material => "📎",
+        ClassroomItemType.Announcement => "📣",
+        _ => "•"
+    })</span>
+    <div class="agenda-item__body">
+        <span class="agenda-item__title">@Model.Title</span>
+        <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")</span>
+    </div>
+</li>

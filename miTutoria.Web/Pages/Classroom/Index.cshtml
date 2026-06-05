@@ -81,29 +81,57 @@
                 }
                 else
                 {
-                    <ul class="agenda-list">
-                        @foreach (var a in Model.Agenda)
-                        {
-                            var icon = a.Type switch
-                            {
-                                ClassroomItemType.DueReminder  => "⏰",
-                                ClassroomItemType.Assignment   => "📝",
-                                ClassroomItemType.Material     => "📎",
-                                ClassroomItemType.Announcement => "📣",
-                                _                              => "•"
-                            };
-                            <li class="agenda-item@(a.Done ? " agenda-item--done" : (a.Type == ClassroomItemType.DueReminder ? " agenda-item--due" : ""))">
-                                <button type="button" class="agenda-check" title="Marcar como hecho" onclick="toggleAgenda(@a.Id, this)">@(a.Done ? "✅" : "○")</button>
-                                <span class="agenda-item__icon">@icon</span>
-                                <div class="agenda-item__body">
-                                    <span class="agenda-item__title">@a.Title</span>
-                                    <span class="agenda-item__meta">
-                                        @a.CourseName@(string.IsNullOrEmpty(a.DueDateRaw) ? "" : $" · entrega {a.DueDateRaw}")
-                                    </span>
-                                </div>
-                            </li>
-                        }
-                    </ul>
+                    var today = DateTime.UtcNow.Date;
+                    Func<IndexModel.AgendaItem, bool> isTask = a =>
+                        a.Type == ClassroomItemType.Assignment || a.Type == ClassroomItemType.DueReminder;
+                    var overdue  = Model.Agenda.Where(a => !a.Done && isTask(a) && a.DueDate.HasValue && a.DueDate.Value.Date <= today).ToList();
+                    var upcoming = Model.Agenda.Where(a => !a.Done && isTask(a) && (!a.DueDate.HasValue || a.DueDate.Value.Date > today)).ToList();
+                    var anuncios = Model.Agenda.Where(a => !a.Done && !isTask(a)).ToList();
+
+                    if (overdue.Count > 0)
+                    {
+                        <div class="agenda-group">
+                            <div class="agenda-group__title agenda-group__title--red">🔴 Vencido / hoy</div>
+                            <ul class="agenda-list">
+                                @foreach (var a in overdue)
+                                {
+                                    <partial name="_AgendaItem" model="a" />
+                                }
+                            </ul>
+                        </div>
+                    }
+                    if (upcoming.Count > 0)
+                    {
+                        <div class="agenda-group">
+                            <div class="agenda-group__title agenda-group__title--yellow">📌 Próximas entregas</div>
+                            <ul class="agenda-list">
+                                @foreach (var a in upcoming)
+                                {
+                                    <partial name="_AgendaItem" model="a" />
+                                }
+                            </ul>
+                        </div>
+                    }
+                    if (overdue.Count == 0 && upcoming.Count == 0)
+                    {
+                        <p class="sidebar-hint" style="margin:.4rem 1rem;">Sin entregas pendientes. 🎉</p>
+                    }
+                    if (anuncios.Count > 0)
+                    {
+                        <details class="agenda-group agenda-anuncios"@(Model.StudentHasAdhd ? "" : " open")>
+                            <summary class="agenda-group__title agenda-group__title--info">📨 Anuncios · @anuncios.Count</summary>
+                            <form method="post" asp-page-handler="MarkAnnouncementsRead" style="margin:.3rem 1rem;">
+                                <input type="hidden" name="studentId" value="@Model.StudentId" />
+                                <button type="submit" class="btn-secondary btn-sm">Marcar todos leídos</button>
+                            </form>
+                            <ul class="agenda-list">
+                                @foreach (var a in anuncios)
+                                {
+                                    <partial name="_AgendaItem" model="a" />
+                                }
+                            </ul>
+                        </details>
+                    }
                 }
                 <p class="agenda-disclaimer">⚠️ Lectura automática del aula — puede fallar. Confirmá siempre en Classroom.</p>
             </details>
@@ -177,40 +205,13 @@
                     placeholder="@(Model.Sections.Count > 0 ? "Nota de la profe, ejercicio puntual..." : "Enunciado, apunte, fotocopia...")">@(Model.Sections.Count > 0 ? string.Empty : Model.Material)</textarea>
                 <div class="sidebar-form-actions">
                     <button type="submit" class="btn-main btn-sm">Guardar</button>
-                    @if (!string.IsNullOrEmpty(Model.Material) && Model.Sections.Count == 0)
+                    @if (!string.IsNullOrEmpty(Model.Material) || Model.Sections.Count > 0)
                     {
                         <button type="submit" name="ClearMaterial" value="true" class="btn-secondary btn-sm">Borrar</button>
                     }
                 </div>
             </form>
         </details>
-
-        @* ── Calendario por fecha (Track 2) — abajo en la mochila ────── *@
-        @{
-            var dated = Model.Agenda.Where(a => a.DueDate.HasValue).OrderBy(a => a.DueDate).ToList();
-        }
-        @if (Model.InboxEnabled && dated.Count > 0)
-        {
-            <details class="sidebar-panel" open>
-                <summary><span>📆 Calendario</span></summary>
-                <div class="cal-mini">
-                    @foreach (var g in dated.GroupBy(a => a.DueDate!.Value.Date).OrderBy(gr => gr.Key))
-                    {
-                        <div class="cal-mini__day">
-                            <div class="cal-mini__date">@g.Key.ToString("dd/MM")</div>
-                            <div class="cal-mini__items">
-                                @foreach (var a in g)
-                                {
-                                    <div class="cal-mini__item@(a.Done ? " cal-mini__item--done" : "")">
-                                        @a.Title <span class="cal-mini__course">@a.CourseName</span>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            </details>
-        }
 
         @if (!ViewData.ModelState.IsValid)
         {
