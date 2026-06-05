@@ -71,6 +71,10 @@
                 <summary>
                     <span>📅 Agenda@(Model.Agenda.Count > 0 ? $" · {Model.Agenda.Count}" : "")</span>
                 </summary>
+                @if (Model.Agenda.Count > 0)
+                {
+                    <button type="button" class="btn-main btn-sm" style="margin:.4rem 1rem;" onclick="priorityToday()">📋 Mis prioridades de hoy</button>
+                }
                 @if (Model.Agenda.Count == 0)
                 {
                     <p class="sidebar-hint" style="margin:.4rem 0;">Sin novedades del aula todavía.</p>
@@ -498,6 +502,27 @@ async function toggleAgenda(id, btn) {
         btn.textContent = data.done ? '✅' : '○';
         if (li) { li.classList.toggle('agenda-item--done', data.done); if (data.done) li.classList.remove('agenda-item--due'); }
     } catch {}
+}
+
+// Agenda: "prioridad de hoy" — el agente escribe un resumen corto en el chat
+async function priorityToday() {
+    messagesEl.querySelector('.empty-state')?.remove();
+    typing.style.display = 'flex';
+    scrollBottom();
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=PriorityToday`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId })
+        });
+        typing.style.display = 'none';
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        addBubble(data.reply || data.error || 'No pude armar las prioridades.', 'assistant');
+    } catch {
+        typing.style.display = 'none';
+        addBubble('Error al armar las prioridades. Probá de nuevo.', 'assistant');
+    }
 }
 
 async function toolbarAction(handler, label) {

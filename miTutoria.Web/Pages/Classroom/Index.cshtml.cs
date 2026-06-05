@@ -658,6 +658,56 @@ public class IndexModel : PageModel
         return new JsonResult(new { done = da.Done });
     }
 
+    // ── POST: "prioridad de hoy" (agente breve, protege la atención) ─────────
+
+    public async Task<IActionResult> OnPostPriorityTodayAsync(int studentId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var pending = await _dbContext.DetectedAssignments
+            .Where(d => d.StudentId == studentId && !d.Done)
+            .OrderBy(d => d.DueDate == null).ThenBy(d => d.DueDate).ThenByDescending(d => d.MessageDate)
+            .Take(10).ToListAsync();
+
+        var name = student.Nickname ?? student.FullName;
+        if (pending.Count == 0)
+            return new JsonResult(new { reply = $"¡Estás al día, {name}! No tenés tareas pendientes del aula. 🎉" });
+
+        var lines = pending.Select(d =>
+        {
+            var fecha = d.DueDateRaw ?? d.DueDate?.ToString("dd/MM");
+            return $"- {d.Title} ({d.CourseName}{(string.IsNullOrEmpty(fecha) ? "" : $", entrega {fecha}")})";
+        }).ToList();
+
+        const string system = """
+            Sos el tutor de miTutorIA. Le organizás al estudiante sus prioridades del aula, BREVE y claro.
+            Español rioplatense, cálido. Máximo 3-4 líneas, tono de chat (no listas largas ni texto de apunte).
+            Empezá por lo más urgente (lo que vence antes): UNA prioridad clara primero, después el resto en una línea.
+            No inventes tareas: usá solo las que te paso. Cerrá con un empujón corto y amable.
+            """;
+        var userMsg = $"Tareas pendientes de {name} (por urgencia):\n" + string.Join("\n", lines) +
+                      "\n\nArmale el mensaje con la prioridad de hoy.";
+        try
+        {
+            var (reply, tIn, tOut) = await CallClaudeRawAsync(system, userMsg, maxTokens: 300);
+            var arsRate = await _exchangeRate.GetMepRateAsync();
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = student.FamilyId, UserId = student.Id, TokensIn = tIn, TokensOut = tOut,
+                ModelUsed = ClaudeModel, Feature = "priority",
+                CostUsd = tIn * CostPerInputToken + tOut * CostPerOutputToken, ArsRate = arsRate
+            });
+            await _dbContext.SaveChangesAsync();
+            return new JsonResult(new { reply });
+        }
+        catch (Exception ex)
+        {
+            await _errorLog.LogAsync("PriorityToday", ex, $"studentId={studentId}");
+            return new JsonResult(new { reply = "Tus pendientes:\n" + string.Join("\n", lines) });
+        }
+    }
+
     // ── POST: avanzar / retroceder sección ──────────────────────────────────
 
     public async Task<IActionResult> OnPostAdvanceSectionAsync(int studentId, string direction)
