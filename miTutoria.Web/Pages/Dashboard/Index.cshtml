@@ -1,5 +1,6 @@
 @page "/Dashboard"
 @model miTutoria.Web.Pages.Dashboard.IndexModel
+@using miTutoria.Web.Inbox
 @{
     Layout = "_Layout";
     ViewData["Title"] = "Inicio";
@@ -44,6 +45,33 @@
         <div class="dashboard-highlight" style="background:#f3f6f1;border-left:3px solid #5C7A5E;padding:.8rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;">
             ✨ @(studiedTodayCount == 1 ? "Uno de tus hijos ya estudió hoy" : $"{studiedTodayCount} de tus hijos ya estudiaron hoy"). ¡Buen comienzo!
         </div>
+    }
+
+    @* ── Calendario del aula (Track 2, gateado) ── *@
+    @if (Model.InboxEnabled && Model.Calendar.Count > 0)
+    {
+        <section class="dash-calendar">
+            <h2 class="dash-calendar__title">📅 Calendario del aula <span class="dim">— próximas entregas</span></h2>
+            <div class="dash-calendar__list">
+                @foreach (var g in Model.Calendar.Where(e => e.DueDate.HasValue)
+                                        .GroupBy(e => e.DueDate!.Value.Date).OrderBy(g => g.Key))
+                {
+                    <div class="dash-cal-day">
+                        <div class="dash-cal-day__date">@g.Key.ToString("dd/MM")</div>
+                        <div class="dash-cal-day__events">
+                            @foreach (var e in g)
+                            {
+                                <div class="dash-cal-event">
+                                    <strong>@e.Title</strong>
+                                    <span class="dim">@e.CourseName · @e.StudentName</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            <p class="dash-calendar__note">Lectura automática de Classroom — puede fallar. Confirmá en la app del colegio.</p>
+        </section>
     }
 
     @* ── Estado de suscripción ── *@

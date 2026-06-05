@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
+using miTutoria.Web.Inbox;
 
 namespace miTutoria.Web.Pages.Dashboard;
 
@@ -26,11 +27,19 @@ public class StudentSummary
 public class IndexModel : PageModel
 {
     private readonly AppDbContext _dbContext;
+    private readonly IConfiguration _config;
 
-    public IndexModel(AppDbContext dbContext)
+    public IndexModel(AppDbContext dbContext, IConfiguration config)
     {
         _dbContext = dbContext;
+        _config = config;
     }
+
+    // Track 2: calendario del aula (próximas entregas de todos los hijos).
+    public bool InboxEnabled { get; private set; }
+    public List<CalendarEvent> Calendar { get; private set; } = new();
+    public record CalendarEvent(string StudentName, ClassroomItemType Type, string Title,
+        string CourseName, DateTime? DueDate, string? DueDateRaw, bool Done);
 
     public string FamilyName { get; private set; } = string.Empty;
     public string SubscriptionStatus { get; private set; } = "trial";
@@ -120,6 +129,22 @@ public class IndexModel : PageModel
                     .ToDictionary(g => g.Key, g => g.Count()),
                 Last15Days         = last15
             });
+        }
+
+        // Track 2: calendario de próximas entregas (gateado por flag global + familia).
+        if (_config.GetValue("INBOX_FEATURE_ENABLED", false) && family.InboxEnabled)
+        {
+            InboxEnabled = true;
+            var since = now.Date.AddDays(-3);
+            var nameById = Students.ToDictionary(s => s.Id, s => s.Nickname ?? s.FullName);
+            var upcoming = await _dbContext.DetectedAssignments
+                .Where(d => studentIds.Contains(d.StudentId) && d.DueDate != null && d.DueDate >= since && !d.Done)
+                .OrderBy(d => d.DueDate)
+                .Take(40)
+                .ToListAsync();
+            Calendar = upcoming.Select(d => new CalendarEvent(
+                nameById.TryGetValue(d.StudentId, out var n) ? n : "—",
+                d.Type, d.Title, d.CourseName, d.DueDate, d.DueDateRaw, d.Done)).ToList();
         }
 
         BuildChartJson();

@@ -1748,6 +1748,18 @@ body.classroom-page { overflow: hidden; }
 .aula-banner__close { background: none; border: none; cursor: pointer; color: var(--dust); font-size: .9rem; flex: none; }
 .aula-banner__close:hover { color: var(--ink); }
 
+/* Track 2: calendario del aula en el dashboard del padre */
+.dash-calendar { margin: 1.5rem 0; }
+.dash-calendar__title { font-size: 1.05rem; margin-bottom: .6rem; }
+.dash-calendar__title .dim { font-size: .8rem; font-weight: 400; color: var(--dust); }
+.dash-calendar__list { display: flex; flex-direction: column; gap: .5rem; }
+.dash-cal-day { display: grid; grid-template-columns: 70px 1fr; gap: .8rem; align-items: start; padding: .55rem .8rem; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.dash-cal-day__date { font-weight: 600; font-size: .85rem; color: var(--rust); }
+.dash-cal-day__events { display: flex; flex-direction: column; gap: .3rem; }
+.dash-cal-event { font-size: .88rem; }
+.dash-cal-event .dim { color: var(--dust); font-size: .78rem; margin-left: .4rem; }
+.dash-calendar__note { font-size: .72rem; color: var(--dust); margin-top: .5rem; }
+
 /* ── Mochila: selector de materia ── */
 .sidebar-mochila {
   padding: 0.75rem 1rem;
