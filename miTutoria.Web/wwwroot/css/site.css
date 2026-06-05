@@ -1760,6 +1760,15 @@ body.classroom-page { overflow: hidden; }
 .dash-cal-event .dim { color: var(--dust); font-size: .78rem; margin-left: .4rem; }
 .dash-calendar__note { font-size: .72rem; color: var(--dust); margin-top: .5rem; }
 
+/* Track 2: mini-calendario en el sidebar del alumno */
+.cal-mini { padding: .25rem 1rem .7rem; display: flex; flex-direction: column; gap: .45rem; }
+.cal-mini__day { display: grid; grid-template-columns: 48px 1fr; gap: .5rem; align-items: start; }
+.cal-mini__date { font-size: .78rem; font-weight: 700; color: var(--rust); padding-top: .05rem; }
+.cal-mini__items { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.cal-mini__item { font-size: .8rem; line-height: 1.25; }
+.cal-mini__item--done { opacity: .5; text-decoration: line-through; }
+.cal-mini__course { display: block; font-size: .7rem; color: var(--dust); }
+
 /* ── Mochila: selector de materia ── */
 .sidebar-mochila {
   padding: 0.75rem 1rem;

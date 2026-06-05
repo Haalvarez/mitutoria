@@ -185,6 +185,33 @@
             </form>
         </details>
 
+        @* ── Calendario por fecha (Track 2) — abajo en la mochila ────── *@
+        @{
+            var dated = Model.Agenda.Where(a => a.DueDate.HasValue).OrderBy(a => a.DueDate).ToList();
+        }
+        @if (Model.InboxEnabled && dated.Count > 0)
+        {
+            <details class="sidebar-panel" open>
+                <summary><span>📆 Calendario</span></summary>
+                <div class="cal-mini">
+                    @foreach (var g in dated.GroupBy(a => a.DueDate!.Value.Date).OrderBy(gr => gr.Key))
+                    {
+                        <div class="cal-mini__day">
+                            <div class="cal-mini__date">@g.Key.ToString("dd/MM")</div>
+                            <div class="cal-mini__items">
+                                @foreach (var a in g)
+                                {
+                                    <div class="cal-mini__item@(a.Done ? " cal-mini__item--done" : "")">
+                                        @a.Title <span class="cal-mini__course">@a.CourseName</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </details>
+        }
+
         @if (!ViewData.ModelState.IsValid)
         {
             <div class="form-errors" style="margin-top:auto;">
