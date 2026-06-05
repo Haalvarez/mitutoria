@@ -1740,6 +1740,14 @@ body.classroom-page { overflow: hidden; }
 .agenda-item--done { opacity: .5; }
 .agenda-item--done .agenda-item__title { text-decoration: line-through; }
 
+/* Track 2: banner urgente arriba del chat */
+.aula-banner { display: flex; align-items: center; gap: .6rem; padding: .6rem 1rem; background: rgba(201,74,31,0.10); border-bottom: 1px solid rgba(201,74,31,0.25); color: var(--ink); font-size: .85rem; }
+.aula-banner__icon { flex: none; }
+.aula-banner__text { flex: 1; min-width: 0; }
+.aula-banner__text strong { color: var(--rust); margin-right: .3rem; }
+.aula-banner__close { background: none; border: none; cursor: pointer; color: var(--dust); font-size: .9rem; flex: none; }
+.aula-banner__close:hover { color: var(--ink); }
+
 /* ── Mochila: selector de materia ── */
 .sidebar-mochila {
   padding: 0.75rem 1rem;

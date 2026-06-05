@@ -193,6 +193,19 @@
 
     @* ── CHAT ─────────────────────────────────────────────────────── *@
     <div class="classroom-chat" id="classroom-chat">
+        @if (Model.UrgentAgenda.Count > 0)
+        {
+            <div class="aula-banner" id="aula-banner">
+                <span class="aula-banner__icon">⏰</span>
+                <div class="aula-banner__text">
+                    <strong>Para entregar pronto:</strong>
+                    @string.Join(" · ", Model.UrgentAgenda.Select(u =>
+                        u.Title + (string.IsNullOrEmpty(u.DueDateRaw) ? "" : $" ({u.DueDateRaw})")))
+                </div>
+                <button type="button" class="aula-banner__close" title="Cerrar"
+                        onclick="this.parentElement.style.display='none'">✕</button>
+            </div>
+        }
         <div id="drop-overlay" class="drop-overlay" style="display:none;">
             <div class="drop-overlay__inner">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

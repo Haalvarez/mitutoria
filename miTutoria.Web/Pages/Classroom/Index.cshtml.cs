@@ -65,6 +65,7 @@ public class IndexModel : PageModel
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
     public List<AgendaItem> Agenda { get; private set; } = new();
+    public List<AgendaItem> UrgentAgenda { get; private set; } = new();
     public record AgendaItem(int Id, ClassroomItemType Type, string Title, string CourseName,
         int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher, bool Done);
 
@@ -159,6 +160,13 @@ public class IndexModel : PageModel
                 .Select(d => new AgendaItem(d.Id, d.Type, d.Title, d.CourseName, d.ClassroomId,
                     d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done))
                 .ToListAsync();
+
+            // Urgente para el banner: vence en ≤1 día (o ya marcado "entrega mañana"), sin hacer.
+            var tomorrow = DateTime.UtcNow.Date.AddDays(1);
+            UrgentAgenda = Agenda
+                .Where(a => !a.Done && (a.Type == ClassroomItemType.DueReminder ||
+                                        (a.DueDate.HasValue && a.DueDate.Value.Date <= tomorrow)))
+                .Take(3).ToList();
         }
 
         Material = classroom.Material;
