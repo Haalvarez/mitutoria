@@ -16,6 +16,7 @@ public class PilotMonitorService : BackgroundService
     private readonly TelegramService _telegram;
     private readonly IConfiguration _config;
     private readonly ILogger<PilotMonitorService> _logger;
+    private readonly SchedulerHeartbeat _heartbeat;
 
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
 
@@ -23,12 +24,14 @@ public class PilotMonitorService : BackgroundService
         IServiceScopeFactory scopeFactory,
         TelegramService telegram,
         IConfiguration config,
-        ILogger<PilotMonitorService> logger)
+        ILogger<PilotMonitorService> logger,
+        SchedulerHeartbeat heartbeat)
     {
         _scopeFactory = scopeFactory;
         _telegram = telegram;
         _config = config;
         _logger = logger;
+        _heartbeat = heartbeat;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,6 +44,8 @@ public class PilotMonitorService : BackgroundService
         {
             try { await RunChecksAsync(stoppingToken); }
             catch (Exception ex) { _logger.LogWarning(ex, "PilotMonitor: fallo en el chequeo periódico"); }
+
+            _heartbeat.Mark(); // latido: el ciclo corrió (vivo), para el health-check del admin
 
             try { await Task.Delay(Interval, stoppingToken); }
             catch (TaskCanceledException) { break; }

@@ -12,13 +12,19 @@ public class IndexModel : PageModel
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly IResend _resend;
+    private readonly miTutoria.Web.Infrastructure.SchedulerHeartbeat _heartbeat;
 
-    public IndexModel(AppDbContext db, IConfiguration config, IResend resend)
+    public IndexModel(AppDbContext db, IConfiguration config, IResend resend,
+        miTutoria.Web.Infrastructure.SchedulerHeartbeat heartbeat)
     {
         _db = db;
         _config = config;
         _resend = resend;
+        _heartbeat = heartbeat;
     }
+
+    // Health-check del scheduler (robot cada 6h).
+    public DateTime? SchedulerLastRun { get; private set; }
 
     // ── Invitación ───────────────────────────────────────────────────────────
 
@@ -155,6 +161,8 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnGetAsync([FromQuery] string? token)
     {
         if (!IsAuthorized(token)) return Unauthorized();
+
+        SchedulerLastRun = _heartbeat.LastRunUtc;
 
         var now          = DateTime.UtcNow;
         var weekStart    = now.Date.AddDays(-6);

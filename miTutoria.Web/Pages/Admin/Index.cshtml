@@ -97,12 +97,29 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
         <div class="card__label">Waitlist</div>
         <div class="card__value">@Model.Waitlist.Count</div>
     </div>
+    @{
+        var robotLast = Model.SchedulerLastRun;
+        var robotMins = robotLast.HasValue ? (DateTime.UtcNow - robotLast.Value).TotalMinutes : (double?)null;
+        var (robotLight, robotText) = robotMins switch
+        {
+            null                 => ("⚪", "esperando 1ª corrida"),
+            < 420                => ("🟢", "OK"),          // < 7h (6h + 1h de gracia)
+            _                    => ("🔴", "sin latido")
+        };
+        string robotAgo = robotMins switch
+        {
+            null      => "—",
+            < 60      => $"hace {(int)robotMins.Value}m",
+            < 1440    => $"hace {(int)(robotMins.Value / 60)}h",
+            _         => $"hace {(int)(robotMins.Value / 1440)}d"
+        };
+    }
     <div class="card">
-        <div class="card__label">Saldo / recarga
-            <span class="help" title="Anthropic NO expone el saldo por API. El saldo y la recarga automática se manejan en console.anthropic.com → Billing. Configurá ahí el alerta de uso a nivel organización.">ⓘ</span>
+        <div class="card__label">Robot (cada 6h)
+            <span class="help" title="Health-check del scheduler (PilotMonitorService): alertas de costo/renovación a Telegram. 🟢 corrió hace menos de 7h · 🔴 sin latido (se colgó o no arranca) · ⚪ esperando la 1ª corrida tras un deploy (~2 min).">ⓘ</span>
         </div>
-        <div class="card__value" style="font-size:.95rem;color:#888;">en Console</div>
-        <div class="card__sub">anthropic.com → Billing</div>
+        <div class="card__value">@robotLight @robotText</div>
+        <div class="card__sub">última: @robotAgo</div>
     </div>
 </div>
 
