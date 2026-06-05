@@ -31,6 +31,7 @@ public class EditModel : PageModel
     [BindProperty] public string? Nickname { get; set; }
     [BindProperty] public Gender Gender { get; set; }
     [BindProperty] public string? Interests { get; set; }
+    [BindProperty] public string? ClassroomEmail { get; set; }
     [BindProperty] public string? Avatar { get; set; }
     [BindProperty] public string? TutorName { get; set; }
     [BindProperty] public string? TutorAvatar { get; set; }
@@ -84,6 +85,7 @@ public class EditModel : PageModel
         student.Nickname = string.IsNullOrWhiteSpace(Nickname) ? null : Nickname.Trim();
         student.Gender = Gender;
         student.Interests = string.IsNullOrWhiteSpace(Interests) ? null : Interests.Trim();
+        student.ClassroomEmail = string.IsNullOrWhiteSpace(ClassroomEmail) ? null : ClassroomEmail.Trim().ToLowerInvariant();
         student.Avatar = string.IsNullOrWhiteSpace(Avatar) ? null : Avatar.Trim();
         student.TutorName = string.IsNullOrWhiteSpace(TutorName) ? null : TutorName.Trim();
         student.TutorAvatar = string.IsNullOrWhiteSpace(TutorAvatar) ? null : TutorAvatar.Trim();
@@ -250,6 +252,7 @@ public class EditModel : PageModel
         Nickname = student.Nickname;
         Gender = student.Gender;
         Interests = student.Interests;
+        ClassroomEmail = student.ClassroomEmail;
         Avatar = student.Avatar;
         TutorName = student.TutorName;
         TutorAvatar = student.TutorAvatar;
