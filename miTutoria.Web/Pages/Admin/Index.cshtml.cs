@@ -84,7 +84,7 @@ public class IndexModel : PageModel
         int Students, int Exchanges7d, decimal CostUsd30d,
         DateTime? LastActivity, DateTime? AccessEndsAt,
         bool NearLimit, bool Inactive7Days, bool NoMaterial,
-        bool Active, bool Cooling);
+        bool Active, bool Cooling, bool InboxEnabled);
 
     public List<FamilyRow> Families { get; private set; } = [];
 
@@ -203,7 +203,8 @@ public class IndexModel : PageModel
                 Inactive7Days: isPilot && lastActivity.HasValue && (now - lastActivity.Value).TotalDays > 7,
                 NoMaterial: isPilot && noMaterial,
                 Active: isPilot && active,
-                Cooling: isPilot && cooling
+                Cooling: isPilot && cooling,
+                InboxEnabled: f.InboxEnabled
             );
         })
         .OrderByDescending(f => f.CostUsd30d)   // money-first: el más caro arriba
@@ -269,6 +270,21 @@ public class IndexModel : PageModel
         ProjectionUsdMonth = dayOfMonth > 0 ? TotalCostUsdMonth / dayOfMonth * daysInMonth : TotalCostUsdMonth;
 
         return Page();
+    }
+
+    // ── Toggle de la Agenda de Classroom (Track 2) por familia ───────────────────
+
+    public async Task<IActionResult> OnPostToggleInboxAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var family = await _db.Families.FindAsync(id);
+        if (family is not null)
+        {
+            family.InboxEnabled = !family.InboxEnabled;
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToPage(new { token });
     }
 
     // ── Detalle de familia (modal ajax) ─────────────────────────────────────────

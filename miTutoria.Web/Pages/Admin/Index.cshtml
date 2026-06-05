@@ -203,7 +203,15 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
                 @if (f.NoMaterial)    { <span class="chip chip--risk" title="Un hijo sin material cargado.">📄</span> }
                 @if (notConsented)    { <span class="chip chip--risk" title="Falta aceptar el consentimiento.">⏳</span> }
             </td>
-            <td><button class="btn-mini" onclick="showDetail(@f.Id)">Ver</button></td>
+            <td style="white-space:nowrap;">
+                <button class="btn-mini" onclick="showDetail(@f.Id)">Ver</button>
+                <form method="post" asp-page-handler="ToggleInbox" asp-route-token="@token" style="display:inline;margin:0;">
+                    <input type="hidden" name="id" value="@f.Id" />
+                    <button type="submit" class="btn-mini" title="Activar/desactivar la Agenda de Classroom para esta familia">
+                        @(f.InboxEnabled ? "📅 ON" : "📅 off")
+                    </button>
+                </form>
+            </td>
         </tr>
     }
     </tbody>
