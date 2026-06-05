@@ -88,7 +88,8 @@
                                 ClassroomItemType.Announcement => "📣",
                                 _                              => "•"
                             };
-                            <li class="agenda-item@(a.Type == ClassroomItemType.DueReminder ? " agenda-item--due" : "")">
+                            <li class="agenda-item@(a.Done ? " agenda-item--done" : (a.Type == ClassroomItemType.DueReminder ? " agenda-item--due" : ""))">
+                                <button type="button" class="agenda-check" title="Marcar como hecho" onclick="toggleAgenda(@a.Id, this)">@(a.Done ? "✅" : "○")</button>
                                 <span class="agenda-item__icon">@icon</span>
                                 <div class="agenda-item__body">
                                     <span class="agenda-item__title">@a.Title</span>
@@ -469,6 +470,22 @@ const btnExam  = document.getElementById('btn-exam');
 let isExamMode = @(Model.IsExamMode ? "true" : "false");
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+// Agenda: marcar tarea como hecha (el ✓ que da el micro-logro)
+async function toggleAgenda(id, btn) {
+    const li = btn.closest('.agenda-item');
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=ToggleAgendaDone`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId, id })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        btn.textContent = data.done ? '✅' : '○';
+        if (li) { li.classList.toggle('agenda-item--done', data.done); if (data.done) li.classList.remove('agenda-item--due'); }
+    } catch {}
+}
 
 async function toolbarAction(handler, label) {
     btnQuiz.disabled = btnCards.disabled = btnExam.disabled = true;

@@ -1736,6 +1736,9 @@ body.classroom-page { overflow: hidden; }
 .agenda-item__title { font-size: .82rem; font-weight: 600; line-height: 1.25; color: var(--ink); }
 .agenda-item__meta { font-size: .72rem; color: var(--dust); line-height: 1.3; }
 .agenda-disclaimer { font-size: .68rem; color: var(--dust); line-height: 1.35; padding: .2rem 1rem .6rem; opacity: .85; }
+.agenda-check { background: none; border: none; cursor: pointer; font-size: .9rem; line-height: 1.2; padding: 0; flex: none; color: var(--sage); }
+.agenda-item--done { opacity: .5; }
+.agenda-item--done .agenda-item__title { text-decoration: line-through; }
 
 /* ── Mochila: selector de materia ── */
 .sidebar-mochila {

@@ -65,8 +65,8 @@ public class IndexModel : PageModel
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
     public List<AgendaItem> Agenda { get; private set; } = new();
-    public record AgendaItem(ClassroomItemType Type, string Title, string CourseName,
-        int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher);
+    public record AgendaItem(int Id, ClassroomItemType Type, string Title, string CourseName,
+        int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher, bool Done);
 
     [BindProperty]
     public new string Content { get; set; } = string.Empty;
@@ -151,12 +151,13 @@ public class IndexModel : PageModel
         {
             Agenda = await _dbContext.DetectedAssignments
                 .Where(d => d.StudentId == studentId)
-                .OrderBy(d => d.DueDate == null)
+                .OrderBy(d => d.Done)                 // pendientes arriba
+                .ThenBy(d => d.DueDate == null)       // con fecha primero
                 .ThenBy(d => d.DueDate)
                 .ThenByDescending(d => d.MessageDate)
-                .Take(30)
-                .Select(d => new AgendaItem(d.Type, d.Title, d.CourseName, d.ClassroomId,
-                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher))
+                .Take(40)
+                .Select(d => new AgendaItem(d.Id, d.Type, d.Title, d.CourseName, d.ClassroomId,
+                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done))
                 .ToListAsync();
         }
 
@@ -630,6 +631,23 @@ public class IndexModel : PageModel
             HttpContext.Session.SetInt32($"ActiveClassroom_{studentId}", classroom.Id);
         }
         return RedirectToPage(new { studentId });
+    }
+
+    // ── POST: marcar tarea de la agenda como hecha / pendiente ───────────────
+
+    public async Task<IActionResult> OnPostToggleAgendaDoneAsync(int studentId, int id)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        var da = await _dbContext.DetectedAssignments
+            .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == studentId);
+        if (da is null) return new JsonResult(new { error = "not-found" }) { StatusCode = 404 };
+
+        da.Done = !da.Done;
+        da.DoneAt = da.Done ? DateTime.UtcNow : null;
+        await _dbContext.SaveChangesAsync();
+        return new JsonResult(new { done = da.Done });
     }
 
     // ── POST: avanzar / retroceder sección ──────────────────────────────────

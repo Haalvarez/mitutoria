@@ -194,6 +194,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.ItemId).HasColumnName("item_id");
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.MessageDate).HasColumnName("message_date");
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.DetectedAt).HasColumnName("detected_at");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.Done).HasColumnName("done");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.DoneAt).HasColumnName("done_at");
         modelBuilder.Entity<DetectedAssignment>().HasIndex(x => x.StudentId);
     }
 }
