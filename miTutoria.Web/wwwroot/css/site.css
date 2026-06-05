@@ -1747,6 +1747,12 @@ details.agenda-anuncios > summary { list-style: none; }
 details.agenda-anuncios > summary::-webkit-details-marker { display: none; }
 details.agenda-anuncios > summary::after { content: ' ›'; color: var(--dust); }
 details.agenda-anuncios[open] > summary::after { content: ' ⌄'; }
+.agenda-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .4rem 1rem .2rem; }
+.agenda-mode-btn { background: rgba(92,122,94,0.12); border: 1px solid rgba(92,122,94,0.3); color: #3f5a41; border-radius: 4px; font-size: .76rem; padding: .28rem .6rem; cursor: pointer; }
+.agenda-mode-btn:hover { background: rgba(92,122,94,0.2); }
+/* Modo foco: solo lo urgente */
+body.focus-mode .agenda-group--upcoming,
+body.focus-mode .agenda-anuncios { display: none; }
 .agenda-item--done { opacity: .5; }
 .agenda-item--done .agenda-item__title { text-decoration: line-through; }
 

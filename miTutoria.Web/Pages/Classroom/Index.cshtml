@@ -73,7 +73,11 @@
                 </summary>
                 @if (Model.Agenda.Count > 0)
                 {
-                    <button type="button" class="btn-main btn-sm" style="margin:.4rem 1rem;" onclick="priorityToday()">📋 Mis prioridades de hoy</button>
+                    <div class="agenda-toolbar">
+                        <button type="button" id="focus-toggle" class="agenda-mode-btn"
+                                data-adhd="@(Model.StudentHasAdhd ? "1" : "0")" onclick="toggleFocusMode(this)">🎯 Modo foco</button>
+                        <button type="button" class="btn-main btn-sm" onclick="priorityToday()">📋 Mis prioridades</button>
+                    </div>
                 }
                 @if (Model.Agenda.Count == 0)
                 {
@@ -102,7 +106,7 @@
                     }
                     if (upcoming.Count > 0)
                     {
-                        <div class="agenda-group">
+                        <div class="agenda-group agenda-group--upcoming">
                             <div class="agenda-group__title agenda-group__title--yellow">📌 Próximas entregas</div>
                             <ul class="agenda-list">
                                 @foreach (var a in upcoming)
@@ -552,6 +556,24 @@ async function priorityToday() {
         addBubble('Error al armar las prioridades. Probá de nuevo.', 'assistant');
     }
 }
+
+// Modo Foco: en Foco se ve solo Vencido/Hoy; oculta próximas + anuncios. Default ON si TDAH.
+function applyFocusMode(on, btn) {
+    document.body.classList.toggle('focus-mode', on);
+    if (btn) btn.textContent = on ? '📋 Ver todo' : '🎯 Modo foco';
+}
+function toggleFocusMode(btn) {
+    const on = !document.body.classList.contains('focus-mode');
+    localStorage.setItem('mt_focus', on ? '1' : '0');
+    applyFocusMode(on, btn);
+}
+(function () {
+    const btn = document.getElementById('focus-toggle');
+    if (!btn) return;
+    const stored = localStorage.getItem('mt_focus');
+    const on = stored === null ? (btn.dataset.adhd === '1') : (stored === '1');
+    applyFocusMode(on, btn);
+})();
 
 async function toolbarAction(handler, label) {
     btnQuiz.disabled = btnCards.disabled = btnExam.disabled = true;
