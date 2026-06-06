@@ -543,49 +543,8 @@ public class IndexModel : PageModel
         return RedirectToPage(new { studentId });
     }
 
-    // ── POST: compactar historial ────────────────────────────────────────────
-
-    public async Task<IActionResult> OnPostCompactAsync(int studentId)
-    {
-        var student = await ResolveStudentAsync(studentId);
-        if (student is null) return RedirectToPage("/Login");
-
-        var active = await GetActiveClassroomAsync(studentId);
-        var classroom = await _dbContext.Classrooms
-            .Include(c => c.Messages)
-            .SingleOrDefaultAsync(c => c.Id == active.Id);
-
-        if (classroom is null || classroom.Messages.Count == 0)
-            return RedirectToPage(new { studentId });
-
-        try
-        {
-            var history = classroom.Messages.OrderBy(m => m.CreatedAt).ToList();
-            var (summary, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "compact");
-            var arsRate = await _exchangeRate.GetMepRateAsync();
-
-            classroom.CompactSummary = summary;
-            _dbContext.Messages.RemoveRange(classroom.Messages);
-            _dbContext.TokenEvents.Add(new TokenEvent
-            {
-                FamilyId = student.FamilyId,
-                UserId = student.Id,
-                TokensIn = tokensIn,
-                TokensOut = tokensOut,
-                ModelUsed = ClaudeModel,
-                Feature = "compact",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
-                ArsRate = arsRate
-            });
-            await _dbContext.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            ModelState.AddModelError(string.Empty, $"Error al compactar: {ex.Message}");
-        }
-
-        return RedirectToPage(new { studentId });
-    }
+    // (La compactación de historial pasó a ser automática: ConversationCompactor,
+    //  disparado por el scheduler para conversaciones largas e inactivas. Sin botón.)
 
     // ── POST: nueva sesión (borrar todo) ─────────────────────────────────────
 

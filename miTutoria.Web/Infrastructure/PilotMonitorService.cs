@@ -17,6 +17,7 @@ public class PilotMonitorService : BackgroundService
     private readonly IConfiguration _config;
     private readonly ILogger<PilotMonitorService> _logger;
     private readonly SchedulerHeartbeat _heartbeat;
+    private readonly ConversationCompactor _compactor;
 
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
 
@@ -25,13 +26,15 @@ public class PilotMonitorService : BackgroundService
         TelegramService telegram,
         IConfiguration config,
         ILogger<PilotMonitorService> logger,
-        SchedulerHeartbeat heartbeat)
+        SchedulerHeartbeat heartbeat,
+        ConversationCompactor compactor)
     {
         _scopeFactory = scopeFactory;
         _telegram = telegram;
         _config = config;
         _logger = logger;
         _heartbeat = heartbeat;
+        _compactor = compactor;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -97,6 +100,17 @@ public class PilotMonitorService : BackgroundService
             }
 
             if (changed) await db.SaveChangesAsync(ct);
+        }
+
+        // Compactación automática de conversaciones largas e inactivas (invisible al alumno).
+        try
+        {
+            var n = await _compactor.RunAsync(db, ct);
+            if (n > 0) _logger.LogInformation("Compactor: compactó {Count} conversación(es)", n);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Compactor: fallo en la pasada de compactación");
         }
     }
 }

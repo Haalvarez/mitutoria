@@ -46,6 +46,7 @@ builder.Services.AddHttpClient("mercadopago", client =>
 });
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.MercadoPagoService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
+builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ConversationCompactor>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.SchedulerHeartbeat>();
 builder.Services.AddHostedService<miTutoria.Web.Infrastructure.PilotMonitorService>();
