@@ -39,6 +39,12 @@ builder.Services.AddHttpClient("dolarapi", client =>
     client.BaseAddress = new Uri("https://dolarapi.com");
     client.Timeout = TimeSpan.FromSeconds(5);
 });
+builder.Services.AddHttpClient("mercadopago", client =>
+{
+    client.BaseAddress = new Uri("https://api.mercadopago.com");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+builder.Services.AddSingleton<miTutoria.Web.Infrastructure.MercadoPagoService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.SchedulerHeartbeat>();
@@ -195,6 +201,169 @@ app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, Ap
     try { await processor.ProcessPendingAsync(ctx.RequestAborted); } catch { /* se reintenta luego */ }
 
     return Results.Json(new { ok = true, saved, skipped });
+});
+
+// ── Cobro: circuito de pago de la cuota mensual (MercadoPago Checkout Pro) ──
+// El init_point de MP es la página de pago con QR + tarjeta + transferencia.
+// Gateado por MP_ENABLED. Ciclo anclado en PaidUntil/TrialEndsAt (igual que el scheduler).
+
+// Helper local: ancla del ciclo de la familia → marker yyyy-MM-dd.
+static string CycleMarkerFor(miTutoria.Web.Data.Entities.Auth.Family fam) =>
+    (fam.PaidUntil ?? fam.TrialEndsAt)?.ToString("yyyy-MM-dd") ?? "trial";
+
+// Crea (o reusa) la preference de la familia logueada y guarda el registro pendiente.
+static async Task<(string? initPoint, string? error)> StartPaymentAsync(
+    HttpContext ctx, AppDbContext db, IConfiguration cfg,
+    miTutoria.Web.Infrastructure.MercadoPagoService mp)
+{
+    var familyId = ctx.Session.GetInt32("FamilyId");
+    if (familyId is null) return (null, "login");
+    if (!mp.IsEnabled) return (null, "disabled");
+
+    var family = await db.Families.FindAsync(familyId.Value);
+    if (family is null) return (null, "login");
+
+    var baseUrl = cfg["APP_BASE_URL"] ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+    var marker = CycleMarkerFor(family);
+
+    var pref = await mp.CreatePreferenceAsync(family.Id, family.Email, marker, baseUrl, ctx.RequestAborted);
+    if (pref is null) return (null, "mp");
+
+    db.Payments.Add(new miTutoria.Web.Data.Entities.Billing.Payment
+    {
+        FamilyId     = family.Id,
+        PreferenceId = pref.PreferenceId,
+        CycleMarker  = marker,
+        AmountArs    = mp.CuotaArs,
+        Status       = "pending"
+    });
+    await db.SaveChangesAsync(ctx.RequestAborted);
+
+    return (pref.InitPoint, null);
+}
+
+// Botón "Quiero pagar" → genera el link y redirige a la página de pago de MP.
+app.MapGet("/api/pay/start", async (HttpContext ctx, AppDbContext db, IConfiguration cfg,
+    miTutoria.Web.Infrastructure.MercadoPagoService mp) =>
+{
+    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp);
+    if (error == "login") return Results.Redirect("/Login");
+    if (initPoint is null) return Results.Redirect("/Dashboard?pago=error");
+    return Results.Redirect(initPoint);
+});
+
+// "Enviármelo al correo" → manda el mismo link de pago al mail registrado de la familia.
+app.MapGet("/api/pay/email", async (HttpContext ctx, AppDbContext db, IConfiguration cfg,
+    miTutoria.Web.Infrastructure.MercadoPagoService mp, IResend resend) =>
+{
+    var familyId = ctx.Session.GetInt32("FamilyId");
+    if (familyId is null) return Results.Redirect("/Login");
+
+    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp);
+    if (initPoint is null) return Results.Redirect("/Dashboard?pago=error");
+
+    var family = await db.Families.FindAsync(familyId.Value);
+    if (family is null || string.IsNullOrWhiteSpace(family.Email))
+        return Results.Redirect("/Dashboard?pago=error");
+
+    var msg = new EmailMessage
+    {
+        From = cfg["RESEND_FROM"] ?? "noreply@mitutoria.app",
+        Subject = "Tu link de pago — miTutorIA",
+        HtmlBody = $"""
+            <p>Hola,</p>
+            <p>Acá tenés el link para pagar tu suscripción mensual de <strong>miTutorIA</strong>.
+            Podés pagar con tarjeta, débito, dinero en cuenta o transferencia, y también escanear el QR desde la página.</p>
+            <p><a href="{initPoint}" style="background:#C94A1F;color:#fff;padding:.7rem 1.4rem;border-radius:6px;text-decoration:none;display:inline-block;">Pagar mi suscripción</a></p>
+            <p style="margin-top:2rem;font-size:.85rem;color:#888;">Si no pediste esto, ignorá este mail.<br>miTutorIA · <a href="https://mitutoria.app">mitutoria.app</a></p>
+            """
+    };
+    msg.To.Add(family.Email);
+    try { await resend.EmailSendAsync(msg); }
+    catch { return Results.Redirect("/Dashboard?pago=error"); }
+
+    return Results.Redirect("/Dashboard?pago=mail");
+});
+
+// Webhook de MercadoPago: notifica un pago → confirmamos el estado real y, si está
+// aprobado, extendemos el acceso de la familia (PaidUntil += 1 mes) y reseteamos markers.
+// Idempotente por mp_payment_id. Responde 200 siempre (MP reintenta si no).
+app.MapPost("/api/pay/webhook", async (HttpContext ctx, AppDbContext db,
+    miTutoria.Web.Infrastructure.MercadoPagoService mp) =>
+{
+    // MP manda el id en ?data.id= / ?id= según el formato; el topic en ?type= / ?topic=.
+    string? paymentId =
+        ctx.Request.Query["data.id"].FirstOrDefault() ??
+        ctx.Request.Query["id"].FirstOrDefault();
+    var topic =
+        ctx.Request.Query["type"].FirstOrDefault() ??
+        ctx.Request.Query["topic"].FirstOrDefault();
+
+    // Algunas notificaciones traen el cuerpo JSON en vez de query.
+    if (string.IsNullOrEmpty(paymentId) &&
+        ctx.Request.HasJsonContentType())
+    {
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted);
+            var r = doc.RootElement;
+            if (r.TryGetProperty("data", out var data) && data.TryGetProperty("id", out var did))
+                paymentId = did.GetString() ?? did.GetRawText().Trim('"');
+            if (topic is null && r.TryGetProperty("type", out var ty)) topic = ty.GetString();
+        }
+        catch { /* ignorar cuerpos no-JSON */ }
+    }
+
+    if (topic is not null && topic != "payment") return Results.Ok();
+    if (string.IsNullOrEmpty(paymentId)) return Results.Ok();
+
+    var info = await mp.GetPaymentAsync(paymentId, ctx.RequestAborted);
+    if (info is null) return Results.Ok();
+
+    // Idempotencia: si ya procesamos este pago aprobado, salir.
+    var already = await db.Payments.FirstOrDefaultAsync(
+        p => p.MpPaymentId == info.Id, ctx.RequestAborted);
+    if (already is not null && already.Status == "approved") return Results.Ok();
+
+    // external_reference = "familyId:cycleMarker"
+    var refParts = (info.ExternalReference ?? "").Split(':', 2);
+    if (!int.TryParse(refParts[0], out var familyId)) return Results.Ok();
+    var cycleMarker = refParts.Length > 1 ? refParts[1] : null;
+
+    // Enlazamos el pago al registro pendiente de esa familia/ciclo (o creamos uno).
+    var record = already
+        ?? await db.Payments.FirstOrDefaultAsync(
+            p => p.FamilyId == familyId && p.CycleMarker == cycleMarker && p.Status == "pending",
+            ctx.RequestAborted)
+        ?? new miTutoria.Web.Data.Entities.Billing.Payment
+        {
+            FamilyId = familyId, CycleMarker = cycleMarker, AmountArs = info.Amount
+        };
+    if (record.Id == 0) db.Payments.Add(record);
+
+    record.MpPaymentId = info.Id;
+    record.Status = info.Status;
+    if (info.Amount > 0) record.AmountArs = info.Amount;
+
+    if (info.Status == "approved")
+    {
+        record.PaidAt = DateTime.UtcNow;
+        var family = await db.Families.FindAsync(familyId);
+        if (family is not null)
+        {
+            // Extiende desde el vencimiento vigente si está en el futuro, si no desde hoy.
+            var anchor = family.PaidUntil ?? family.TrialEndsAt;
+            var from = anchor.HasValue && anchor.Value > DateTime.UtcNow ? anchor.Value : DateTime.UtcNow;
+            family.PaidUntil = from.AddMonths(1);
+            family.SubscriptionStatus = "active";
+            // Reseteamos los markers para que el scheduler vuelva a avisar el próximo ciclo.
+            family.CostAlertMarker = null;
+            family.RenewalAlertMarker = null;
+        }
+    }
+
+    await db.SaveChangesAsync(ctx.RequestAborted);
+    return Results.Ok();
 });
 
 app.Run();

@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
     public DbSet<ErrorLog> ErrorLogs => Set<ErrorLog>();
     public DbSet<InboxMessageRaw> InboxMessagesRaw => Set<InboxMessageRaw>();
     public DbSet<DetectedAssignment> DetectedAssignments => Set<DetectedAssignment>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -197,5 +198,19 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.Done).HasColumnName("done");
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.DoneAt).HasColumnName("done_at");
         modelBuilder.Entity<DetectedAssignment>().HasIndex(x => x.StudentId);
+
+        // ── Cobro: pagos de la cuota mensual (MercadoPago Checkout Pro) ──
+        modelBuilder.Entity<Payment>().ToTable("payments", "billing");
+        modelBuilder.Entity<Payment>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<Payment>().Property(x => x.FamilyId).HasColumnName("family_id");
+        modelBuilder.Entity<Payment>().Property(x => x.PreferenceId).HasColumnName("preference_id");
+        modelBuilder.Entity<Payment>().Property(x => x.MpPaymentId).HasColumnName("mp_payment_id");
+        modelBuilder.Entity<Payment>().Property(x => x.CycleMarker).HasColumnName("cycle_marker");
+        modelBuilder.Entity<Payment>().Property(x => x.AmountArs).HasColumnName("amount_ars");
+        modelBuilder.Entity<Payment>().Property(x => x.Status).HasColumnName("status");
+        modelBuilder.Entity<Payment>().Property(x => x.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<Payment>().Property(x => x.PaidAt).HasColumnName("paid_at");
+        modelBuilder.Entity<Payment>().HasIndex(x => x.MpPaymentId);
+        modelBuilder.Entity<Payment>().HasIndex(x => x.FamilyId);
     }
 }

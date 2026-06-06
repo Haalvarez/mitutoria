@@ -103,13 +103,39 @@
                 </div>
             }
         </div>
-        @* El pago se habilita al activar el cobro (MercadoPago). El botón generará el link por familia. *@
-        <button type="button" class="btn-main" disabled
-                title="Disponible pronto — vas a poder pagar tu suscripción desde acá"
-                style="opacity:.45;cursor:not-allowed;">
-            Quiero pagar
-        </button>
+        @* El pago se habilita al activar el cobro (MercadoPago). El link/QR se genera por familia. *@
+        @if (Model.MpEnabled)
+        {
+            <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+                <a href="/api/pay/start" class="btn-main" style="text-decoration:none;">Quiero pagar</a>
+                <a href="/api/pay/email" style="font-size:.85rem;color:#4A7CA0;text-decoration:none;"
+                   title="Te mandamos el link de pago al correo registrado">Enviármelo al correo</a>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="btn-main" disabled
+                    title="Disponible pronto — vas a poder pagar tu suscripción desde acá"
+                    style="opacity:.45;cursor:not-allowed;">
+                Quiero pagar
+            </button>
+        }
     </section>
+
+    @* Feedback del retorno de MercadoPago *@
+    @if (!string.IsNullOrEmpty(Model.PagoResult))
+    {
+        var (pagoMsg, pagoColor) = Model.PagoResult switch
+        {
+            "ok"        => ("¡Listo! Recibimos tu pago. Tu suscripción se renovó.", "#5C7A5E"),
+            "mail"      => ("Te enviamos el link de pago a tu correo registrado.", "#4A7CA0"),
+            "pendiente" => ("Tu pago quedó pendiente de acreditación. Te avisamos cuando se confirme.", "#A8862F"),
+            _           => ("No pudimos procesar el pago. Probá de nuevo en un momento.", "#C94A1F")
+        };
+        <div style="background:#fff;border:1px solid @pagoColor;border-left:4px solid @pagoColor;border-radius:8px;padding:.8rem 1rem;margin-bottom:1.5rem;color:@pagoColor;font-size:.9rem;">
+            @pagoMsg
+        </div>
+    }
 
     @* ── Hijos ── *@
     <section class="dashboard-section">

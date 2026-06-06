@@ -53,6 +53,11 @@ public class IndexModel : PageModel
     public int DaysInMonth { get; private set; }
     public string ChartJson { get; private set; } = "{}";
 
+    // Cobro: habilita el botón "Quiero pagar" solo si MercadoPago está activo.
+    public bool MpEnabled { get; private set; }
+    // Feedback del retorno de pago (?pago=ok|error|pendiente|mail).
+    public string? PagoResult { get; set; }
+
     private static readonly string[] ChartColors = { "#C94A1F", "#5C7A5E", "#A89880", "#4A7CA0", "#8A6A9A" };
 
     public async Task<IActionResult> OnGetAsync()
@@ -74,6 +79,10 @@ public class IndexModel : PageModel
         var weekStart  = now.Date.AddDays(-(int)now.DayOfWeek).ToUniversalTime();
         var dayStart   = now.Date.ToUniversalTime();
         DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+
+        MpEnabled = _config.GetValue("MP_ENABLED", false)
+                    && !string.IsNullOrWhiteSpace(_config["MP_ACCESS_TOKEN"]);
+        PagoResult = Request.Query["pago"].FirstOrDefault();
 
         SubscriptionStatus = family.SubscriptionStatus;
         AccessEndsAt = family.PaidUntil ?? family.TrialEndsAt;
