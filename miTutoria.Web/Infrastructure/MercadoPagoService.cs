@@ -45,9 +45,13 @@ public class MercadoPagoService
     /// con la familia + ciclo: "familyId:cycleMarker".
     /// </summary>
     public async Task<PreferenceResult?> CreatePreferenceAsync(
-        int familyId, string email, decimal amountArs, string cycleMarker, string baseUrl, CancellationToken ct = default)
+        int familyId, string email, decimal amountArs, string cycleMarker, DateTime accessUntil,
+        string baseUrl, CancellationToken ct = default)
     {
         if (!IsEnabled) return null;
+
+        // Etiqueta clara: el pagador ve hasta qué fecha tendrá acceso (= su ends_at). Sin "suscripción".
+        var title = $"miTutorIA — acceso hasta {accessUntil:dd/MM/yyyy}";
 
         var body = new
         {
@@ -55,7 +59,7 @@ public class MercadoPagoService
             {
                 new
                 {
-                    title = "miTutorIA — suscripción mensual",
+                    title,
                     quantity = 1,
                     unit_price = amountArs,
                     currency_id = "ARS"

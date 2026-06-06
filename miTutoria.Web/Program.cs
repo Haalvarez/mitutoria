@@ -211,6 +211,16 @@ app.MapPost("/api/inbox/classroom", async (JsonElement body, HttpContext ctx, Ap
 static string CycleMarkerFor(miTutoria.Web.Data.Entities.Auth.Family fam) =>
     (fam.PaidUntil ?? fam.TrialEndsAt)?.ToString("yyyy-MM-dd") ?? "trial";
 
+// Fecha "acceso hasta" que otorga un pago: +1 mes desde el vencimiento vigente
+// (si está en el futuro) o desde hoy. No pierde días al pagar antes; sin drift.
+// La usan tanto la ETIQUETA del pago como el otorgamiento real en el webhook → coinciden.
+static DateTime AccessUntilFor(miTutoria.Web.Data.Entities.Auth.Family fam, DateTime nowUtc)
+{
+    var anchor = fam.PaidUntil ?? fam.TrialEndsAt;
+    var from = anchor.HasValue && anchor.Value > nowUtc ? anchor.Value : nowUtc;
+    return from.AddMonths(1);
+}
+
 // Crea (o reusa) la preference de la familia logueada y guarda el registro pendiente.
 // code = clave de promo opcional; si es válida, la cuota pasa a ser el importe de la promo.
 static async Task<(string? initPoint, string? error)> StartPaymentAsync(
@@ -227,6 +237,7 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
 
     var baseUrl = cfg["APP_BASE_URL"] ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     var marker = CycleMarkerFor(family);
+    var accessUntil = AccessUntilFor(family, DateTime.UtcNow);   // fecha que verá el pagador
 
     // Promo: si la familia escribió una clave válida, usamos su importe.
     var amount = mp.CuotaArs;
@@ -241,7 +252,7 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
         appliedPromo = promo.Code;
     }
 
-    var pref = await mp.CreatePreferenceAsync(family.Id, family.Email, amount, marker, baseUrl, ctx.RequestAborted);
+    var pref = await mp.CreatePreferenceAsync(family.Id, family.Email, amount, marker, accessUntil, baseUrl, ctx.RequestAborted);
     if (pref is null) return (null, "mp");
 
     db.Payments.Add(new miTutoria.Web.Data.Entities.Billing.Payment
@@ -377,10 +388,8 @@ app.MapPost("/api/pay/webhook", async (HttpContext ctx, AppDbContext db,
         var family = await db.Families.FindAsync(familyId);
         if (family is not null)
         {
-            // Extiende desde el vencimiento vigente si está en el futuro, si no desde hoy.
-            var anchor = family.PaidUntil ?? family.TrialEndsAt;
-            var from = anchor.HasValue && anchor.Value > DateTime.UtcNow ? anchor.Value : DateTime.UtcNow;
-            family.PaidUntil = from.AddMonths(1);
+            // Misma fórmula que la etiqueta del pago: +1 mes desde el venc. vigente (o desde hoy).
+            family.PaidUntil = AccessUntilFor(family, DateTime.UtcNow);
             family.SubscriptionStatus = "active";
             // Reseteamos los markers para que el scheduler vuelva a avisar el próximo ciclo.
             family.CostAlertMarker = null;
