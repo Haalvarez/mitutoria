@@ -19,6 +19,9 @@ public class Payment
     /// <summary>Ancla del ciclo que paga (yyyy-MM-dd), para auditar a qué período corresponde.</summary>
     public string? CycleMarker { get; set; }
 
+    /// <summary>Clave de promo aplicada (si la familia usó un cupón). null = precio normal.</summary>
+    public string? PromoCode { get; set; }
+
     public decimal AmountArs { get; set; }
 
     /// <summary>pending | approved | rejected | cancelled — espejo de MercadoPago.</summary>

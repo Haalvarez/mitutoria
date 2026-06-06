@@ -344,6 +344,68 @@ else
     </tbody>
 </table>
 
+@* ── Promos (cupones de descuento) ─────────────────────────────────────── *@
+@{
+    var promoMsg = TempData["PromoResult"]?.ToString();
+    var promoOk = promoMsg?.StartsWith("ok:") ?? false;
+    if (promoMsg != null) promoMsg = promoMsg.Substring(promoMsg.IndexOf(':') + 1);
+}
+<h2>Promos
+    <span class="help" title="Cupones para cobrar menos (familia y amigos). La familia escribe la clave al pagar y la cuota pasa al importe de la promo. Cuota base actual: $@Model.CuotaArs.ToString("N0").">ⓘ</span>
+</h2>
+@if (promoMsg != null)
+{
+    <p style="margin-bottom:.75rem;padding:.6rem .9rem;border-radius:6px;font-size:.85rem;
+              background:@(promoOk ? "#d4edda" : "#fde8e8");color:@(promoOk ? "#155724" : "#c94a1f");">
+        @promoMsg
+    </p>
+}
+<form method="post" asp-page-handler="CreatePromo" asp-route-token="@token"
+      style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1rem;display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-end;">
+    @Html.AntiForgeryToken()
+    <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+        Clave <input type="text" name="promoCode" required placeholder="FAMILIA2026" style="padding:.4rem;text-transform:uppercase;" />
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+        Nombre <input type="text" name="promoName" placeholder="Familia y amigos" style="padding:.4rem;" />
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+        Importe ARS <input type="number" name="promoAmount" required min="1" step="1" placeholder="30000" style="padding:.4rem;width:7rem;" />
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+        Vence (opcional) <input type="date" name="promoValidUntil" style="padding:.4rem;" />
+    </label>
+    <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+        Máx. usos (opcional) <input type="number" name="promoMaxUses" min="1" step="1" placeholder="∞" style="padding:.4rem;width:6rem;" />
+    </label>
+    <button type="submit" class="btn-mini">Crear promo</button>
+</form>
+@if (Model.Promos.Any())
+{
+    <table>
+        <thead><tr><th>Clave</th><th>Nombre</th><th>Importe</th><th>Vence</th><th>Usos</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.Promos)
+        {
+            <tr style="@(p.Active ? "" : "opacity:.5;")">
+                <td><strong>@p.Code</strong></td>
+                <td>@(string.IsNullOrEmpty(p.Name) ? "-" : p.Name)</td>
+                <td>$@p.AmountArs.ToString("N0")</td>
+                <td>@(p.ValidUntil?.ToString("dd/MM/yyyy") ?? "—")</td>
+                <td>@p.UsedCount@(p.MaxUses.HasValue ? $" / {p.MaxUses}" : "")</td>
+                <td>@(p.Active ? "✅ activa" : "⛔ inactiva")</td>
+                <td>
+                    <form method="post" asp-page-handler="TogglePromo" asp-route-token="@token" asp-route-id="@p.Id" style="margin:0;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-mini">@(p.Active ? "Desactivar" : "Activar")</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
 @* ── Modal de detalle por familia ──────────────────────────────────────── *@
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeDetail()">
     <div class="modal">

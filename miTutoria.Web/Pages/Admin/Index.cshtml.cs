@@ -126,6 +126,14 @@ public class IndexModel : PageModel
     public List<WaitlistRow> Waitlist { get; private set; } = [];
     public HashSet<string> InvitedEmails { get; private set; } = new();
 
+    // ── Promos (cupones de descuento) ────────────────────────────────────────────
+
+    public record PromoRow(int Id, string Code, string Name, decimal AmountArs,
+        DateTime? ValidUntil, bool Active, int? MaxUses, int UsedCount);
+    public List<PromoRow> Promos { get; private set; } = [];
+    [TempData] public string? PromoResult { get; set; }
+    public decimal CuotaArs { get; private set; }
+
     // ── Plata (todo en USD; el costo es en USD billete) ─────────────────────────
 
     public decimal TotalCostUsdMonth { get; private set; }    // mes calendario = tu factura Anthropic
@@ -270,6 +278,14 @@ public class IndexModel : PageModel
             .Select(f => (f.Email ?? "").ToLowerInvariant())
             .ToHashSet();
 
+        // Promos
+        CuotaArs = _config.GetValue<decimal>("CUOTA_ARS", 50000m);
+        Promos = await _db.Promos
+            .OrderByDescending(p => p.Active).ThenByDescending(p => p.CreatedAt)
+            .Select(p => new PromoRow(p.Id, p.Code, p.Name, p.AmountArs,
+                p.ValidUntil, p.Active, p.MaxUses, p.UsedCount))
+            .ToListAsync();
+
         // Plata (USD)
         TotalCostUsdMonth  = events.Where(e => e.CreatedAt >= monthStart).Sum(e => e.CostUsd);
         AllTimeCostUsd     = await _db.TokenEvents.SumAsync(e => e.CostUsd);
@@ -290,6 +306,53 @@ public class IndexModel : PageModel
         if (family is not null)
         {
             family.InboxEnabled = !family.InboxEnabled;
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToPage(new { token });
+    }
+
+    // ── Promos: crear / activar-desactivar ───────────────────────────────────────
+
+    public async Task<IActionResult> OnPostCreatePromoAsync([FromQuery] string? token,
+        string promoCode, string promoName, decimal promoAmount, DateTime? promoValidUntil, int? promoMaxUses)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var code = Data.Entities.Billing.Promo.Normalize(promoCode);
+        if (string.IsNullOrWhiteSpace(code) || promoAmount <= 0)
+        {
+            PromoResult = "error:Clave e importe (mayor a 0) son obligatorios.";
+            return RedirectToPage(new { token });
+        }
+        if (await _db.Promos.AnyAsync(p => p.Code == code))
+        {
+            PromoResult = $"error:Ya existe una promo con la clave {code}.";
+            return RedirectToPage(new { token });
+        }
+
+        _db.Promos.Add(new Data.Entities.Billing.Promo
+        {
+            Code = code,
+            Name = promoName?.Trim() ?? string.Empty,
+            AmountArs = promoAmount,
+            ValidUntil = promoValidUntil.HasValue
+                ? DateTime.SpecifyKind(promoValidUntil.Value, DateTimeKind.Utc) : null,
+            MaxUses = promoMaxUses is > 0 ? promoMaxUses : null,
+            Active = true
+        });
+        await _db.SaveChangesAsync();
+        PromoResult = $"ok:Promo {code} creada (${promoAmount:N0}).";
+        return RedirectToPage(new { token });
+    }
+
+    public async Task<IActionResult> OnPostTogglePromoAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var promo = await _db.Promos.FindAsync(id);
+        if (promo is not null)
+        {
+            promo.Active = !promo.Active;
             await _db.SaveChangesAsync();
         }
         return RedirectToPage(new { token });

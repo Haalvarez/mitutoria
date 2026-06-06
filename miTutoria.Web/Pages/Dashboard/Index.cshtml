@@ -107,10 +107,21 @@
         @if (Model.MpEnabled)
         {
             <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
-                <a href="/api/pay/start" class="btn-main" style="text-decoration:none;">Quiero pagar</a>
+                <input type="text" id="promoCode" placeholder="¿Tenés un cupón?"
+                       style="padding:.5rem .7rem;border:1px solid #ddd;border-radius:6px;font-size:.85rem;text-transform:uppercase;width:9rem;" />
+                <a href="/api/pay/start" class="btn-main" style="text-decoration:none;"
+                   onclick="return goPay(this, '/api/pay/start');">Quiero pagar</a>
                 <a href="/api/pay/email" style="font-size:.85rem;color:#4A7CA0;text-decoration:none;"
-                   title="Te mandamos el link de pago al correo registrado">Enviármelo al correo</a>
+                   title="Te mandamos el link de pago al correo registrado"
+                   onclick="return goPay(this, '/api/pay/email');">Enviármelo al correo</a>
             </div>
+            <script>
+                function goPay(el, base) {
+                    var c = (document.getElementById('promoCode')?.value || '').trim();
+                    window.location.href = base + (c ? ('?code=' + encodeURIComponent(c)) : '');
+                    return false;
+                }
+            </script>
         }
         else
         {
@@ -130,6 +141,7 @@
             "ok"        => ("¡Listo! Recibimos tu pago. Tu suscripción se renovó.", "#5C7A5E"),
             "mail"      => ("Te enviamos el link de pago a tu correo registrado.", "#4A7CA0"),
             "pendiente" => ("Tu pago quedó pendiente de acreditación. Te avisamos cuando se confirme.", "#A8862F"),
+            "promo"     => ("El cupón no es válido o está vencido. Revisá la clave e intentá de nuevo.", "#C94A1F"),
             _           => ("No pudimos procesar el pago. Probá de nuevo en un momento.", "#C94A1F")
         };
         <div style="background:#fff;border:1px solid @pagoColor;border-left:4px solid @pagoColor;border-radius:8px;padding:.8rem 1rem;margin-bottom:1.5rem;color:@pagoColor;font-size:.9rem;">

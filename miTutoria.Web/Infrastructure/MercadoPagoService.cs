@@ -45,7 +45,7 @@ public class MercadoPagoService
     /// con la familia + ciclo: "familyId:cycleMarker".
     /// </summary>
     public async Task<PreferenceResult?> CreatePreferenceAsync(
-        int familyId, string email, string cycleMarker, string baseUrl, CancellationToken ct = default)
+        int familyId, string email, decimal amountArs, string cycleMarker, string baseUrl, CancellationToken ct = default)
     {
         if (!IsEnabled) return null;
 
@@ -57,7 +57,7 @@ public class MercadoPagoService
                 {
                     title = "miTutorIA — suscripción mensual",
                     quantity = 1,
-                    unit_price = CuotaArs,
+                    unit_price = amountArs,
                     currency_id = "ARS"
                 }
             },

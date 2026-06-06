@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<InboxMessageRaw> InboxMessagesRaw => Set<InboxMessageRaw>();
     public DbSet<DetectedAssignment> DetectedAssignments => Set<DetectedAssignment>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Promo> Promos => Set<Promo>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -207,12 +208,26 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Payment>().Property(x => x.PreferenceId).HasColumnName("preference_id");
         modelBuilder.Entity<Payment>().Property(x => x.MpPaymentId).HasColumnName("mp_payment_id");
         modelBuilder.Entity<Payment>().Property(x => x.CycleMarker).HasColumnName("cycle_marker");
+        modelBuilder.Entity<Payment>().Property(x => x.PromoCode).HasColumnName("promo_code");
         modelBuilder.Entity<Payment>().Property(x => x.AmountArs).HasColumnName("amount_ars");
         modelBuilder.Entity<Payment>().Property(x => x.Status).HasColumnName("status");
         modelBuilder.Entity<Payment>().Property(x => x.CreatedAt).HasColumnName("created_at");
         modelBuilder.Entity<Payment>().Property(x => x.PaidAt).HasColumnName("paid_at");
         modelBuilder.Entity<Payment>().HasIndex(x => x.MpPaymentId);
         modelBuilder.Entity<Payment>().HasIndex(x => x.FamilyId);
+
+        modelBuilder.Entity<Promo>().ToTable("promos", "billing");
+        modelBuilder.Entity<Promo>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<Promo>().Property(x => x.Code).HasColumnName("code");
+        modelBuilder.Entity<Promo>().Property(x => x.Name).HasColumnName("name");
+        modelBuilder.Entity<Promo>().Property(x => x.AmountArs).HasColumnName("amount_ars");
+        modelBuilder.Entity<Promo>().Property(x => x.ValidFrom).HasColumnName("valid_from");
+        modelBuilder.Entity<Promo>().Property(x => x.ValidUntil).HasColumnName("valid_until");
+        modelBuilder.Entity<Promo>().Property(x => x.Active).HasColumnName("active");
+        modelBuilder.Entity<Promo>().Property(x => x.MaxUses).HasColumnName("max_uses");
+        modelBuilder.Entity<Promo>().Property(x => x.UsedCount).HasColumnName("used_count");
+        modelBuilder.Entity<Promo>().Property(x => x.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<Promo>().HasIndex(x => x.Code).IsUnique();
 
         // ── Atención dedicada: sesiones de foco del Aula ──
         modelBuilder.Entity<FocusSession>().ToTable("focus_sessions", "academic");

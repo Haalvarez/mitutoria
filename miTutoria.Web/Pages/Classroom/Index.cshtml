@@ -353,12 +353,14 @@
     // focused = visible + ventana enfocada + input reciente | idle = sin input > umbral (se descarta)
     // away    = pestaña oculta o ventana sin foco (se fue a otra pestaña/app). Solo lo ve el padre.
     (function () {
-        const IDLE_MS = 3 * 60 * 1000;   // sin input por > 3 min mientras está visible → idle (no cuenta)
-        const BEAT_MS = 15 * 1000;       // reporta cada 15s
+        const IDLE_MS = 3 * 60 * 1000;       // sin input por > 3 min mientras está visible → idle (no cuenta)
+        const AWAY_CAP_MS = 8 * 60 * 1000;   // tope por tramo de ausencia: "se fue y no volvió" (Netflix) no acumula horas
+        const BEAT_MS = 15 * 1000;           // reporta cada 15s
         const key = (crypto.randomUUID && crypto.randomUUID()) ||
                     (Date.now() + '-' + Math.random().toString(36).slice(2));
 
         let focusedMs = 0, idleMs = 0, awayMs = 0, interruptions = 0;
+        let awayStretchMs = 0;               // duración del tramo de ausencia actual (para aplicar el tope)
         let lastEval = Date.now();
         let lastInput = Date.now();
         let lastState = 'focused';
@@ -373,10 +375,14 @@
             if (delta > 0) {
                 if (lastState === 'focused') focusedMs += delta;
                 else if (lastState === 'idle') idleMs += delta;
-                else awayMs += delta;
+                else {
+                    // Solo cuenta hasta AWAY_CAP_MS por tramo: la ausencia "final" no hunde el %.
+                    awayMs += Math.min(delta, Math.max(0, AWAY_CAP_MS - awayStretchMs));
+                    awayStretchMs += delta;
+                }
             }
             const next = stateNow();
-            if (next === 'away' && lastState !== 'away') interruptions++;
+            if (next === 'away' && lastState !== 'away') { interruptions++; awayStretchMs = 0; }
             lastState = next;
             lastEval = now;
         }

@@ -212,9 +212,10 @@ static string CycleMarkerFor(miTutoria.Web.Data.Entities.Auth.Family fam) =>
     (fam.PaidUntil ?? fam.TrialEndsAt)?.ToString("yyyy-MM-dd") ?? "trial";
 
 // Crea (o reusa) la preference de la familia logueada y guarda el registro pendiente.
+// code = clave de promo opcional; si es válida, la cuota pasa a ser el importe de la promo.
 static async Task<(string? initPoint, string? error)> StartPaymentAsync(
     HttpContext ctx, AppDbContext db, IConfiguration cfg,
-    miTutoria.Web.Infrastructure.MercadoPagoService mp)
+    miTutoria.Web.Infrastructure.MercadoPagoService mp, string? code)
 {
     var familyId = ctx.Session.GetInt32("FamilyId");
     if (familyId is null) return (null, "login");
@@ -226,7 +227,20 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
     var baseUrl = cfg["APP_BASE_URL"] ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     var marker = CycleMarkerFor(family);
 
-    var pref = await mp.CreatePreferenceAsync(family.Id, family.Email, marker, baseUrl, ctx.RequestAborted);
+    // Promo: si la familia escribió una clave válida, usamos su importe.
+    var amount = mp.CuotaArs;
+    string? appliedPromo = null;
+    if (!string.IsNullOrWhiteSpace(code))
+    {
+        var norm = miTutoria.Web.Data.Entities.Billing.Promo.Normalize(code);
+        var promo = await db.Promos.FirstOrDefaultAsync(p => p.Code == norm, ctx.RequestAborted);
+        if (promo is null || !promo.IsUsable(DateTime.UtcNow))
+            return (null, "promo");          // clave inexistente / vencida / sin usos
+        amount = promo.AmountArs;
+        appliedPromo = promo.Code;
+    }
+
+    var pref = await mp.CreatePreferenceAsync(family.Id, family.Email, amount, marker, baseUrl, ctx.RequestAborted);
     if (pref is null) return (null, "mp");
 
     db.Payments.Add(new miTutoria.Web.Data.Entities.Billing.Payment
@@ -234,7 +248,8 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
         FamilyId     = family.Id,
         PreferenceId = pref.PreferenceId,
         CycleMarker  = marker,
-        AmountArs    = mp.CuotaArs,
+        PromoCode    = appliedPromo,
+        AmountArs    = amount,
         Status       = "pending"
     });
     await db.SaveChangesAsync(ctx.RequestAborted);
@@ -244,22 +259,24 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
 
 // Botón "Quiero pagar" → genera el link y redirige a la página de pago de MP.
 app.MapGet("/api/pay/start", async (HttpContext ctx, AppDbContext db, IConfiguration cfg,
-    miTutoria.Web.Infrastructure.MercadoPagoService mp) =>
+    miTutoria.Web.Infrastructure.MercadoPagoService mp, string? code) =>
 {
-    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp);
+    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp, code);
     if (error == "login") return Results.Redirect("/Login");
+    if (error == "promo") return Results.Redirect("/Dashboard?pago=promo");
     if (initPoint is null) return Results.Redirect("/Dashboard?pago=error");
     return Results.Redirect(initPoint);
 });
 
 // "Enviármelo al correo" → manda el mismo link de pago al mail registrado de la familia.
 app.MapGet("/api/pay/email", async (HttpContext ctx, AppDbContext db, IConfiguration cfg,
-    miTutoria.Web.Infrastructure.MercadoPagoService mp, IResend resend) =>
+    miTutoria.Web.Infrastructure.MercadoPagoService mp, IResend resend, string? code) =>
 {
     var familyId = ctx.Session.GetInt32("FamilyId");
     if (familyId is null) return Results.Redirect("/Login");
 
-    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp);
+    var (initPoint, error) = await StartPaymentAsync(ctx, db, cfg, mp, code);
+    if (error == "promo") return Results.Redirect("/Dashboard?pago=promo");
     if (initPoint is null) return Results.Redirect("/Dashboard?pago=error");
 
     var family = await db.Families.FindAsync(familyId.Value);
@@ -348,6 +365,14 @@ app.MapPost("/api/pay/webhook", async (HttpContext ctx, AppDbContext db,
     if (info.Status == "approved")
     {
         record.PaidAt = DateTime.UtcNow;
+
+        // Si usó promo, contamos el uso (una sola vez gracias a la idempotencia de arriba).
+        if (!string.IsNullOrEmpty(record.PromoCode))
+        {
+            var promo = await db.Promos.FirstOrDefaultAsync(p => p.Code == record.PromoCode, ctx.RequestAborted);
+            if (promo is not null) promo.UsedCount++;
+        }
+
         var family = await db.Families.FindAsync(familyId);
         if (family is not null)
         {
