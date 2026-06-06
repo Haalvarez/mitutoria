@@ -2,6 +2,7 @@
 @model miTutoria.Web.Pages.Classroom.IndexModel.AgendaItem
 @{
     var studentId = (int)(ViewData["StudentId"] ?? 0);
+    var classroomEmail = ViewData["StudentClassroomEmail"] as string;
 
     // Deep-link a Google Classroom: a la tarea exacta si hay ItemId, si no al curso.
     string? classroomUrl = null;
@@ -9,6 +10,11 @@
         classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}/a/{Model.ItemId}/details";
     else if (!string.IsNullOrEmpty(Model.CourseId))
         classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}";
+
+    // Si sabemos la casilla del colegio, envolvemos en AccountChooser para forzar esa cuenta
+    // (si no, el chico logueado con su Gmail personal vería "sin acceso").
+    if (classroomUrl != null && !string.IsNullOrEmpty(classroomEmail))
+        classroomUrl = $"https://accounts.google.com/AccountChooser?continue={Uri.EscapeDataString(classroomUrl)}&Email={Uri.EscapeDataString(classroomEmail)}";
 }
 <li class="agenda-item@(Model.Done ? " agenda-item--done" : "")">
     <button type="button" class="agenda-check" title="@(Model.Done ? "Hecho — tocá para desmarcar" : "Marcar como hecho")"

@@ -41,6 +41,7 @@ public class IndexModel : PageModel
 
     public int StudentId { get; private set; }
     public string StudentName { get; private set; } = string.Empty;
+    public string? StudentClassroomEmail { get; private set; }   // para abrir Classroom en la cuenta correcta
     public string? StudentAvatar { get; private set; }
     public string? TutorName { get; private set; }
     public string? TutorAvatar { get; private set; }
@@ -138,6 +139,7 @@ public class IndexModel : PageModel
 
         StudentId = student.Id;
         StudentName = student.Nickname ?? student.FullName;
+        StudentClassroomEmail = student.ClassroomEmail;
         StudentAvatar = student.Avatar;
         StudentHasAdhd = student.HasAdhd;
         AttentionEnabled = _config.GetValue("ATTENTION_ENABLED", true);

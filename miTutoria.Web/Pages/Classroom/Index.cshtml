@@ -9,6 +9,7 @@
     var studentAvatar = string.IsNullOrEmpty(Model.StudentAvatar) ? initial : Model.StudentAvatar;
     var tutorLabel    = string.IsNullOrEmpty(Model.TutorName) ? "Tutor" : Model.TutorName;
     ViewData["StudentId"] = Model.StudentId;   // lo usan los botones del partial _AgendaItem
+    ViewData["StudentClassroomEmail"] = Model.StudentClassroomEmail;   // abre Classroom en la cuenta correcta
 }
 @functions {
     // Texto plano de verdad: saca markdown (** * __ _) y escapa HTML; \n → <br>
