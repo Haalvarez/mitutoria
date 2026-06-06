@@ -21,6 +21,7 @@
         else
         {
             <form method="post">
+                @Html.AntiForgeryToken()
                 <div>
                     <label for="email">Email</label>
                     <input id="email" name="email" type="email"
