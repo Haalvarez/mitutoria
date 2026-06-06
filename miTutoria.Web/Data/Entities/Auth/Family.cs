@@ -11,6 +11,10 @@ public class Family
     public ParentRole ParentRole { get; set; }
     public string? MagicToken { get; set; }
     public DateTime? MagicTokenExpiry { get; set; }
+
+    // Login del padre con contraseña (hasheada con PasswordHasher). null = todavía no la creó.
+    // El magic link sirve solo para crearla (onboarding) o resetearla.
+    public string? PasswordHash { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string SubscriptionStatus { get; set; } = "waitlist";
     public DateTime? TrialEndsAt { get; set; }

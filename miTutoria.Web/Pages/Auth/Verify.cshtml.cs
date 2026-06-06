@@ -14,7 +14,7 @@ public class VerifyModel : PageModel
         _dbContext = dbContext;
     }
 
-    public async Task<IActionResult> OnGetAsync(string token)
+    public async Task<IActionResult> OnGetAsync(string token, int reset = 0)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -35,6 +35,10 @@ public class VerifyModel : PageModel
             return RedirectToPage("/Blocked", new { status = family.SubscriptionStatus });
 
         HttpContext.Session.SetInt32("FamilyId", family.Id);
+
+        // Magic link = solo onboarding/reset: si no tiene contraseña, o pidió reset, a crearla.
+        if (string.IsNullOrEmpty(family.PasswordHash) || reset == 1)
+            return RedirectToPage("/Auth/SetPassword");
 
         if (family.ConsentAt is null)
             return RedirectToPage("/Consentimiento/Index");

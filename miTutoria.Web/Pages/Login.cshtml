@@ -9,13 +9,13 @@
     <div class="manifesto-label">Acceso</div>
     <div class="manifesto-body">
         <h1>Entrá a miTutorIA</h1>
-        <p>Ingresá tu email y te enviamos un link de acceso.</p>
+        <p>Ingresá tu email y contraseña.</p>
 
         @if (Model.Sent)
         {
             <div>
                 <h2>¡Listo! Revisá tu email</h2>
-                <p>Te enviamos un link de acceso. Si no aparece, revisá spam.</p>
+                <p>Te enviamos un link para crear tu contraseña. Si no aparece, revisá spam (válido 15 min).</p>
             </div>
         }
         else
@@ -27,10 +27,20 @@
                            value="@Model.Email" required />
                 </div>
                 <div>
-                    <button type="submit" class="btn-main">
-                        Recibir link de acceso
-                    </button>
+                    <label for="password">Contraseña</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" />
                 </div>
+                <div>
+                    <button type="submit" class="btn-main">Entrar</button>
+                </div>
+                <p style="font-size:.85rem;color:#666;margin-top:1rem;">
+                    ¿Primera vez o no te acordás la contraseña?
+                    <button type="submit" asp-page-handler="Forgot" class="btn-link"
+                            style="background:none;border:none;color:#4A7CA0;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">
+                        Crear / olvidé mi contraseña
+                    </button>
+                    <br /><span style="color:#999;">(ingresá tu email arriba y te mandamos un link)</span>
+                </p>
             </form>
         }
 

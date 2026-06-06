@@ -164,6 +164,10 @@ public class AppDbContext : DbContext
             .Property(f => f.PayEnabled)
             .HasColumnName("pay_enabled");
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.PasswordHash)
+            .HasColumnName("password_hash");
+
         modelBuilder.Entity<User>()
             .Property(u => u.ClassroomEmail)
             .HasColumnName("classroom_email");
