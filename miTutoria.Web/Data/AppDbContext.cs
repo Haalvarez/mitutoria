@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<InboxMessageRaw> InboxMessagesRaw => Set<InboxMessageRaw>();
     public DbSet<DetectedAssignment> DetectedAssignments => Set<DetectedAssignment>();
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -212,5 +213,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Payment>().Property(x => x.PaidAt).HasColumnName("paid_at");
         modelBuilder.Entity<Payment>().HasIndex(x => x.MpPaymentId);
         modelBuilder.Entity<Payment>().HasIndex(x => x.FamilyId);
+
+        // ── Atención dedicada: sesiones de foco del Aula ──
+        modelBuilder.Entity<FocusSession>().ToTable("focus_sessions", "academic");
+        modelBuilder.Entity<FocusSession>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<FocusSession>().Property(x => x.StudentId).HasColumnName("student_id");
+        modelBuilder.Entity<FocusSession>().Property(x => x.ClientKey).HasColumnName("client_key");
+        modelBuilder.Entity<FocusSession>().Property(x => x.StartedAt).HasColumnName("started_at");
+        modelBuilder.Entity<FocusSession>().Property(x => x.LastBeatAt).HasColumnName("last_beat_at");
+        modelBuilder.Entity<FocusSession>().Property(x => x.FocusedMs).HasColumnName("focused_ms");
+        modelBuilder.Entity<FocusSession>().Property(x => x.IdleMs).HasColumnName("idle_ms");
+        modelBuilder.Entity<FocusSession>().Property(x => x.AwayMs).HasColumnName("away_ms");
+        modelBuilder.Entity<FocusSession>().Property(x => x.Interruptions).HasColumnName("interruptions");
+        modelBuilder.Entity<FocusSession>().HasIndex(x => new { x.StudentId, x.ClientKey }).IsUnique();
     }
 }

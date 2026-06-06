@@ -62,6 +62,9 @@ public class IndexModel : PageModel
     public record SectionInfo(string Title, string Content);
     public record SubjectInfo(int Id, string Name);
 
+    // Atención dedicada: inyecta el tracker de foco del Aula (gateado, default on).
+    public bool AttentionEnabled { get; private set; }
+
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
     public bool StudentHasAdhd { get; private set; }   // modo foco por defecto para la agenda
@@ -133,6 +136,7 @@ public class IndexModel : PageModel
         StudentName = student.Nickname ?? student.FullName;
         StudentAvatar = student.Avatar;
         StudentHasAdhd = student.HasAdhd;
+        AttentionEnabled = _config.GetValue("ATTENTION_ENABLED", true);
         TutorName = student.TutorName;
         TutorAvatar = student.TutorAvatar;
 

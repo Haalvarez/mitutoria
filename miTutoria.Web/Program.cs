@@ -366,4 +366,53 @@ app.MapPost("/api/pay/webhook", async (HttpContext ctx, AppDbContext db,
     return Results.Ok();
 });
 
+// ── Atención dedicada: beat del Aula ───────────────────────────────────────
+// El cliente acumula ms por estado (focused/idle/away) e interrupciones y los
+// reporta cada ~15s y al cerrar (sendBeacon). El alumno se identifica por la
+// sesión del servidor (Session["StudentId"]) → no se puede falsear a otro alumno.
+// Upsert por (student_id, client_key); valores acumulativos, last-write-wins.
+app.MapPost("/api/attention/beat", async (JsonElement body, HttpContext ctx, AppDbContext db) =>
+{
+    var studentId = ctx.Session.GetInt32("StudentId");
+    if (studentId is null) return Results.NoContent();   // solo registramos a alumnos reales
+
+    if (body.ValueKind != JsonValueKind.Object ||
+        !body.TryGetProperty("key", out var keyEl) ||
+        keyEl.GetString() is not { Length: > 0 } key)
+        return Results.NoContent();
+
+    static long L(JsonElement b, string p) =>
+        b.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? (long)v.GetDouble() : 0L;
+    static int I(JsonElement b, string p) =>
+        b.TryGetProperty(p, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
+
+    var focused = L(body, "focusedMs");
+    var idle    = L(body, "idleMs");
+    var away    = L(body, "awayMs");
+    var interruptions = I(body, "interruptions");
+
+    var row = await db.FocusSessions
+        .FirstOrDefaultAsync(f => f.StudentId == studentId.Value && f.ClientKey == key, ctx.RequestAborted);
+    if (row is null)
+    {
+        row = new miTutoria.Web.Data.Entities.Academic.FocusSession
+        {
+            StudentId = studentId.Value,
+            ClientKey = key,
+            StartedAt = DateTime.UtcNow
+        };
+        db.FocusSessions.Add(row);
+    }
+
+    // Acumulativos: nunca decrecen (protege contra un beat tardío/desordenado).
+    row.FocusedMs     = Math.Max(row.FocusedMs, focused);
+    row.IdleMs        = Math.Max(row.IdleMs, idle);
+    row.AwayMs        = Math.Max(row.AwayMs, away);
+    row.Interruptions = Math.Max(row.Interruptions, interruptions);
+    row.LastBeatAt    = DateTime.UtcNow;
+
+    await db.SaveChangesAsync(ctx.RequestAborted);
+    return Results.NoContent();
+});
+
 app.Run();

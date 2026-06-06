@@ -190,6 +190,32 @@
                         </div>
                         <p class="stat__hint">@ExchangeWord(s.ExchangesThisMonth) con el tutor</p>
 
+                        @if (Model.AttentionEnabled && s.HasAttentionToday)
+                        {
+                            var (focoColor, focoLabel) = s.AttentionPct switch
+                            {
+                                >= 80 => ("#5C7A5E", "alta"),
+                                >= 50 => ("#A8862F", "media"),
+                                _     => ("#C94A1F", "baja")
+                            };
+                            <div class="attention-box" style="margin-top:.6rem;padding:.6rem .7rem;background:#faf9f7;border:1px solid #eee;border-radius:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;">
+                                    <span style="font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:#888;">Concentración hoy</span>
+                                    <span style="font-size:.78rem;font-weight:600;color:@focoColor;">@focoLabel · @s.AttentionPct%</span>
+                                </div>
+                                <div style="height:6px;border-radius:4px;background:#eee;margin:.4rem 0;overflow:hidden;">
+                                    <div style="height:100%;width:@(s.AttentionPct)%;background:@focoColor;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;font-size:.78rem;color:#666;">
+                                    <span>🎯 @s.FocusedMinutesToday min concentrado@(s.FocusedMinutesToday == 1 ? "" : "s")</span>
+                                    @if (s.InterruptionsToday > 0)
+                                    {
+                                        <span title="Veces que dejó la pestaña de miTutorIA">↪ se fue @s.InterruptionsToday @(s.InterruptionsToday == 1 ? "vez" : "veces")</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+
                         @if (s.Last15Days.Sum() > 0)
                         {
                             var max15 = s.Last15Days.Max();

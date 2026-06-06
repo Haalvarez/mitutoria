@@ -22,6 +22,12 @@ public class StudentSummary
     public DateTime? LastActivity { get; set; }
     public Dictionary<int, int> ExchangesByDay { get; set; } = new();
     public int[] Last15Days { get; set; } = new int[15];
+
+    // Atención dedicada (hoy): tiempo concentrado y % vs ausente. Solo lo ve el padre.
+    public bool HasAttentionToday { get; set; }
+    public int FocusedMinutesToday { get; set; }
+    public int AttentionPct { get; set; }       // concentrado / (concentrado + ausente)
+    public int InterruptionsToday { get; set; } // veces que se fue de la pestaña
 }
 
 public class IndexModel : PageModel
@@ -55,6 +61,8 @@ public class IndexModel : PageModel
 
     // Cobro: habilita el botón "Quiero pagar" solo si MercadoPago está activo.
     public bool MpEnabled { get; private set; }
+    // Atención dedicada: muestra la concentración por hijo si está activa.
+    public bool AttentionEnabled { get; private set; }
     // Feedback del retorno de pago (?pago=ok|error|pendiente|mail).
     public string? PagoResult { get; set; }
 
@@ -111,6 +119,26 @@ public class IndexModel : PageModel
             .CountAsync(c => studentIds.Contains(c.StudentId)
                           && c.Material != null && c.Material != "");
 
+        // Atención dedicada de HOY, agregada por hijo (suma de sus sesiones de foco del día).
+        AttentionEnabled = _config.GetValue("ATTENTION_ENABLED", true);
+        var attentionByStudent = new Dictionary<int, (long focused, long away, int interruptions)>();
+        if (AttentionEnabled)
+        {
+            var todays = await _dbContext.FocusSessions
+                .Where(f => studentIds.Contains(f.StudentId) && f.StartedAt >= dayStart)
+                .GroupBy(f => f.StudentId)
+                .Select(g => new
+                {
+                    StudentId = g.Key,
+                    Focused = g.Sum(x => x.FocusedMs),
+                    Away = g.Sum(x => x.AwayMs),
+                    Interruptions = g.Sum(x => x.Interruptions)
+                })
+                .ToListAsync();
+            foreach (var a in todays)
+                attentionByStudent[a.StudentId] = (a.Focused, a.Away, a.Interruptions);
+        }
+
         foreach (var student in Students)
         {
             var mine = events.Where(t => t.UserId == student.Id).ToList();
@@ -122,6 +150,10 @@ public class IndexModel : PageModel
             var last15 = Enumerable.Range(0, 15)
                 .Select(i => myDates.Count(d => d.Date == now.Date.AddDays(-14 + i)))
                 .ToArray();
+
+            attentionByStudent.TryGetValue(student.Id, out var att);
+            var present = att.focused + att.away;
+            var hasAttention = present > 0 || att.focused > 0;
 
             StudentSummaries.Add(new StudentSummary
             {
@@ -136,7 +168,11 @@ public class IndexModel : PageModel
                 ExchangesByDay     = chatMine
                     .GroupBy(t => t.CreatedAt.Day)
                     .ToDictionary(g => g.Key, g => g.Count()),
-                Last15Days         = last15
+                Last15Days         = last15,
+                HasAttentionToday   = hasAttention,
+                FocusedMinutesToday = (int)Math.Round(att.focused / 60000.0),
+                AttentionPct        = present > 0 ? (int)Math.Round(att.focused * 100.0 / present) : 0,
+                InterruptionsToday  = att.interruptions
             });
         }
 

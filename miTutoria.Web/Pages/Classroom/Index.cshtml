@@ -345,6 +345,75 @@
     </div>
 </div>
 
+@if (Model.AttentionEnabled)
+{
+    <text>
+    <script>
+    // ── Atención dedicada ── Mide tiempo concentrado vs ausente de la pestaña del Aula.
+    // focused = visible + ventana enfocada + input reciente | idle = sin input > umbral (se descarta)
+    // away    = pestaña oculta o ventana sin foco (se fue a otra pestaña/app). Solo lo ve el padre.
+    (function () {
+        const IDLE_MS = 3 * 60 * 1000;   // sin input por > 3 min mientras está visible → idle (no cuenta)
+        const BEAT_MS = 15 * 1000;       // reporta cada 15s
+        const key = (crypto.randomUUID && crypto.randomUUID()) ||
+                    (Date.now() + '-' + Math.random().toString(36).slice(2));
+
+        let focusedMs = 0, idleMs = 0, awayMs = 0, interruptions = 0;
+        let lastEval = Date.now();
+        let lastInput = Date.now();
+        let lastState = 'focused';
+
+        function stateNow() {
+            if (document.hidden || !document.hasFocus()) return 'away';
+            return (Date.now() - lastInput) > IDLE_MS ? 'idle' : 'focused';
+        }
+        function evaluate() {
+            const now = Date.now();
+            const delta = now - lastEval;
+            if (delta > 0) {
+                if (lastState === 'focused') focusedMs += delta;
+                else if (lastState === 'idle') idleMs += delta;
+                else awayMs += delta;
+            }
+            const next = stateNow();
+            if (next === 'away' && lastState !== 'away') interruptions++;
+            lastState = next;
+            lastEval = now;
+        }
+        function onInput() { lastInput = Date.now(); }
+        ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(
+            ev => window.addEventListener(ev, onInput, { passive: true }));
+
+        function payload() {
+            return JSON.stringify({ key, focusedMs, idleMs, awayMs, interruptions });
+        }
+        function beat(useBeacon) {
+            evaluate();
+            try {
+                if (useBeacon && navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/attention/beat',
+                        new Blob([payload()], { type: 'application/json' }));
+                } else {
+                    fetch('/api/attention/beat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: payload(), keepalive: true
+                    }).catch(() => {});
+                }
+            } catch (e) { /* silencioso */ }
+        }
+
+        setInterval(evaluate, 1000);          // contabiliza con grano fino mientras la pestaña vive
+        setInterval(() => beat(false), BEAT_MS);
+        document.addEventListener('visibilitychange', () => beat(true));
+        window.addEventListener('blur', evaluate);
+        window.addEventListener('focus', evaluate);
+        window.addEventListener('pagehide', () => beat(true));
+    })();
+    </script>
+    </text>
+}
+
 <script>
 const studentId = @Model.StudentId;
 const studentName = '@Html.Raw(Model.StudentName)';
