@@ -88,8 +88,10 @@ public class IndexModel : PageModel
         var dayStart   = now.Date.ToUniversalTime();
         DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
 
+        // Global (kill-switch) Y por-familia: el botón solo aparece para las familias habilitadas.
         MpEnabled = _config.GetValue("MP_ENABLED", false)
-                    && !string.IsNullOrWhiteSpace(_config["MP_ACCESS_TOKEN"]);
+                    && !string.IsNullOrWhiteSpace(_config["MP_ACCESS_TOKEN"])
+                    && family.PayEnabled;
         PagoResult = Request.Query["pago"].FirstOrDefault();
 
         SubscriptionStatus = family.SubscriptionStatus;

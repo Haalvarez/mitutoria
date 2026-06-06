@@ -26,6 +26,9 @@ public class Family
     // Track 2: rollout de la agenda de Classroom, familia por familia (gatea UI + procesamiento)
     public bool InboxEnabled { get; set; }
 
+    // Cobro: rollout del botón "Quiero pagar" familia por familia (para probar sin habilitarlo a todos)
+    public bool PayEnabled { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

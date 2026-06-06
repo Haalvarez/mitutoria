@@ -223,6 +223,7 @@ static async Task<(string? initPoint, string? error)> StartPaymentAsync(
 
     var family = await db.Families.FindAsync(familyId.Value);
     if (family is null) return (null, "login");
+    if (!family.PayEnabled) return (null, "disabled");   // solo familias habilitadas (rollout/prueba)
 
     var baseUrl = cfg["APP_BASE_URL"] ?? $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     var marker = CycleMarkerFor(family);

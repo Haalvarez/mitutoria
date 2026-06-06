@@ -228,6 +228,12 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
                         @(f.InboxEnabled ? "📅 ON" : "📅 off")
                     </button>
                 </form>
+                <form method="post" asp-page-handler="TogglePay" asp-route-token="@token" style="display:inline;margin:0;">
+                    <input type="hidden" name="id" value="@f.Id" />
+                    <button type="submit" class="btn-mini" title="Mostrar/ocultar el botón 'Quiero pagar' para esta familia (rollout/prueba)">
+                        @(f.PayEnabled ? "💳 ON" : "💳 off")
+                    </button>
+                </form>
             </td>
         </tr>
     }

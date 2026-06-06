@@ -160,6 +160,10 @@ public class AppDbContext : DbContext
             .Property(f => f.InboxEnabled)
             .HasColumnName("inbox_enabled");
 
+        modelBuilder.Entity<Family>()
+            .Property(f => f.PayEnabled)
+            .HasColumnName("pay_enabled");
+
         modelBuilder.Entity<User>()
             .Property(u => u.ClassroomEmail)
             .HasColumnName("classroom_email");

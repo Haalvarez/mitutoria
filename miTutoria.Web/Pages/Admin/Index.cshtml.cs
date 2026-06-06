@@ -90,7 +90,7 @@ public class IndexModel : PageModel
         int Students, int Exchanges7d, decimal CostUsd30d,
         DateTime? LastActivity, DateTime? AccessEndsAt,
         bool NearLimit, bool Inactive7Days, bool NoMaterial,
-        bool Active, bool Cooling, bool InboxEnabled);
+        bool Active, bool Cooling, bool InboxEnabled, bool PayEnabled);
 
     public List<FamilyRow> Families { get; private set; } = [];
 
@@ -220,7 +220,8 @@ public class IndexModel : PageModel
                 NoMaterial: isPilot && noMaterial,
                 Active: isPilot && active,
                 Cooling: isPilot && cooling,
-                InboxEnabled: f.InboxEnabled
+                InboxEnabled: f.InboxEnabled,
+                PayEnabled: f.PayEnabled
             );
         })
         .OrderByDescending(f => f.CostUsd30d)   // money-first: el más caro arriba
@@ -353,6 +354,21 @@ public class IndexModel : PageModel
         if (promo is not null)
         {
             promo.Active = !promo.Active;
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToPage(new { token });
+    }
+
+    // ── Toggle del botón de cobro por familia (rollout/prueba) ───────────────────
+
+    public async Task<IActionResult> OnPostTogglePayAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var family = await _db.Families.FindAsync(id);
+        if (family is not null)
+        {
+            family.PayEnabled = !family.PayEnabled;
             await _db.SaveChangesAsync();
         }
         return RedirectToPage(new { token });
