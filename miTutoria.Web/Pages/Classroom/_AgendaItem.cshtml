@@ -1,7 +1,18 @@
 @using miTutoria.Web.Inbox
 @model miTutoria.Web.Pages.Classroom.IndexModel.AgendaItem
+@{
+    var studentId = (int)(ViewData["StudentId"] ?? 0);
+
+    // Deep-link a Google Classroom: a la tarea exacta si hay ItemId, si no al curso.
+    string? classroomUrl = null;
+    if (!string.IsNullOrEmpty(Model.CourseId) && !string.IsNullOrEmpty(Model.ItemId))
+        classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}/a/{Model.ItemId}/details";
+    else if (!string.IsNullOrEmpty(Model.CourseId))
+        classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}";
+}
 <li class="agenda-item@(Model.Done ? " agenda-item--done" : "")">
-    <button type="button" class="agenda-check" title="Marcar como hecho" onclick="toggleAgenda(@Model.Id, this)">@(Model.Done ? "✅" : "○")</button>
+    <button type="button" class="agenda-check" title="@(Model.Done ? "Hecho — tocá para desmarcar" : "Marcar como hecho")"
+            onclick="toggleAgenda(@Model.Id, this)">@(Model.Done ? "✅" : "○")</button>
     <span class="agenda-item__icon">@(Model.Type switch
     {
         ClassroomItemType.DueReminder => "⏰",
@@ -13,5 +24,22 @@
     <div class="agenda-item__body">
         <span class="agenda-item__title">@Model.Title</span>
         <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")</span>
+        <div class="agenda-item__actions" style="display:flex;gap:.5rem;margin-top:.25rem;flex-wrap:wrap;">
+            <form method="post" asp-page-handler="WorkWithTutor" asp-route-studentId="@studentId" style="margin:0;">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="agenda-action" title="Trabajar esta tarea con el tutor"
+                        style="background:none;border:none;color:#C94A1F;cursor:pointer;padding:0;font-size:.78rem;">
+                    💬 Tutor
+                </button>
+            </form>
+            @if (classroomUrl != null)
+            {
+                <a href="@classroomUrl" target="_blank" rel="noopener" class="agenda-action"
+                   title="Abrir en Google Classroom (ahí está el archivo)"
+                   style="color:#4A7CA0;text-decoration:none;font-size:.78rem;">
+                    📂 Classroom
+                </a>
+            }
+        </div>
     </div>
 </li>

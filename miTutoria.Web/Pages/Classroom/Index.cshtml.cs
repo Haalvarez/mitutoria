@@ -71,7 +71,11 @@ public class IndexModel : PageModel
     public List<AgendaItem> Agenda { get; private set; } = new();
     public List<AgendaItem> UrgentAgenda { get; private set; } = new();
     public record AgendaItem(int Id, ClassroomItemType Type, string Title, string CourseName,
-        int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher, bool Done);
+        int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher, bool Done,
+        string? CourseId, string? ItemId);
+
+    // Tutor: texto sembrado en el chat al apretar "💬 Tutor" en un ítem (prefill, no auto-envía).
+    [TempData] public string? TutorSeed { get; set; }
 
     [BindProperty]
     public new string Content { get; set; } = string.Empty;
@@ -164,7 +168,7 @@ public class IndexModel : PageModel
                 .ThenByDescending(d => d.MessageDate)
                 .Take(40)
                 .Select(d => new AgendaItem(d.Id, d.Type, d.Title, d.CourseName, d.ClassroomId,
-                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done))
+                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done, d.CourseId, d.ItemId))
                 .ToListAsync();
 
             // Urgente para el banner: vence en ≤1 día (o ya marcado "entrega mañana"), sin hacer.
@@ -647,6 +651,42 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
             HttpContext.Session.SetInt32($"ActiveClassroom_{studentId}", classroom.Id);
         }
+        return RedirectToPage(new { studentId });
+    }
+
+    // ── POST: "Trabajar con el tutor" desde un ítem de la agenda ─────────────
+    // Cambia a la materia del ítem (si está resuelta) y deja un texto sembrado
+    // en el chat (prefill, NO auto-envía: el alumno decide enviarlo).
+
+    public async Task<IActionResult> OnPostWorkWithTutorAsync(int studentId, int id)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
+
+        var da = await _dbContext.DetectedAssignments
+            .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == studentId);
+        if (da is null) return RedirectToPage(new { studentId });
+
+        // Cambiar a la materia del ítem, si la tiene resuelta y es del alumno.
+        if (da.ClassroomId is int cid)
+        {
+            var classroom = await _dbContext.Classrooms
+                .SingleOrDefaultAsync(c => c.Id == cid && c.StudentId == studentId);
+            if (classroom is not null)
+            {
+                classroom.LastActiveAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
+                HttpContext.Session.SetInt32($"ActiveClassroom_{studentId}", classroom.Id);
+            }
+        }
+
+        // Semilla del chat en primera persona (el alumno la edita/envía).
+        var seed = $"Tengo esta tarea de {da.CourseName}: \"{da.Title}\".";
+        if (!string.IsNullOrWhiteSpace(da.DueDateRaw)) seed += $" Se entrega {da.DueDateRaw}.";
+        if (!string.IsNullOrWhiteSpace(da.Description)) seed += $" La consigna dice: {da.Description}.";
+        seed += " ¿Me ayudás a arrancarla? (sin dármela hecha)";
+        TutorSeed = seed;
+
         return RedirectToPage(new { studentId });
     }
 

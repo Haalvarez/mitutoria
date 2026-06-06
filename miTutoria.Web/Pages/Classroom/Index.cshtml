@@ -8,6 +8,7 @@
     var tutorAvatar   = string.IsNullOrEmpty(Model.TutorAvatar) ? "T" : Model.TutorAvatar;
     var studentAvatar = string.IsNullOrEmpty(Model.StudentAvatar) ? initial : Model.StudentAvatar;
     var tutorLabel    = string.IsNullOrEmpty(Model.TutorName) ? "Tutor" : Model.TutorName;
+    ViewData["StudentId"] = Model.StudentId;   // lo usan los botones del partial _AgendaItem
 }
 @functions {
     // Texto plano de verdad: saca markdown (** * __ _) y escapa HTML; \n → <br>
@@ -300,7 +301,7 @@
                     </svg>
                 </button>
                 <textarea id="chat-input" rows="1"
-                    placeholder="Escribí tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)"></textarea>
+                    placeholder="Escribí tu pregunta... (Enter para enviar, Shift+Enter para nueva línea)">@Model.TutorSeed</textarea>
                 <button id="chat-send" class="chat-send-btn" title="Enviar">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
