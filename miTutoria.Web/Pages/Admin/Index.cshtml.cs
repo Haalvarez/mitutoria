@@ -126,6 +126,11 @@ public class IndexModel : PageModel
     public List<WaitlistRow> Waitlist { get; private set; } = [];
     public HashSet<string> InvitedEmails { get; private set; } = new();
 
+    // ── Calendario público compartido (analítica de visitas) ────────────────────
+
+    public record SharedAgendaRow(string Student, string Family, string Token, int Views, DateTime? LastView);
+    public List<SharedAgendaRow> SharedAgendas { get; private set; } = [];
+
     // ── Promos (cupones de descuento) ────────────────────────────────────────────
 
     public record PromoRow(int Id, string Code, string Name, decimal AmountArs,
@@ -278,6 +283,27 @@ public class IndexModel : PageModel
             .Where(f => f.SubscriptionStatus is "trial" or "active")
             .Select(f => (f.Email ?? "").ToLowerInvariant())
             .ToHashSet();
+
+        // Calendarios públicos compartidos + sus visitas (solo lo ve el admin).
+        var shared = await _db.Users
+            .Where(u => u.Role == Data.Entities.Auth.UserRole.Student && u.AgendaShareToken != null)
+            .Select(u => new { u.Id, u.FullName, u.Nickname, u.AgendaShareToken, Family = u.Family.Nickname ?? u.Family.Name })
+            .ToListAsync();
+        if (shared.Count > 0)
+        {
+            var ids = shared.Select(s => s.Id).ToList();
+            var viewAgg = await _db.AgendaViews
+                .Where(v => ids.Contains(v.StudentId))
+                .GroupBy(v => v.StudentId)
+                .Select(g => new { g.Key, Count = g.Count(), Last = g.Max(x => x.ViewedAt) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.Last));
+            SharedAgendas = shared.Select(s =>
+            {
+                viewAgg.TryGetValue(s.Id, out var agg);
+                return new SharedAgendaRow(s.Nickname ?? s.FullName, s.Family ?? "—",
+                    s.AgendaShareToken!, agg.Count, agg.Count > 0 ? agg.Last : null);
+            }).OrderByDescending(r => r.Views).ToList();
+        }
 
         // Promos
         CuotaArs = _config.GetValue<decimal>("CUOTA_ARS", 50000m);

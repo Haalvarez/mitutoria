@@ -45,38 +45,16 @@ public class IndexModel : PageModel
         _config = config;
     }
 
-    // Track 2: calendario mensual del aula (grilla por días, color por hijo, letra por tipo).
+    // Track 2: calendario del aula como ventana móvil (10 atrás / 20 adelante), color por hijo.
     public bool InboxEnabled { get; private set; }
-    public int CalYear { get; private set; }
-    public int CalMonth { get; private set; }
-    public string CalMonthLabel { get; private set; } = string.Empty;   // "junio 2026"
-    public string CalPrevMes { get; private set; } = string.Empty;      // yyyy-MM
-    public string CalNextMes { get; private set; } = string.Empty;      // yyyy-MM
-    public int CalDaysInMonth { get; private set; }
-    public int CalFirstDowOffset { get; private set; }                  // 0=Lunes .. 6=Domingo
-    public int CalTodayDay { get; private set; }                        // día de hoy si el mes mostrado es el actual (si no, 0)
-    public Dictionary<int, List<CalEvent>> CalByDay { get; private set; } = new();
+    public string CalRangeLabel { get; private set; } = string.Empty;
+    public int CalPrevOff { get; private set; }
+    public int CalNextOff { get; private set; }
+    public List<CalDayVM> CalDays { get; private set; } = new();
     public List<(int Id, string Name, string Color)> CalLegend { get; private set; } = new();
-    public bool HasCalendar => CalByDay.Count > 0;
+    public bool HasCalendar => CalDays.Any(d => d.Events.Count > 0);
     public record CalEvent(int StudentId, string StudentName, string Color, string Letter, string Title, string CourseName);
-
-    private static readonly string[] MesesEs =
-        { "enero", "febrero", "marzo", "abril", "mayo", "junio",
-          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
-
-    // Letra del tipo de evento: E=Examen (inferido del título), T=Tarea, M=Material, A=Anuncio.
-    private static string LetterFor(ClassroomItemType type, string title)
-    {
-        var t = (title ?? string.Empty).ToLowerInvariant();
-        if (t.Contains("examen") || t.Contains("prueba") || t.Contains("evaluac") || t.Contains("parcial"))
-            return "E";
-        return type switch
-        {
-            ClassroomItemType.Material => "M",
-            ClassroomItemType.Announcement => "A",
-            _ => "T"
-        };
-    }
+    public record CalDayVM(int Index, int DayNum, string? MonthAbbr, bool IsToday, bool IsPast, List<CalEvent> Events);
 
     public string FamilyName { get; private set; } = string.Empty;
     public string SubscriptionStatus { get; private set; } = "trial";
@@ -101,7 +79,7 @@ public class IndexModel : PageModel
 
     private static readonly string[] ChartColors = { "#C94A1F", "#5C7A5E", "#A89880", "#4A7CA0", "#8A6A9A" };
 
-    public async Task<IActionResult> OnGetAsync(string? mes = null)
+    public async Task<IActionResult> OnGetAsync(int off = 0)
     {
         var familyId = HttpContext.Session.GetInt32("FamilyId");
         if (familyId is null) return RedirectToPage("/Login");
@@ -226,27 +204,14 @@ public class IndexModel : PageModel
             });
         }
 
-        // Track 2: calendario mensual de entregas (gateado por flag global + familia).
+        // Track 2: calendario como ventana móvil (gateado por flag global + familia).
         if (_config.GetValue("INBOX_FEATURE_ENABLED", false) && family.InboxEnabled)
         {
             InboxEnabled = true;
-
-            // Mes mostrado: ?mes=yyyy-MM o el mes actual (ART).
-            int calY = nowLocal.Year, calM = nowLocal.Month;
-            if (!string.IsNullOrEmpty(mes) && DateTime.TryParseExact(mes + "-01", "yyyy-MM-dd",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None, out var md))
-            { calY = md.Year; calM = md.Month; }
-
-            // Kind=Utc: Npgsql exige UTC para comparar contra columnas timestamptz (due_date).
-            var firstOfMonth = new DateTime(calY, calM, 1, 0, 0, 0, DateTimeKind.Utc);
-            CalYear = calY; CalMonth = calM;
-            CalDaysInMonth = DateTime.DaysInMonth(calY, calM);
-            CalFirstDowOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;   // Lunes=0
-            CalMonthLabel = $"{MesesEs[calM - 1]} {calY}";
-            CalPrevMes = firstOfMonth.AddMonths(-1).ToString("yyyy-MM");
-            CalNextMes = firstOfMonth.AddMonths(1).ToString("yyyy-MM");
-            CalTodayDay = (calY == nowLocal.Year && calM == nowLocal.Month) ? nowLocal.Day : 0;
+            var (slots, fromUtc, toUtc, rangeLabel, prevOff, nextOff) =
+                Infrastructure.AgendaWindow.Build(now, Infrastructure.AgendaWindow.DefaultBack,
+                                                  Infrastructure.AgendaWindow.DefaultFwd, off);
+            CalRangeLabel = rangeLabel; CalPrevOff = prevOff; CalNextOff = nextOff;
 
             // Color por hijo, mismo criterio que el gráfico (índice en Students).
             var colorById = Students
@@ -254,23 +219,24 @@ public class IndexModel : PageModel
                 .ToDictionary(x => x.Id, x => x.Color);
             var nameById = Students.ToDictionary(s => s.Id, s => s.Nickname ?? s.FullName);
 
-            var nextMonth = firstOfMonth.AddMonths(1);
             var calEvents = await _dbContext.DetectedAssignments
                 .Where(d => studentIds.Contains(d.StudentId) && !d.Done
-                            && d.DueDate != null && d.DueDate >= firstOfMonth && d.DueDate < nextMonth)
-                .OrderBy(d => d.DueDate)
+                            && d.DueDate != null && d.DueDate >= fromUtc && d.DueDate < toUtc)
                 .ToListAsync();
 
+            var byDate = new Dictionary<DateTime, List<CalEvent>>();
             var legend = new HashSet<int>();
             foreach (var d in calEvents)
             {
-                var day = d.DueDate!.Value.Day;
-                if (!CalByDay.TryGetValue(day, out var list)) { list = new(); CalByDay[day] = list; }
+                var date = d.DueDate!.Value.Date;
+                if (!byDate.TryGetValue(date, out var list)) { list = new(); byDate[date] = list; }
                 var color = colorById.TryGetValue(d.StudentId, out var c) ? c : "#888";
                 var name = nameById.TryGetValue(d.StudentId, out var n) ? n : "—";
-                list.Add(new CalEvent(d.StudentId, name, color, LetterFor(d.Type, d.Title), d.Title, d.CourseName));
+                list.Add(new CalEvent(d.StudentId, name, color, Infrastructure.AgendaWindow.LetterFor(d.Type, d.Title), d.Title, d.CourseName));
                 legend.Add(d.StudentId);
             }
+            CalDays = slots.Select(sl => new CalDayVM(sl.Index, sl.DayNum, sl.MonthAbbr, sl.IsToday, sl.IsPast,
+                byDate.GetValueOrDefault(sl.Date.Date) ?? new())).ToList();
             CalLegend = Students.Where(s => legend.Contains(s.Id))
                 .Select(s => (s.Id, Name: nameById[s.Id], Color: colorById[s.Id])).ToList();
         }
