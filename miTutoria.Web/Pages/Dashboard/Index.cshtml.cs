@@ -28,6 +28,10 @@ public class StudentSummary
     public int FocusedMinutesToday { get; set; }
     public int AttentionPct { get; set; }       // concentrado / (concentrado + ausente)
     public int InterruptionsToday { get; set; } // veces que se fue de la pestaña
+
+    // Calendario público compartible: token (null = no compartido) + visitas acumuladas.
+    public string? ShareToken { get; set; }
+    public int ShareViews { get; set; }
 }
 
 public class IndexModel : PageModel
@@ -90,6 +94,8 @@ public class IndexModel : PageModel
     public bool MpEnabled { get; private set; }
     // Atención dedicada: muestra la concentración por hijo si está activa.
     public bool AttentionEnabled { get; private set; }
+    // Base URL para armar el link público compartible (mitutoria.app/agenda/...).
+    public string BaseUrl { get; private set; } = string.Empty;
     // Feedback del retorno de pago (?pago=ok|error|pendiente|mail).
     public string? PagoResult { get; set; }
 
@@ -107,6 +113,7 @@ public class IndexModel : PageModel
         if (family is null) return RedirectToPage("/Login");
 
         FamilyName = family.Nickname ?? family.Name ?? family.Email;
+        BaseUrl = _config["APP_BASE_URL"] ?? $"{Request.Scheme}://{Request.Host}";
         Students = family.Users.OrderBy(u => u.FullName).ToList();
 
         var now = DateTime.UtcNow;
@@ -173,6 +180,13 @@ public class IndexModel : PageModel
                 attentionByStudent[a.StudentId] = (a.Focused, a.Away, a.Interruptions);
         }
 
+        // Visitas del calendario público compartido, por hijo.
+        var shareViews = await _dbContext.AgendaViews
+            .Where(v => studentIds.Contains(v.StudentId))
+            .GroupBy(v => v.StudentId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+
         foreach (var student in Students)
         {
             var mine = events.Where(t => t.UserId == student.Id).ToList();
@@ -206,7 +220,9 @@ public class IndexModel : PageModel
                 HasAttentionToday   = hasAttention,
                 FocusedMinutesToday = (int)Math.Round(att.focused / 60000.0),
                 AttentionPct        = present > 0 ? (int)Math.Round(att.focused * 100.0 / present) : 0,
-                InterruptionsToday  = att.interruptions
+                InterruptionsToday  = att.interruptions,
+                ShareToken          = student.AgendaShareToken,
+                ShareViews          = shareViews.GetValueOrDefault(student.Id)
             });
         }
 
@@ -261,6 +277,22 @@ public class IndexModel : PageModel
 
         BuildChartJson();
         return Page();
+    }
+
+    // Genera (una vez) el token del calendario público de un hijo. Opt-in del padre.
+    public async Task<IActionResult> OnPostShareCalendarAsync(int studentId)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return RedirectToPage("/Login");
+
+        var student = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.Id == studentId && u.FamilyId == familyId.Value);
+        if (student is not null && string.IsNullOrEmpty(student.AgendaShareToken))
+        {
+            student.AgendaShareToken = Guid.NewGuid().ToString("N");
+            await _dbContext.SaveChangesAsync();
+        }
+        return RedirectToPage("/Dashboard/Index");
     }
 
     private static int CalculateStreak(IEnumerable<DateTime> createdAts)

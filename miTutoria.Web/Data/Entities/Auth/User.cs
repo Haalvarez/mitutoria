@@ -24,6 +24,9 @@ public class User
     // Login del alumno (generado por el padre)
     public string? StudentUsername { get; set; }
 
+    // Calendario público compartible: token anónimo (opt-in, lo genera el padre). null = no compartido.
+    public string? AgendaShareToken { get; set; }
+
     // Track 2: casilla del colegio del alumno (ej. ...@colegiosanramon.edu.ar).
     // Mapea el "to" de los mails de Classroom a este alumno.
     public string? ClassroomEmail { get; set; }

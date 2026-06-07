@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Promo> Promos => Set<Promo>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
+    public DbSet<AgendaView> AgendaViews => Set<AgendaView>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -171,6 +172,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .Property(u => u.ClassroomEmail)
             .HasColumnName("classroom_email");
+
+        modelBuilder.Entity<User>()
+            .Property(u => u.AgendaShareToken)
+            .HasColumnName("agenda_share_token");
+
+        modelBuilder.Entity<AgendaView>().ToTable("agenda_views", "academic");
+        modelBuilder.Entity<AgendaView>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<AgendaView>().Property(x => x.StudentId).HasColumnName("student_id");
+        modelBuilder.Entity<AgendaView>().Property(x => x.ViewedAt).HasColumnName("viewed_at");
+        modelBuilder.Entity<AgendaView>().Property(x => x.Referrer).HasColumnName("referrer");
+        modelBuilder.Entity<AgendaView>().HasIndex(x => x.StudentId);
 
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)

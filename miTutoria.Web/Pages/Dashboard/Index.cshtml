@@ -302,6 +302,36 @@
                             <a href="/Students/Edit/@s.Id" class="btn-secondary btn-sm">Editar</a>
                             <a href="/Classroom/@s.Id" class="btn-main btn-sm">Abrir aula</a>
                         </div>
+
+                        @if (Model.InboxEnabled)
+                        {
+                            <div style="margin-top:.5rem;border-top:1px dashed #eee;padding-top:.5rem;">
+                                @if (string.IsNullOrEmpty(s.ShareToken))
+                                {
+                                    <form method="post" asp-page-handler="ShareCalendar" style="margin:0;">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="studentId" value="@s.Id" />
+                                        <button type="submit" class="btn-secondary btn-sm"
+                                                title="Genera un link público y anónimo del calendario para compartir al grupo del grado">
+                                            🔗 Compartir calendario
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    var shareUrl = $"{Model.BaseUrl}/agenda/{s.ShareToken}";
+                                    <div style="font-size:.78rem;color:#666;">
+                                        <div style="display:flex;gap:.4rem;align-items:center;">
+                                            <input type="text" readonly value="@shareUrl" onclick="this.select()"
+                                                   style="flex:1;font-size:.72rem;padding:.3rem;border:1px solid #ddd;border-radius:4px;" />
+                                            <button type="button" class="btn-secondary btn-sm"
+                                                    onclick="navigator.clipboard.writeText('@shareUrl');this.textContent='✓';">Copiar</button>
+                                        </div>
+                                        <span style="color:#999;">👀 @s.ShareViews @(s.ShareViews == 1 ? "visita" : "visitas") · anónimo, sin el nombre del hijo</span>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 }
             </div>
