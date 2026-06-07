@@ -10,4 +10,6 @@ public class AgendaView
     public int StudentId { get; set; }   // alumno dueño del token compartido
     public DateTime ViewedAt { get; set; } = DateTime.UtcNow;
     public string? Referrer { get; set; }
+    /// <summary>"view" = abrió el calendario | "cta" = clickeó "Conocé miTutorIA" → landing.</summary>
+    public string Kind { get; set; } = "view";
 }

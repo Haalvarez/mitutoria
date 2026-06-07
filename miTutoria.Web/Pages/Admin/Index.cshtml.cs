@@ -128,7 +128,7 @@ public class IndexModel : PageModel
 
     // ── Calendario público compartido (analítica de visitas) ────────────────────
 
-    public record SharedAgendaRow(string Student, string Family, string Token, int Views, DateTime? LastView);
+    public record SharedAgendaRow(string Student, string Family, string Token, int Views, int Clicks, DateTime? LastView);
     public List<SharedAgendaRow> SharedAgendas { get; private set; } = [];
 
     // ── Promos (cupones de descuento) ────────────────────────────────────────────
@@ -295,13 +295,20 @@ public class IndexModel : PageModel
             var viewAgg = await _db.AgendaViews
                 .Where(v => ids.Contains(v.StudentId))
                 .GroupBy(v => v.StudentId)
-                .Select(g => new { g.Key, Count = g.Count(), Last = g.Max(x => x.ViewedAt) })
-                .ToDictionaryAsync(x => x.Key, x => (x.Count, x.Last));
+                .Select(g => new
+                {
+                    g.Key,
+                    Views = g.Count(x => x.Kind == "view"),
+                    Clicks = g.Count(x => x.Kind == "cta"),
+                    Last = g.Max(x => x.ViewedAt)
+                })
+                .ToDictionaryAsync(x => x.Key, x => (x.Views, x.Clicks, x.Last));
             SharedAgendas = shared.Select(s =>
             {
                 viewAgg.TryGetValue(s.Id, out var agg);
+                var any = agg.Views + agg.Clicks > 0;
                 return new SharedAgendaRow(s.Nickname ?? s.FullName, s.Family ?? "—",
-                    s.AgendaShareToken!, agg.Count, agg.Count > 0 ? agg.Last : null);
+                    s.AgendaShareToken!, agg.Views, agg.Clicks, any ? agg.Last : null);
             }).OrderByDescending(r => r.Views).ToList();
         }
 

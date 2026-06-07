@@ -186,6 +186,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AgendaView>().Property(x => x.StudentId).HasColumnName("student_id");
         modelBuilder.Entity<AgendaView>().Property(x => x.ViewedAt).HasColumnName("viewed_at");
         modelBuilder.Entity<AgendaView>().Property(x => x.Referrer).HasColumnName("referrer");
+        modelBuilder.Entity<AgendaView>().Property(x => x.Kind).HasColumnName("kind");
         modelBuilder.Entity<AgendaView>().HasIndex(x => x.StudentId);
 
         modelBuilder.Entity<Message>()

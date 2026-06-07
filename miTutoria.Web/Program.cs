@@ -452,4 +452,36 @@ app.MapPost("/api/attention/beat", async (JsonElement body, HttpContext ctx, App
     return Results.NoContent();
 });
 
+// ── Calendario público: clic del CTA "Conocé miTutorIA" → registra y redirige a la landing.
+app.MapGet("/agenda/{token}/ir", async (string token, HttpContext ctx, AppDbContext db) =>
+{
+    var studentId = await db.Users
+        .Where(u => u.AgendaShareToken == token)
+        .Select(u => (int?)u.Id)
+        .FirstOrDefaultAsync();
+
+    if (studentId is int sid)
+    {
+        var ua = ctx.Request.Headers.UserAgent.ToString().ToLowerInvariant();
+        var isBot = string.IsNullOrEmpty(ua) || ua.Contains("bot") || ua.Contains("crawl")
+                    || ua.Contains("spider") || ua.Contains("preview")
+                    || ua.Contains("facebookexternalhit") || ua.Contains("whatsapp");
+        if (!isBot)
+        {
+            try
+            {
+                db.AgendaViews.Add(new miTutoria.Web.Data.Entities.Academic.AgendaView
+                {
+                    StudentId = sid,
+                    Kind = "cta",
+                    Referrer = ctx.Request.Headers.Referer.ToString() is { Length: > 0 } r ? r : null
+                });
+                await db.SaveChangesAsync();
+            }
+            catch { /* la analítica nunca rompe la redirección */ }
+        }
+    }
+    return Results.Redirect("/");
+});
+
 app.Run();
