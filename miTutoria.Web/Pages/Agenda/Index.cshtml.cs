@@ -41,9 +41,11 @@ public class IndexModel : PageModel
         ShareToken = token;
         BaseUrl = $"{Request.Scheme}://{Request.Host}";
 
-        // Contexto anónimo: grado + nivel del perfil (NO el nombre del hijo).
+        // Contexto anónimo (NO el nombre del hijo): "1ro A" de Classroom + nivel; si no, el perfil.
         var nivel = student.SchoolLevel == Data.Entities.Auth.SchoolLevel.Secundario ? "Secundaria" : "Primaria";
-        GradeLabel = student.Grade is int g ? $"{g}° {nivel}" : nivel;
+        GradeLabel = !string.IsNullOrEmpty(student.GradeSection)
+            ? $"{student.GradeSection} {nivel}"
+            : (student.Grade is int g ? $"{g}° {nivel}" : nivel);
 
         // Última captura de datos (el Apps Script de Classroom corre ~cada hora).
         LastUpdate = await _db.DetectedAssignments

@@ -31,6 +31,9 @@ public class User
     // Mapea el "to" de los mails de Classroom a este alumno.
     public string? ClassroomEmail { get; set; }
 
+    // Grado + división tal cual lo muestra Classroom (ej. "1ro A"), extraído del nombre del curso.
+    public string? GradeSection { get; set; }
+
     // Perfil estudiante
     public SchoolLevel SchoolLevel { get; set; }
     public int? Grade { get; set; }

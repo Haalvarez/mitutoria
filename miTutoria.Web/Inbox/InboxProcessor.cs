@@ -51,6 +51,11 @@ public class InboxProcessor
             var family = await _db.Families.FindAsync(new object?[] { student.FamilyId }, ct);
             if (family is null || !family.InboxEnabled) continue; // no habilitada → esperar
 
+            // Grado + división tal cual Classroom (ej. "1ro A"), del nombre crudo del curso.
+            var gradeSection = ExtractGradeSection(parsed.CourseRaw);
+            if (gradeSection is not null && student.GradeSection != gradeSection)
+                student.GradeSection = gradeSection;
+
             // Resolver/crear la materia (Classroom) por nombre normalizado.
             int? classroomId = null;
             var courseName = parsed.CourseNormalized.Trim();
@@ -118,6 +123,14 @@ public class InboxProcessor
             "contab", "estadística", "estadistica", "aritmét", "aritmet"
         };
         return resolucion.Any(k => n.Contains(k)) ? PedagogicalMode.Resolucion : PedagogicalMode.Comprension;
+    }
+
+    // "1ro A Prácticas del Lenguaje 2026" → "1ro A" (grado + división como lo muestra Classroom).
+    public static string? ExtractGradeSection(string? courseRaw)
+    {
+        if (string.IsNullOrWhiteSpace(courseRaw)) return null;
+        var m = Regex.Match(courseRaw.Trim(), @"^(\d+\S*\s+[A-Za-zÁÉÍÓÚÑ])\b");
+        return m.Success ? m.Groups[1].Value.Trim() : null;
     }
 
     private static readonly Dictionary<string, int> Months = new(StringComparer.OrdinalIgnoreCase)

@@ -177,6 +177,10 @@ public class AppDbContext : DbContext
             .Property(u => u.AgendaShareToken)
             .HasColumnName("agenda_share_token");
 
+        modelBuilder.Entity<User>()
+            .Property(u => u.GradeSection)
+            .HasColumnName("grade_section");
+
         modelBuilder.Entity<AgendaView>().ToTable("agenda_views", "academic");
         modelBuilder.Entity<AgendaView>().Property(x => x.Id).HasColumnName("id");
         modelBuilder.Entity<AgendaView>().Property(x => x.StudentId).HasColumnName("student_id");

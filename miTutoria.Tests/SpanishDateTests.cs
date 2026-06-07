@@ -20,6 +20,17 @@ public class SpanishDateTests
     }
 
     [Theory]
+    [InlineData("1ro A Prácticas del Lenguaje 2026", "1ro A")]
+    [InlineData("3° B Matemática 2026", "3° B")]
+    [InlineData("1ro A", "1ro A")]
+    [InlineData("Matemática 2026", null)]   // sin prefijo de grado
+    [InlineData("", null)]
+    public void ExtraeGradoYDivision(string raw, string? esperado)
+    {
+        Assert.Equal(esperado, InboxProcessor.ExtractGradeSection(raw));
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("la semana que viene")]
     [InlineData("32 may")]
