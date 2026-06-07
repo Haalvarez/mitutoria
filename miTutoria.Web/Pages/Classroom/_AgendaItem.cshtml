@@ -4,57 +4,58 @@
     var studentId = (int)(ViewData["StudentId"] ?? 0);
     var classroomEmail = ViewData["StudentClassroomEmail"] as string;
 
-    // Fecha de referencia: cuándo apareció en Classroom (ART).
-    var pub = Model.MessageDate.AddHours(-3);
-    var pubTxt = $"{pub.Day} {miTutoria.Web.Infrastructure.AgendaWindow.MesesAbbr[pub.Month - 1]}";
-
     // Deep-link a Google Classroom: a la tarea exacta si hay ItemId, si no al curso.
     string? classroomUrl = null;
     if (!string.IsNullOrEmpty(Model.CourseId) && !string.IsNullOrEmpty(Model.ItemId))
         classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}/a/{Model.ItemId}/details";
     else if (!string.IsNullOrEmpty(Model.CourseId))
         classroomUrl = $"https://classroom.google.com/c/{Model.CourseId}";
-
-    // Si sabemos la casilla del colegio, envolvemos en AccountChooser para forzar esa cuenta
-    // (si no, el chico logueado con su Gmail personal vería "sin acceso").
     if (classroomUrl != null && !string.IsNullOrEmpty(classroomEmail))
         classroomUrl = $"https://accounts.google.com/AccountChooser?continue={Uri.EscapeDataString(classroomUrl)}&Email={Uri.EscapeDataString(classroomEmail)}";
-}
-<li class="agenda-item@(Model.Done ? " agenda-item--done" : "")">
-    <button type="button" class="agenda-check" title="@(Model.Done ? "Hecho — tocá para desmarcar" : "Marcar como hecho")"
-            onclick="toggleAgenda(@Model.Id, this)">@(Model.Done ? "✅" : "○")</button>
-    <span class="agenda-item__icon">@(Model.Type switch
+
+    var pub = Model.MessageDate.AddHours(-3);
+    var pubTxt = $"{pub.Day} {miTutoria.Web.Infrastructure.AgendaWindow.MesesAbbr[pub.Month - 1]}";
+    var icon = Model.Type switch
     {
         ClassroomItemType.DueReminder => "⏰",
         ClassroomItemType.Assignment => "📝",
         ClassroomItemType.Material => "📎",
         ClassroomItemType.Announcement => "📣",
         _ => "•"
-    })</span>
-    <div class="agenda-item__body">
-        <span class="agenda-item__title">@Model.Title</span>
-        <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")@(string.IsNullOrWhiteSpace(Model.Teacher) ? "" : $" · {Model.Teacher}")</span>
-        <span class="agenda-item__meta" style="color:#aaa;font-size:.72rem;" title="Cuándo apareció en Classroom">📅 publicado @pubTxt</span>
-        @if (!string.IsNullOrWhiteSpace(Model.Description))
-        {
-            <span style="display:block;font-size:.78rem;color:#999;margin-top:.15rem;">@Model.Description</span>
-        }
-        <div class="agenda-item__actions" style="display:flex;gap:.5rem;margin-top:.25rem;flex-wrap:wrap;">
-            <form method="post" asp-page-handler="WorkWithTutor" asp-route-studentId="@studentId" style="margin:0;">
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="agenda-action" title="Trabajar esta tarea con el tutor"
-                        style="background:none;border:none;color:#C94A1F;cursor:pointer;padding:0;font-size:.78rem;">
-                    💬 Tutor
-                </button>
-            </form>
-            @if (classroomUrl != null)
+    };
+}
+<li class="agenda-item" id="agenda-li-@Model.Id">
+    <button type="button" class="agenda-check" title="Marcar como hecho" onclick="agendaDone(@Model.Id, this)"
+            style="flex:none;width:1.25rem;height:1.25rem;border:2px solid #5C7A5E;border-radius:50%;background:#fff;cursor:pointer;margin-top:.15rem;"></button>
+    <span class="agenda-item__icon">@icon</span>
+    <div class="agenda-item__body" style="cursor:pointer;" onclick="toggleAgendaInfo(this)" title="Tocá para ver más">
+        <span class="agenda-item__title">@Model.Title <span class="agenda-chevron" style="color:#bbb;font-size:.7rem;">▾</span></span>
+        <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")</span>
+
+        @* Se despliega al tocar el ítem: info + acciones, todo junto. *@
+        <div class="agenda-item__details" style="display:none;margin-top:.3rem;">
+            <span style="display:block;font-size:.72rem;color:#aaa;">📅 publicado @pubTxt@(string.IsNullOrWhiteSpace(Model.Teacher) ? "" : $" · {Model.Teacher}")</span>
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
             {
-                <a href="@classroomUrl" target="_blank" rel="noopener" class="agenda-action"
-                   title="Abrir en Google Classroom (ahí está el archivo)"
-                   style="color:#4A7CA0;text-decoration:none;font-size:.78rem;">
-                    📂 Classroom
-                </a>
+                <span style="display:block;font-size:.8rem;color:#888;margin-top:.15rem;">@Model.Description</span>
             }
+            <div class="agenda-item__actions" onclick="event.stopPropagation()" style="display:flex;gap:.8rem;margin-top:.5rem;flex-wrap:wrap;">
+                <form method="post" asp-page-handler="WorkWithTutor" asp-route-studentId="@studentId" style="margin:0;">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="agenda-action" title="Trabajar esta tarea con el tutor"
+                            style="background:none;border:none;color:#C94A1F;cursor:pointer;padding:0;font-size:.85rem;font-weight:600;">
+                        💬 Trabajar con el tutor
+                    </button>
+                </form>
+                @if (classroomUrl != null)
+                {
+                    <a href="@classroomUrl" target="_blank" rel="noopener" class="agenda-action"
+                       title="Abrir en Google Classroom (ahí está el archivo)"
+                       style="color:#4A7CA0;text-decoration:none;font-size:.85rem;font-weight:600;">
+                        📂 Abrir en Classroom
+                    </a>
+                }
+            </div>
         </div>
     </div>
 </li>

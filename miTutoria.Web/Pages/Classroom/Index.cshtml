@@ -601,35 +601,54 @@ let isExamMode = @(Model.IsExamMode ? "true" : "false");
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-// Agenda: marcar tarea como hecha (el ✓ que da el micro-logro)
-async function toggleAgenda(id, btn) {
+// Agenda: desplegar/ocultar la info extra del ítem (sirve en compu y celu, sin hover).
+function toggleAgendaInfo(bodyEl) {
+    const d = bodyEl.querySelector('.agenda-item__details');
+    const ch = bodyEl.querySelector('.agenda-chevron');
+    if (!d) return;
+    const show = d.style.display === 'none' || d.style.display === '';
+    d.style.display = show ? 'block' : 'none';
+    if (ch) ch.textContent = show ? '▴' : '▾';
+}
+
+// Agenda: marcar hecho con ventana de "Deshacer" de 10s (estilo Gmail).
+const _agendaUndo = {};   // id -> { html, t, tick }
+function agendaDone(id, btn) {
     const li = btn.closest('.agenda-item');
-    try {
-        const res = await fetch(`/Classroom/${studentId}?handler=ToggleAgendaDone`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
-            body: new URLSearchParams({ studentId, id })
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        // Hecho = "cerrar": se anima y se saca de la vista (ya no carga al recargar).
-        if (data.done && li) {
-            const h = li.offsetHeight;
-            li.style.overflow = 'hidden';
-            li.style.maxHeight = h + 'px';
-            li.style.transition = 'opacity .2s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
-            requestAnimationFrame(() => {
-                li.style.opacity = '0';
-                li.style.maxHeight = '0';
-                li.style.margin = '0';
-                li.style.padding = '0';
+    if (!li || _agendaUndo[id]) return;
+    let left = 10;
+    const html = li.innerHTML;
+    li.innerHTML =
+        '<div style="display:flex;align-items:center;gap:.5rem;padding:.45rem .3rem;color:#5C7A5E;font-size:.85rem;">' +
+        '<span>✓ Marcada como hecha</span>' +
+        '<button type="button" onclick="agendaUndo(' + id + ')" style="background:none;border:none;color:#4A7CA0;text-decoration:underline;cursor:pointer;font-size:.85rem;padding:0;">Deshacer</button>' +
+        '<span class="agenda-undo-count" style="color:#aaa;">(' + left + ')</span></div>';
+    const cnt = li.querySelector('.agenda-undo-count');
+    const tick = setInterval(() => { left--; if (cnt) cnt.textContent = left > 0 ? '(' + left + ')' : ''; }, 1000);
+    const t = setTimeout(async () => {
+        clearInterval(tick); delete _agendaUndo[id];
+        try {
+            await fetch(`/Classroom/${studentId}?handler=ToggleAgendaDone`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+                body: new URLSearchParams({ studentId, id })
             });
-            setTimeout(() => li.remove(), 280);
-            return;
-        }
-        btn.textContent = data.done ? '✅' : '○';
-        if (li) { li.classList.toggle('agenda-item--done', data.done); if (data.done) li.classList.remove('agenda-item--due'); }
-    } catch {}
+        } catch {}
+        const h = li.offsetHeight;
+        li.style.overflow = 'hidden'; li.style.maxHeight = h + 'px';
+        li.style.transition = 'opacity .2s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
+        requestAnimationFrame(() => { li.style.opacity = '0'; li.style.maxHeight = '0'; li.style.margin = '0'; li.style.padding = '0'; });
+        setTimeout(() => li.remove(), 280);
+    }, 10000);
+    _agendaUndo[id] = { html, t, tick };
+}
+function agendaUndo(id) {
+    const u = _agendaUndo[id];
+    if (!u) return;
+    clearTimeout(u.t); clearInterval(u.tick);
+    const li = document.getElementById('agenda-li-' + id);
+    if (li) li.innerHTML = u.html;
+    delete _agendaUndo[id];
 }
 
 // Agenda: "prioridad de hoy" — el agente escribe un resumen corto en el chat
