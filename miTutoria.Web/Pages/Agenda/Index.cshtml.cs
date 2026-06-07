@@ -18,6 +18,7 @@ public class IndexModel : PageModel
     public IndexModel(AppDbContext db) => _db = db;
 
     public string ShareToken { get; private set; } = string.Empty;
+    public string BaseUrl { get; private set; } = string.Empty;   // para OG tags (preview de WhatsApp)
     public string CalRangeLabel { get; private set; } = string.Empty;
     public int CalPrevOff { get; private set; }
     public int CalNextOff { get; private set; }
@@ -36,6 +37,7 @@ public class IndexModel : PageModel
         var student = await _db.Users.FirstOrDefaultAsync(u => u.AgendaShareToken == token);
         if (student is null) return NotFound();
         ShareToken = token;
+        BaseUrl = $"{Request.Scheme}://{Request.Host}";
 
         var (slots, fromUtc, toUtc, rangeLabel, prevOff, nextOff) =
             AgendaWindow.Build(DateTime.UtcNow, AgendaWindow.DefaultBack, AgendaWindow.DefaultFwd, off);

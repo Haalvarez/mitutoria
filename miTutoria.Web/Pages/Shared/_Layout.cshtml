@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
     <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="@(ViewData["BodyClass"])">
     <div id="cursor" class="cursor"></div>

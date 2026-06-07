@@ -2,7 +2,24 @@
 @model miTutoria.Web.Pages.Agenda.IndexModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Agenda escolar";
+    ViewData["Title"] = "📅 Agenda escolar — miTutorIA";
+    var pageUrl = $"{Model.BaseUrl}/agenda/{Model.ShareToken}";
+    var imageUrl = $"{Model.BaseUrl}/img/logo-wordmark.png";
+    var ogDesc = "Próximas entregas, exámenes y materiales de la clase, siempre al día. Hecho con miTutorIA.";
+}
+
+@section Head {
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="miTutorIA" />
+    <meta property="og:title" content="📅 Agenda escolar — miTutorIA" />
+    <meta property="og:description" content="@ogDesc" />
+    <meta property="og:image" content="@imageUrl" />
+    <meta property="og:url" content="@pageUrl" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="📅 Agenda escolar — miTutorIA" />
+    <meta name="twitter:description" content="@ogDesc" />
+    <meta name="twitter:image" content="@imageUrl" />
+    <meta name="description" content="@ogDesc" />
 }
 
 <section style="max-width:760px;margin:0 auto;padding:1rem;">
