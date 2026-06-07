@@ -27,13 +27,13 @@
         .agenda-cell { min-height:3.1rem; border:1px solid #eee; border-radius:6px; padding:.25rem; }
         @@media (max-width:480px) {
             .agenda-wrap { padding:.6rem !important; }
-            .agenda-grid { gap:2px; }
-            .agenda-cell { min-height:2.6rem; padding:.15rem; }
+            .agenda-grid { gap:3px; font-size:.85rem; }
+            .agenda-cell { min-height:3rem; padding:.2rem; }   /* tap-target ~48px */
         }
     </style>
 }
 
-<section style="max-width:480px;margin:0 auto;padding:1rem;">
+<section style="max-width:480px;margin:0 auto;padding:5rem 1rem 1rem;">
     <div style="text-align:center;margin-bottom:1rem;">
         <h1 style="margin:.2rem 0;font-size:1.5rem;">📅 Agenda @(string.IsNullOrEmpty(Model.GradeLabel) ? "escolar" : "de " + Model.GradeLabel)</h1>
         <p style="color:#777;margin:.2rem 0;font-size:.9rem;">Próximas entregas, exámenes y materiales de la clase.</p>
