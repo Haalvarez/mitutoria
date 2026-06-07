@@ -219,6 +219,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.DetectedAt).HasColumnName("detected_at");
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.Done).HasColumnName("done");
         modelBuilder.Entity<DetectedAssignment>().Property(x => x.DoneAt).HasColumnName("done_at");
+        modelBuilder.Entity<DetectedAssignment>().Property(x => x.NotifiedAt).HasColumnName("notified_at");
         modelBuilder.Entity<DetectedAssignment>().HasIndex(x => x.StudentId);
 
         // ── Cobro: pagos de la cuota mensual (MercadoPago Checkout Pro) ──

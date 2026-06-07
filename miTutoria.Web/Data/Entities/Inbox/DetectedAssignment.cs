@@ -35,6 +35,9 @@ public class DetectedAssignment
     public DateTime MessageDate { get; set; }
     public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Cuándo se incluyó en un digest de Telegram (null = todavía no avisado).</summary>
+    public DateTime? NotifiedAt { get; set; }
+
     /// <summary>El alumno la marcó como hecha (el ✓ que da el micro-logro).</summary>
     public bool Done { get; set; }
     public DateTime? DoneAt { get; set; }
