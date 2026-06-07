@@ -222,7 +222,8 @@ public class IndexModel : PageModel
                     System.Globalization.DateTimeStyles.None, out var md))
             { calY = md.Year; calM = md.Month; }
 
-            var firstOfMonth = new DateTime(calY, calM, 1);
+            // Kind=Utc: Npgsql exige UTC para comparar contra columnas timestamptz (due_date).
+            var firstOfMonth = new DateTime(calY, calM, 1, 0, 0, 0, DateTimeKind.Utc);
             CalYear = calY; CalMonth = calM;
             CalDaysInMonth = DateTime.DaysInMonth(calY, calM);
             CalFirstDowOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;   // Lunes=0
