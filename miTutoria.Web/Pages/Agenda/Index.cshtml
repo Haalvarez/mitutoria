@@ -2,7 +2,9 @@
 @model miTutoria.Web.Pages.Agenda.IndexModel
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "📅 Agenda escolar — miTutorIA";
+    var gradeTxt = string.IsNullOrEmpty(Model.GradeLabel) ? "escolar" : $"de {Model.GradeLabel}";
+    var pageTitle = $"📅 Agenda {gradeTxt} — miTutorIA";
+    ViewData["Title"] = pageTitle;
     var pageUrl = $"{Model.BaseUrl}/agenda/{Model.ShareToken}";
     var imageUrl = $"{Model.BaseUrl}/img/logo-wordmark.png";
     var ogDesc = "Próximas entregas, exámenes y materiales de la clase, siempre al día. Hecho con miTutorIA.";
@@ -11,24 +13,33 @@
 @section Head {
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="miTutorIA" />
-    <meta property="og:title" content="📅 Agenda escolar — miTutorIA" />
+    <meta property="og:title" content="@pageTitle" />
     <meta property="og:description" content="@ogDesc" />
     <meta property="og:image" content="@imageUrl" />
     <meta property="og:url" content="@pageUrl" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="📅 Agenda escolar — miTutorIA" />
+    <meta name="twitter:title" content="@pageTitle" />
     <meta name="twitter:description" content="@ogDesc" />
     <meta name="twitter:image" content="@imageUrl" />
     <meta name="description" content="@ogDesc" />
+    <style>
+        .agenda-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:.5rem; }
+        .agenda-cell { min-height:3.1rem; border:1px solid #eee; border-radius:6px; padding:.25rem; }
+        @@media (max-width:480px) {
+            .agenda-wrap { padding:.6rem !important; }
+            .agenda-grid { gap:2px; }
+            .agenda-cell { min-height:2.6rem; padding:.15rem; }
+        }
+    </style>
 }
 
-<section style="max-width:760px;margin:0 auto;padding:1rem;">
+<section style="max-width:480px;margin:0 auto;padding:1rem;">
     <div style="text-align:center;margin-bottom:1rem;">
-        <h1 style="margin:.2rem 0;">📅 Agenda escolar</h1>
-        <p style="color:#777;margin:.2rem 0;">Próximas entregas, exámenes y materiales de la clase.</p>
+        <h1 style="margin:.2rem 0;font-size:1.5rem;">📅 Agenda @(string.IsNullOrEmpty(Model.GradeLabel) ? "escolar" : "de " + Model.GradeLabel)</h1>
+        <p style="color:#777;margin:.2rem 0;font-size:.9rem;">Próximas entregas, exámenes y materiales de la clase.</p>
     </div>
 
-    <section style="background:#fff;border:1px solid #eee;border-radius:8px;padding:1.1rem 1.2rem;">
+    <section class="agenda-wrap" style="background:#fff;border:1px solid #eee;border-radius:12px;padding:1.1rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.04);">
         <div style="display:flex;align-items:center;justify-content:center;gap:.8rem;">
             <a href="/agenda/@Model.ShareToken?off=@Model.CalPrevOff" title="Atrás" style="text-decoration:none;font-size:1.1rem;color:#888;">◀</a>
             <strong style="min-width:9rem;text-align:center;">@Model.CalRangeLabel</strong>
@@ -49,7 +60,7 @@
             </div>
         }
 
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.5rem;">
+        <div class="agenda-grid">
             @foreach (var d in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" })
             {
                 <div style="text-align:center;font-size:.7rem;color:#aaa;font-weight:600;">@d</div>
@@ -57,8 +68,8 @@
             @foreach (var d in Model.CalDays)
             {
                 var has = d.Events.Count > 0;
-                <div onclick="@(has ? $"showCalDay({d.Index})" : "")"
-                     style="min-height:3.1rem;border:1px solid #eee;border-radius:6px;padding:.25rem;@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")@(has ? "cursor:pointer;" : "")">
+                <div class="agenda-cell" onclick="@(has ? $"showCalDay({d.Index})" : "")"
+                     style="@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")@(has ? "cursor:pointer;" : "")">
                     <div style="font-size:.72rem;font-weight:@(d.IsToday ? "700" : "400");color:@(d.IsToday ? "#C94A1F" : "#bbb");">
                         @d.DayNum@(d.MonthAbbr != null ? $" {d.MonthAbbr}" : "")
                     </div>
@@ -99,10 +110,31 @@
     </section>
 
     @* ── CTA: venta encubierta ── *@
-    <div style="margin-top:1.2rem;background:#fdf6f3;border:1px solid #f0dcd3;border-radius:8px;padding:1.1rem 1.2rem;text-align:center;">
-        <p style="margin:.2rem 0;font-weight:600;">Esta agenda la arma sola miTutorIA leyendo Google Classroom.</p>
-        <p style="margin:.2rem 0 .8rem;color:#777;font-size:.9rem;">Además, tu hijo estudia con un tutor con IA que lo guía sin hacerle la tarea.</p>
-        <a href="/" class="btn-main" style="text-decoration:none;">Conocé miTutorIA</a>
+    <div style="margin-top:1.2rem;border-radius:14px;padding:1.4rem 1.3rem;text-align:center;color:#fff;
+                background:linear-gradient(135deg,#C94A1F 0%,#A23416 100%);
+                box-shadow:0 8px 24px rgba(201,74,31,.28);">
+        <span style="display:inline-block;background:rgba(255,255,255,.18);color:#fff;font-size:.7rem;font-weight:700;
+                     letter-spacing:.05em;text-transform:uppercase;padding:.25rem .6rem;border-radius:999px;">⚡ Nuevo</span>
+        <h2 style="margin:.6rem 0 .3rem;font-size:1.5rem;line-height:1.2;color:#fff;">
+            Tu hijo estudia mejor<br><em style="font-weight:400;">con un tutor de IA</em>
+        </h2>
+        <p style="margin:.2rem auto .9rem;max-width:30rem;color:rgba(255,255,255,.9);font-size:.92rem;">
+            miTutorIA arma esta agenda leyendo Google Classroom, y además guía a tu hijo paso a paso <strong>sin hacerle la tarea</strong>.
+        </p>
+        <ul style="list-style:none;padding:0;margin:0 auto 1.1rem;max-width:22rem;text-align:left;font-size:.9rem;">
+            @foreach (var f in new[] { "Agenda escolar automática", "Tutor IA que explica, no resuelve", "Seguimiento para padres", "Funciona con Google Classroom" })
+            {
+                <li style="display:flex;align-items:center;gap:.5rem;margin:.35rem 0;">
+                    <span style="flex:none;width:1.2rem;height:1.2rem;border-radius:50%;background:rgba(255,255,255,.22);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;">✓</span>
+                    @f
+                </li>
+            }
+        </ul>
+        <a href="/" style="display:inline-block;background:#fff;color:#C94A1F;font-weight:700;text-decoration:none;
+                           padding:.7rem 1.5rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.15);">
+            Conocé miTutorIA →
+        </a>
+        <p style="margin:.8rem 0 0;color:rgba(255,255,255,.8);font-size:.78rem;">Gratis para empezar · Sin tarjeta requerida</p>
     </div>
     <p style="text-align:center;color:#bbb;font-size:.75rem;margin-top:.8rem;">Lectura automática de Classroom — puede fallar. Confirmá en la app del colegio.</p>
 </section>

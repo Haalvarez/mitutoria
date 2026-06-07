@@ -19,6 +19,7 @@ public class IndexModel : PageModel
 
     public string ShareToken { get; private set; } = string.Empty;
     public string BaseUrl { get; private set; } = string.Empty;   // para OG tags (preview de WhatsApp)
+    public string GradeLabel { get; private set; } = string.Empty; // contexto anónimo, ej. "1° Secundaria"
     public string CalRangeLabel { get; private set; } = string.Empty;
     public int CalPrevOff { get; private set; }
     public int CalNextOff { get; private set; }
@@ -38,6 +39,10 @@ public class IndexModel : PageModel
         if (student is null) return NotFound();
         ShareToken = token;
         BaseUrl = $"{Request.Scheme}://{Request.Host}";
+
+        // Contexto anónimo: grado + nivel del perfil (NO el nombre del hijo).
+        var nivel = student.SchoolLevel == Data.Entities.Auth.SchoolLevel.Secundario ? "Secundaria" : "Primaria";
+        GradeLabel = student.Grade is int g ? $"{g}° {nivel}" : nivel;
 
         var (slots, fromUtc, toUtc, rangeLabel, prevOff, nextOff) =
             AgendaWindow.Build(DateTime.UtcNow, AgendaWindow.DefaultBack, AgendaWindow.DefaultFwd, off);
