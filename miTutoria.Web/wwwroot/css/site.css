@@ -98,6 +98,9 @@ nav ul a:hover{color:var(--ink)}
   .nav-right{ gap:.9rem; }
   .nav-hide-mobile{ display:none; }
 }
+
+/* Página pública de la agenda (prospecto): nav solo logo, sin logins */
+.agenda-public nav .nav-right{ display:none; }
 .nav-tag{
   font-size:0.75rem;
   font-weight:500;

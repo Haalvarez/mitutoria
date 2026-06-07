@@ -2,6 +2,7 @@
 @model miTutoria.Web.Pages.Agenda.IndexModel
 @{
     Layout = "_Layout";
+    ViewData["BodyClass"] = "agenda-public";   // nav solo logo (página de prospecto, sin logins)
     var gradeTxt = string.IsNullOrEmpty(Model.GradeLabel) ? "escolar" : $"de {Model.GradeLabel}";
     var pageTitle = $"📅 Agenda {gradeTxt} — miTutorIA";
     ViewData["Title"] = pageTitle;
