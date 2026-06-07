@@ -240,6 +240,37 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
     </tbody>
 </table>
 
+@* ── Calendarios públicos compartidos (analítica: visitas → clics a landing) ── *@
+<h2>📅 Calendarios compartidos <span class="help" title="Páginas públicas /agenda/{token} que generó cada familia. Analítica first-party (sin GA). Visitas = abrieron el calendario; Clics = apretaron 'Conocé miTutorIA'.">ⓘ</span></h2>
+@if (Model.SharedAgendas.Any())
+{
+    <table>
+        <thead><tr><th>Alumno</th><th>Familia</th><th>Visitas</th><th>Clics a landing</th><th>Conversión</th><th>Última actividad</th><th>Link</th></tr></thead>
+        <tbody>
+        @foreach (var a in Model.SharedAgendas)
+        {
+            var conv = a.Views > 0 ? (int)Math.Round(a.Clicks * 100.0 / a.Views) : 0;
+            <tr>
+                <td>@a.Student</td>
+                <td>@a.Family</td>
+                <td><strong>@a.Views</strong></td>
+                <td><strong>@a.Clicks</strong></td>
+                <td>@(a.Views > 0 ? $"{conv}%" : "—")</td>
+                <td>@(a.LastView?.ToLocalTime().ToString("dd/MM HH:mm") ?? "—")</td>
+                <td><a href="/agenda/@a.Token" target="_blank" rel="noopener">/agenda/@(a.Token.Length > 8 ? a.Token[..8] : a.Token)…</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <p style="color:#888;font-size:.9rem;margin-bottom:1.5rem;">
+        Todavía no hay calendarios compartidos. Cuando una familia apriete <strong>"🔗 Compartir calendario"</strong>
+        en el dashboard de un hijo, aparece acá con sus visitas y clics.
+    </p>
+}
+
 @* ── KR3 y KR4 — datos de cierre (manual) ──────────────────────────────── *@
 <h2>KR3 y KR4 — Datos de cierre (manual)</h2>
 <form method="get" action="/admin" style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
@@ -349,30 +380,6 @@ else
     }
     </tbody>
 </table>
-
-@* ── Calendarios públicos compartidos (visitas) ────────────────────────── *@
-@if (Model.SharedAgendas.Any())
-{
-    <h2>Calendarios compartidos <span class="help" title="Páginas públicas /agenda/{token} que generó cada familia. Las visitas son first-party (sin GA).">ⓘ</span></h2>
-    <table>
-        <thead><tr><th>Alumno</th><th>Familia</th><th>Visitas</th><th>Clics a landing</th><th>Conversión</th><th>Última actividad</th><th>Link</th></tr></thead>
-        <tbody>
-        @foreach (var a in Model.SharedAgendas)
-        {
-            var conv = a.Views > 0 ? (int)Math.Round(a.Clicks * 100.0 / a.Views) : 0;
-            <tr>
-                <td>@a.Student</td>
-                <td>@a.Family</td>
-                <td><strong>@a.Views</strong></td>
-                <td><strong>@a.Clicks</strong></td>
-                <td>@(a.Views > 0 ? $"{conv}%" : "—")</td>
-                <td>@(a.LastView?.ToLocalTime().ToString("dd/MM HH:mm") ?? "—")</td>
-                <td><a href="/agenda/@a.Token" target="_blank" rel="noopener">/agenda/@(a.Token.Length > 8 ? a.Token[..8] : a.Token)…</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
-}
 
 @* ── Promos (cupones de descuento) ─────────────────────────────────────── *@
 @{
