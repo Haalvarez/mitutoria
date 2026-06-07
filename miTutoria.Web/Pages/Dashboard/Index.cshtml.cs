@@ -41,11 +41,38 @@ public class IndexModel : PageModel
         _config = config;
     }
 
-    // Track 2: calendario del aula (próximas entregas de todos los hijos).
+    // Track 2: calendario mensual del aula (grilla por días, color por hijo, letra por tipo).
     public bool InboxEnabled { get; private set; }
-    public List<CalendarEvent> Calendar { get; private set; } = new();
-    public record CalendarEvent(string StudentName, ClassroomItemType Type, string Title,
-        string CourseName, DateTime? DueDate, string? DueDateRaw, bool Done);
+    public int CalYear { get; private set; }
+    public int CalMonth { get; private set; }
+    public string CalMonthLabel { get; private set; } = string.Empty;   // "junio 2026"
+    public string CalPrevMes { get; private set; } = string.Empty;      // yyyy-MM
+    public string CalNextMes { get; private set; } = string.Empty;      // yyyy-MM
+    public int CalDaysInMonth { get; private set; }
+    public int CalFirstDowOffset { get; private set; }                  // 0=Lunes .. 6=Domingo
+    public int CalTodayDay { get; private set; }                        // día de hoy si el mes mostrado es el actual (si no, 0)
+    public Dictionary<int, List<CalEvent>> CalByDay { get; private set; } = new();
+    public List<(int Id, string Name, string Color)> CalLegend { get; private set; } = new();
+    public bool HasCalendar => CalByDay.Count > 0;
+    public record CalEvent(int StudentId, string StudentName, string Color, string Letter, string Title, string CourseName);
+
+    private static readonly string[] MesesEs =
+        { "enero", "febrero", "marzo", "abril", "mayo", "junio",
+          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" };
+
+    // Letra del tipo de evento: E=Examen (inferido del título), T=Tarea, M=Material, A=Anuncio.
+    private static string LetterFor(ClassroomItemType type, string title)
+    {
+        var t = (title ?? string.Empty).ToLowerInvariant();
+        if (t.Contains("examen") || t.Contains("prueba") || t.Contains("evaluac") || t.Contains("parcial"))
+            return "E";
+        return type switch
+        {
+            ClassroomItemType.Material => "M",
+            ClassroomItemType.Announcement => "A",
+            _ => "T"
+        };
+    }
 
     public string FamilyName { get; private set; } = string.Empty;
     public string SubscriptionStatus { get; private set; } = "trial";
@@ -68,7 +95,7 @@ public class IndexModel : PageModel
 
     private static readonly string[] ChartColors = { "#C94A1F", "#5C7A5E", "#A89880", "#4A7CA0", "#8A6A9A" };
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(string? mes = null)
     {
         var familyId = HttpContext.Session.GetInt32("FamilyId");
         if (familyId is null) return RedirectToPage("/Login");
@@ -183,20 +210,52 @@ public class IndexModel : PageModel
             });
         }
 
-        // Track 2: calendario de próximas entregas (gateado por flag global + familia).
+        // Track 2: calendario mensual de entregas (gateado por flag global + familia).
         if (_config.GetValue("INBOX_FEATURE_ENABLED", false) && family.InboxEnabled)
         {
             InboxEnabled = true;
-            var since = now.Date.AddDays(-3);
+
+            // Mes mostrado: ?mes=yyyy-MM o el mes actual (ART).
+            int calY = nowLocal.Year, calM = nowLocal.Month;
+            if (!string.IsNullOrEmpty(mes) && DateTime.TryParseExact(mes + "-01", "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var md))
+            { calY = md.Year; calM = md.Month; }
+
+            var firstOfMonth = new DateTime(calY, calM, 1);
+            CalYear = calY; CalMonth = calM;
+            CalDaysInMonth = DateTime.DaysInMonth(calY, calM);
+            CalFirstDowOffset = ((int)firstOfMonth.DayOfWeek + 6) % 7;   // Lunes=0
+            CalMonthLabel = $"{MesesEs[calM - 1]} {calY}";
+            CalPrevMes = firstOfMonth.AddMonths(-1).ToString("yyyy-MM");
+            CalNextMes = firstOfMonth.AddMonths(1).ToString("yyyy-MM");
+            CalTodayDay = (calY == nowLocal.Year && calM == nowLocal.Month) ? nowLocal.Day : 0;
+
+            // Color por hijo, mismo criterio que el gráfico (índice en Students).
+            var colorById = Students
+                .Select((s, i) => (s.Id, Color: ChartColors[i % ChartColors.Length]))
+                .ToDictionary(x => x.Id, x => x.Color);
             var nameById = Students.ToDictionary(s => s.Id, s => s.Nickname ?? s.FullName);
-            var upcoming = await _dbContext.DetectedAssignments
-                .Where(d => studentIds.Contains(d.StudentId) && d.DueDate != null && d.DueDate >= since && !d.Done)
+
+            var nextMonth = firstOfMonth.AddMonths(1);
+            var calEvents = await _dbContext.DetectedAssignments
+                .Where(d => studentIds.Contains(d.StudentId) && !d.Done
+                            && d.DueDate != null && d.DueDate >= firstOfMonth && d.DueDate < nextMonth)
                 .OrderBy(d => d.DueDate)
-                .Take(40)
                 .ToListAsync();
-            Calendar = upcoming.Select(d => new CalendarEvent(
-                nameById.TryGetValue(d.StudentId, out var n) ? n : "—",
-                d.Type, d.Title, d.CourseName, d.DueDate, d.DueDateRaw, d.Done)).ToList();
+
+            var legend = new HashSet<int>();
+            foreach (var d in calEvents)
+            {
+                var day = d.DueDate!.Value.Day;
+                if (!CalByDay.TryGetValue(day, out var list)) { list = new(); CalByDay[day] = list; }
+                var color = colorById.TryGetValue(d.StudentId, out var c) ? c : "#888";
+                var name = nameById.TryGetValue(d.StudentId, out var n) ? n : "—";
+                list.Add(new CalEvent(d.StudentId, name, color, LetterFor(d.Type, d.Title), d.Title, d.CourseName));
+                legend.Add(d.StudentId);
+            }
+            CalLegend = Students.Where(s => legend.Contains(s.Id))
+                .Select(s => (s.Id, Name: nameById[s.Id], Color: colorById[s.Id])).ToList();
         }
 
         BuildChartJson();

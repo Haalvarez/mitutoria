@@ -47,30 +47,84 @@
         </div>
     }
 
-    @* ── Calendario del aula (Track 2, gateado) ── *@
-    @if (Model.InboxEnabled && Model.Calendar.Count > 0)
+    @* ── Calendario mensual del aula (Track 2, gateado) ── *@
+    @if (Model.InboxEnabled)
     {
-        <section class="dash-calendar">
-            <h2 class="dash-calendar__title">📅 Calendario del aula <span class="dim">— próximas entregas</span></h2>
-            <div class="dash-calendar__list">
-                @foreach (var g in Model.Calendar.Where(e => e.DueDate.HasValue)
-                                        .GroupBy(e => e.DueDate!.Value.Date).OrderBy(g => g.Key))
+        <section class="dash-calendar" style="background:#fff;border:1px solid #eee;border-radius:8px;padding:1.1rem 1.2rem;margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                <h2 class="dash-calendar__title" style="margin:0;">📅 Calendario del aula</h2>
+                <div style="display:flex;align-items:center;gap:.8rem;">
+                    <a href="?mes=@Model.CalPrevMes" title="Mes anterior" style="text-decoration:none;font-size:1.1rem;color:#888;">◀</a>
+                    <strong style="text-transform:capitalize;min-width:9rem;text-align:center;">@Model.CalMonthLabel</strong>
+                    <a href="?mes=@Model.CalNextMes" title="Mes siguiente" style="text-decoration:none;font-size:1.1rem;color:#888;">▶</a>
+                </div>
+            </div>
+
+            @if (Model.HasCalendar)
+            {
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:.6rem 0;font-size:.78rem;color:#666;">
+                    @foreach (var k in Model.CalLegend)
+                    {
+                        <span style="display:inline-flex;align-items:center;gap:.3rem;">
+                            <span style="width:.7rem;height:.7rem;border-radius:50%;background:@k.Color;display:inline-block;"></span>@k.Name
+                        </span>
+                    }
+                    <span style="color:#ccc;">·</span>
+                    <span style="color:#999;">E=Examen · T=Tarea · M=Material · A=Anuncio</span>
+                </div>
+            }
+
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.5rem;">
+                @foreach (var d in new[] { "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom" })
                 {
-                    <div class="dash-cal-day">
-                        <div class="dash-cal-day__date">@g.Key.ToString("dd/MM")</div>
-                        <div class="dash-cal-day__events">
-                            @foreach (var e in g)
-                            {
-                                <div class="dash-cal-event">
-                                    <strong>@e.Title</strong>
-                                    <span class="dim">@e.CourseName · @e.StudentName</span>
-                                </div>
-                            }
-                        </div>
+                    <div style="text-align:center;font-size:.7rem;color:#aaa;font-weight:600;">@d</div>
+                }
+                @for (var i = 0; i < Model.CalFirstDowOffset; i++)
+                {
+                    <div></div>
+                }
+                @for (var day = 1; day <= Model.CalDaysInMonth; day++)
+                {
+                    var has = Model.CalByDay.TryGetValue(day, out var evs);
+                    var isToday = day == Model.CalTodayDay;
+                    <div onclick="@(has ? $"showCalDay({day})" : "")"
+                         style="min-height:3.1rem;border:1px solid #eee;border-radius:6px;padding:.25rem;@(isToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")@(has ? "cursor:pointer;" : "")">
+                        <div style="font-size:.72rem;font-weight:@(isToday ? "700" : "400");color:@(isToday ? "#C94A1F" : "#bbb");">@day</div>
+                        @if (has)
+                        {
+                            <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">
+                                @foreach (var e in evs!)
+                                {
+                                    <span title="@e.Title (@e.CourseName · @e.StudentName)"
+                                          style="width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
+                                }
+                            </div>
+                        }
                     </div>
                 }
             </div>
-            <p class="dash-calendar__note">Lectura automática de Classroom — puede fallar. Confirmá en la app del colegio.</p>
+
+            @if (Model.HasCalendar)
+            {
+                <div id="cal-detail" style="margin-top:.8rem;font-size:.85rem;color:#555;"></div>
+                <script>
+                    const calData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CalByDay));
+                    function showCalDay(d) {
+                        const evs = calData[d] || [];
+                        const el = document.getElementById('cal-detail');
+                        if (!evs.length) { el.innerHTML = ''; return; }
+                        el.innerHTML = '<strong>Día ' + d + '</strong><ul style="margin:.3rem 0 0;padding-left:1rem;list-style:none;">' +
+                            evs.map(e => '<li style="margin:.2rem 0;"><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:' + e.Color + ';margin-right:.4rem;"></span><strong>' + e.Letter + '</strong> ' +
+                                e.Title + ' <span style="color:#999;">· ' + e.CourseName + ' · ' + e.StudentName + '</span></li>').join('') + '</ul>';
+                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                </script>
+            }
+            else
+            {
+                <p class="dim" style="margin-top:.6rem;font-size:.85rem;">Sin entregas detectadas este mes.</p>
+            }
+            <p class="dash-calendar__note" style="margin-top:.6rem;">Lectura automática de Classroom — puede fallar. Confirmá en la app del colegio.</p>
         </section>
     }
 
