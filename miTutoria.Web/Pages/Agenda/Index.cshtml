@@ -132,32 +132,34 @@
         }
     </section>
 
-    @* ── CTA: venta encubierta ── *@
-    <div style="margin-top:1.2rem;border-radius:14px;padding:1.4rem 1.3rem;text-align:center;color:#fff;
-                background:linear-gradient(135deg,#6E9070 0%,#52704F 100%);
-                box-shadow:0 8px 24px rgba(92,122,94,.25);">
-        <span style="display:inline-block;background:rgba(255,255,255,.18);color:#fff;font-size:.7rem;font-weight:700;
+    @* ── CTA: venta encubierta (paleta de marca, jerarquía sutil) ── *@
+    <div style="margin-top:1.2rem;border-radius:12px;padding:1.4rem 1.3rem;text-align:center;
+                background:#faf9f7;border:1px solid #ece8e3;border-left:3px solid #C94A1F;
+                box-shadow:0 2px 12px rgba(0,0,0,.05);">
+        <span style="display:inline-block;background:#fdf0ec;color:#C94A1F;font-size:.7rem;font-weight:700;
                      letter-spacing:.05em;text-transform:uppercase;padding:.25rem .6rem;border-radius:999px;">⚡ Nuevo</span>
-        <h2 style="margin:.6rem 0 .3rem;font-size:1.5rem;line-height:1.2;color:#fff;">
+        <h2 style="margin:.6rem 0 .3rem;font-family:'Playfair Display',Georgia,serif;font-size:1.6rem;line-height:1.2;color:#1a1a1a;">
             Tu hijo estudia mejor<br><em style="font-weight:400;">con un tutor de IA</em>
         </h2>
-        <p style="margin:.2rem auto .9rem;max-width:30rem;color:rgba(255,255,255,.9);font-size:.92rem;">
-            miTutorIA arma esta agenda leyendo Google Classroom, y además guía a tu hijo paso a paso <strong>sin hacerle la tarea</strong>.
+        <p style="margin:.2rem auto .9rem;max-width:30rem;color:#666;font-size:.92rem;">
+            Lo guía paso a paso para que aprenda de verdad — <strong>sin hacerle la tarea</strong>.
         </p>
-        <ul style="list-style:none;padding:0;margin:0 auto 1.1rem;max-width:22rem;text-align:left;font-size:.9rem;">
-            @foreach (var f in new[] { "Agenda escolar automática", "Tutor IA que explica, no resuelve", "Seguimiento para padres", "Funciona con Google Classroom" })
+        <ul style="list-style:none;padding:0;margin:0 auto 1.1rem;max-width:22rem;text-align:left;font-size:.9rem;color:#444;">
+            @foreach (var f in new[] { "Agenda escolar automática *", "Tutor que explica, no resuelve", "Seguimiento para padres" })
             {
                 <li style="display:flex;align-items:center;gap:.5rem;margin:.35rem 0;">
-                    <span style="flex:none;width:1.2rem;height:1.2rem;border-radius:50%;background:rgba(255,255,255,.22);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;">✓</span>
+                    <span style="flex:none;width:1.2rem;height:1.2rem;border-radius:50%;background:#e9efe9;color:#5C7A5E;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">✓</span>
                     @f
                 </li>
             }
         </ul>
-        <a href="/agenda/@Model.ShareToken/ir" style="display:inline-block;background:#fff;color:#47624c;font-weight:700;text-decoration:none;
-                           padding:.7rem 1.5rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.15);">
+        <a href="/agenda/@Model.ShareToken/ir" style="display:inline-block;background:#C94A1F;color:#fff;font-weight:700;text-decoration:none;
+                           padding:.7rem 1.6rem;border-radius:10px;box-shadow:0 4px 12px rgba(201,74,31,.25);">
             Conocé miTutorIA →
         </a>
-        <p style="margin:.8rem 0 0;color:rgba(255,255,255,.8);font-size:.78rem;">Gratis para empezar · Sin tarjeta requerida</p>
+        <p style="margin:.8rem 0 0;color:#999;font-size:.78rem;">Gratis para empezar · Sin tarjeta requerida</p>
     </div>
-    <p style="text-align:center;color:#bbb;font-size:.75rem;margin-top:.8rem;">Lectura automática de Classroom — puede fallar. Confirmá en la app del colegio.</p>
+    <p style="text-align:center;color:#aaa;font-size:.74rem;margin-top:.7rem;line-height:1.4;">
+        * La agenda se arma desde Google Classroom, según la disponibilidad de tu colegio. Lectura automática — puede fallar; confirmá en la app del colegio.
+    </p>
 </section>
