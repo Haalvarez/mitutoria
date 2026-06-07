@@ -234,11 +234,51 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
                         @(f.PayEnabled ? "💳 ON" : "💳 off")
                     </button>
                 </form>
+                <form method="post" asp-page-handler="DeleteFamily" asp-route-token="@token" style="display:inline;margin:0;"
+                      onsubmit="return confirm('⚠️ Eliminar la familia @(f.Name) y TODOS sus datos (hijos, aulas, mensajes, agendas, pagos)? No se puede deshacer.');">
+                    <input type="hidden" name="id" value="@f.Id" />
+                    <button type="submit" class="btn-mini" title="Eliminar familia y todos sus datos (destructivo)"
+                            style="color:#C94A1F;">🗑️</button>
+                </form>
             </td>
         </tr>
     }
     </tbody>
 </table>
+
+@* ── Mantenimiento (Inbox / Track 2) ───────────────────────────────────── *@
+@{
+    var maintMsg = TempData["MaintResult"]?.ToString();
+    var maintOk = maintMsg?.StartsWith("ok:") ?? false;
+    if (maintMsg != null) maintMsg = maintMsg.Substring(maintMsg.IndexOf(':') + 1);
+}
+<h2>🛠️ Mantenimiento <span class="help" title="Herramientas para el Track 2: reprocesar mails con el mapeo actual de casillas, borrar agendas de un alumno, eliminar familias de prueba.">ⓘ</span></h2>
+@if (maintMsg != null)
+{
+    <p style="margin-bottom:.75rem;padding:.6rem .9rem;border-radius:6px;font-size:.85rem;
+              background:@(maintOk ? "#d4edda" : "#fde8e8");color:@(maintOk ? "#155724" : "#c94a1f");">@maintMsg</p>
+}
+<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-end;background:#fff;border-radius:8px;padding:1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
+    <form method="post" asp-page-handler="ReprocessInbox" asp-route-token="@token" style="margin:0;"
+          onsubmit="return confirm('Reprocesar TODO el inbox con el mapeo ACTUAL de casillas? (sirve cuando moviste una casilla entre hijos)');">
+        <button type="submit" class="btn-mini" title="Marca todos los mails crudos como pendientes y los reprocesa con el ClassroomEmail actual de cada hijo">
+            ♻️ Reprocesar inbox
+        </button>
+    </form>
+    <form method="post" asp-page-handler="ClearAgenda" asp-route-token="@token" style="margin:0;display:flex;gap:.5rem;align-items:flex-end;"
+          onsubmit="return confirm('Borrar TODAS las agendas detectadas de este alumno? No se puede deshacer.');">
+        <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+            Borrar agendas de
+            <select name="studentId" style="padding:.4rem;">
+                @foreach (var s in Model.AllStudents)
+                {
+                    <option value="@s.Id">@s.Name (@s.Family)</option>
+                }
+            </select>
+        </label>
+        <button type="submit" class="btn-mini" style="color:#C94A1F;">🗑️ Borrar agendas</button>
+    </form>
+</div>
 
 @* ── Calendarios públicos compartidos (analítica: visitas → clics a landing) ── *@
 <h2>📅 Calendarios compartidos <span class="help" title="Páginas públicas /agenda/{token} que generó cada familia. Analítica first-party (sin GA). Visitas = abrieron el calendario; Clics = apretaron 'Conocé miTutorIA'.">ⓘ</span></h2>

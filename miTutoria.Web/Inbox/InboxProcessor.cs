@@ -81,11 +81,17 @@ public class InboxProcessor
                 classroomId = existing.Id;
             }
 
-            // Upsert del assignment (dedup por student + itemId si lo hay).
-            DetectedAssignment? da = null;
+            // Upsert del assignment. Dedup por (student, itemId); si no hay itemId
+            // (anuncios), por (student, título, materia, fecha) → reprocesar es idempotente.
+            DetectedAssignment? da;
             if (!string.IsNullOrEmpty(parsed.ItemId))
                 da = await _db.DetectedAssignments.FirstOrDefaultAsync(
                     d => d.StudentId == student.Id && d.ItemId == parsed.ItemId, ct);
+            else
+                da = await _db.DetectedAssignments.FirstOrDefaultAsync(
+                    d => d.StudentId == student.Id && d.ItemId == null
+                         && d.Title == parsed.Title && d.CourseName == parsed.CourseNormalized
+                         && d.MessageDate == raw.MessageDate, ct);
 
             if (da is null)
             {

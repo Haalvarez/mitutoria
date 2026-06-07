@@ -13,15 +13,23 @@ public class IndexModel : PageModel
     private readonly IConfiguration _config;
     private readonly IResend _resend;
     private readonly miTutoria.Web.Infrastructure.SchedulerHeartbeat _heartbeat;
+    private readonly miTutoria.Web.Inbox.InboxProcessor _inboxProcessor;
 
     public IndexModel(AppDbContext db, IConfiguration config, IResend resend,
-        miTutoria.Web.Infrastructure.SchedulerHeartbeat heartbeat)
+        miTutoria.Web.Infrastructure.SchedulerHeartbeat heartbeat,
+        miTutoria.Web.Inbox.InboxProcessor inboxProcessor)
     {
         _db = db;
         _config = config;
         _resend = resend;
         _heartbeat = heartbeat;
+        _inboxProcessor = inboxProcessor;
     }
+
+    // ── Mantenimiento (Track 2 / Inbox) ──────────────────────────────────────
+    [TempData] public string? MaintResult { get; set; }
+    public record StudentOption(int Id, string Name, string Family);
+    public List<StudentOption> AllStudents { get; private set; } = [];
 
     // Health-check del scheduler (robot cada 6h).
     public DateTime? SchedulerLastRun { get; private set; }
@@ -312,6 +320,14 @@ public class IndexModel : PageModel
             }).OrderByDescending(r => r.Views).ToList();
         }
 
+        // Alumnos (para el dropdown de "borrar agendas")
+        AllStudents = (await _db.Users
+            .Where(u => u.Role == Data.Entities.Auth.UserRole.Student)
+            .Select(u => new { u.Id, Name = u.Nickname ?? u.FullName, Fam = u.Family.Nickname ?? u.Family.Name })
+            .ToListAsync())
+            .Select(u => new StudentOption(u.Id, u.Name, u.Fam ?? "—"))
+            .OrderBy(s => s.Family).ThenBy(s => s.Name).ToList();
+
         // Promos
         CuotaArs = _config.GetValue<decimal>("CUOTA_ARS", 50000m);
         Promos = await _db.Promos
@@ -404,6 +420,65 @@ public class IndexModel : PageModel
             family.PayEnabled = !family.PayEnabled;
             await _db.SaveChangesAsync();
         }
+        return RedirectToPage(new { token });
+    }
+
+    // ── Mantenimiento: reprocesar inbox ──────────────────────────────────────────
+    // Marca todos los mails crudos como pendientes y los reprocesa con el mapeo ACTUAL
+    // de ClassroomEmail (sirve cuando moviste una casilla entre hijos).
+    public async Task<IActionResult> OnPostReprocessInboxAsync([FromQuery] string? token)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        await _db.Database.ExecuteSqlRawAsync("UPDATE inbox.inbox_messages_raw SET processed = false");
+        int total = 0, n, iter = 0;
+        do { n = await _inboxProcessor.ProcessPendingAsync(); total += n; iter++; }
+        while (n > 0 && iter < 20);
+
+        MaintResult = $"ok:Reproceso terminado: {total} mensaje(s) procesados.";
+        return RedirectToPage(new { token });
+    }
+
+    // ── Mantenimiento: borrar las agendas detectadas de un alumno ────────────────
+    public async Task<IActionResult> OnPostClearAgendaAsync([FromQuery] string? token, int studentId)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var rows = _db.DetectedAssignments.Where(d => d.StudentId == studentId);
+        var count = await rows.CountAsync();
+        _db.DetectedAssignments.RemoveRange(rows);
+        await _db.SaveChangesAsync();
+
+        MaintResult = $"ok:Borradas {count} agenda(s) del alumno #{studentId}.";
+        return RedirectToPage(new { token });
+    }
+
+    // ── Mantenimiento: eliminar una familia y TODO lo suyo (destructivo) ─────────
+    public async Task<IActionResult> OnPostDeleteFamilyAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var family = await _db.Families.Include(f => f.Users).FirstOrDefaultAsync(f => f.Id == id);
+        if (family is null) { MaintResult = "error:Familia no encontrada."; return RedirectToPage(new { token }); }
+
+        var name = family.Nickname ?? family.Name ?? family.Email;
+        var studentIds = family.Users.Select(u => u.Id).ToList();
+        var classrooms = await _db.Classrooms.Where(c => studentIds.Contains(c.StudentId)).ToListAsync();
+        var classroomIds = classrooms.Select(c => c.Id).ToList();
+
+        // Tablas sin FK en cascada → borrado explícito por EF (maneja el mapeo de columnas).
+        _db.DetectedAssignments.RemoveRange(_db.DetectedAssignments.Where(d => studentIds.Contains(d.StudentId)));
+        _db.FocusSessions.RemoveRange(_db.FocusSessions.Where(x => studentIds.Contains(x.StudentId)));
+        _db.AgendaViews.RemoveRange(_db.AgendaViews.Where(x => studentIds.Contains(x.StudentId)));
+        _db.Messages.RemoveRange(_db.Messages.Where(m => classroomIds.Contains(m.ClassroomId)));
+        _db.Classrooms.RemoveRange(classrooms);
+        _db.TokenEvents.RemoveRange(_db.TokenEvents.Where(t => t.FamilyId == id));
+        _db.Payments.RemoveRange(_db.Payments.Where(p => p.FamilyId == id));
+        _db.Users.RemoveRange(family.Users);
+        _db.Families.Remove(family);
+        await _db.SaveChangesAsync();
+
+        MaintResult = $"ok:Familia \"{name}\" eliminada con todos sus datos.";
         return RedirectToPage(new { token });
     }
 
