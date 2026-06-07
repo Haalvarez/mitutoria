@@ -357,6 +357,7 @@
     (function () {
         const IDLE_MS = 3 * 60 * 1000;       // sin input por > 3 min mientras está visible → idle (no cuenta)
         const AWAY_CAP_MS = 8 * 60 * 1000;   // tope por tramo de ausencia: "se fue y no volvió" (Netflix) no acumula horas
+        const MIN_AWAY_MS = 10 * 1000;       // una "salida" cuenta solo si la ausencia duró > 10s (filtra micro-blurs)
         const BEAT_MS = 15 * 1000;           // reporta cada 15s
         const key = (crypto.randomUUID && crypto.randomUUID()) ||
                     (Date.now() + '-' + Math.random().toString(36).slice(2));
@@ -384,7 +385,10 @@
                 }
             }
             const next = stateNow();
-            if (next === 'away' && lastState !== 'away') { interruptions++; awayStretchMs = 0; }
+            // La "salida" se cuenta al VOLVER y solo si la ausencia fue significativa (> MIN_AWAY_MS):
+            // así un blur accidental / notificación / alt-tab de 1s no infla el contador.
+            if (next !== 'away' && lastState === 'away' && awayStretchMs >= MIN_AWAY_MS) interruptions++;
+            if (next === 'away' && lastState !== 'away') awayStretchMs = 0;   // arranca un nuevo tramo de ausencia
             lastState = next;
             lastEval = now;
         }
