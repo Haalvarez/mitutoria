@@ -60,14 +60,21 @@
                 </div>
             </div>
 
-            @if (Model.HasCalendar)
+            @{
+                var hasAny = Model.HasCalendar || Model.UndatedUpcoming.Any();
+                var multiKid = Model.CalLegend.Count > 1;
+            }
+
+            @if (hasAny)
             {
-                <div style="display:flex;gap:1rem;flex-wrap:wrap;margin:.6rem 0;font-size:.78rem;color:#666;">
+                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0;font-size:.78rem;color:#666;align-items:center;">
+                    @if (multiKid) { <span style="color:#999;">Filtrar:</span> }
                     @foreach (var k in Model.CalLegend)
                     {
-                        <span style="display:inline-flex;align-items:center;gap:.3rem;">
+                        <button type="button" onclick="toggleKid(@k.Id, this)"
+                                style="display:inline-flex;align-items:center;gap:.3rem;background:none;border:1px solid #eee;border-radius:999px;padding:.15rem .55rem;cursor:pointer;font-size:.78rem;color:#555;">
                             <span style="width:.7rem;height:.7rem;border-radius:50%;background:@k.Color;display:inline-block;"></span>@k.Name
-                        </span>
+                        </button>
                     }
                     <span style="color:#ccc;">·</span>
                     <span style="color:#999;">E=Examen · T=Tarea · M=Material · A=Anuncio</span>
@@ -81,18 +88,16 @@
                 }
                 @foreach (var d in Model.CalDays)
                 {
-                    var has = d.Events.Count > 0;
-                    <div onclick="@(has ? $"showCalDay({d.Index})" : "")"
-                         style="min-height:3.1rem;border:1px solid #eee;border-radius:6px;padding:.25rem;@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")@(has ? "cursor:pointer;" : "")">
+                    <div style="min-height:3.1rem;border:1px solid #eee;border-radius:6px;padding:.25rem;@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")">
                         <div style="font-size:.72rem;font-weight:@(d.IsToday ? "700" : "400");color:@(d.IsToday ? "#C94A1F" : "#bbb");">
                             @d.DayNum@(d.MonthAbbr != null ? $" {d.MonthAbbr}" : "")
                         </div>
-                        @if (has)
+                        @if (d.Events.Count > 0)
                         {
                             <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">
                                 @foreach (var e in d.Events)
                                 {
-                                    <span title="@e.Title (@e.CourseName · @e.StudentName)"
+                                    <span data-student="@e.StudentId" title="@e.Title (@e.CourseName · @e.StudentName)"
                                           style="width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
                                 }
                             </div>
@@ -101,19 +106,45 @@
                 }
             </div>
 
-            @if (Model.HasCalendar)
+            @if (hasAny)
             {
-                <div id="cal-detail" style="margin-top:.8rem;font-size:.85rem;color:#555;"></div>
+                <div style="margin-top:1rem;border-top:1px solid #eee;padding-top:.8rem;font-size:.85rem;color:#555;">
+                    @foreach (var day in Model.CalDays.Where(d => d.Events.Count > 0))
+                    {
+                        <div style="margin:.5rem 0;">
+                            <div style="font-weight:700;color:#444;">@day.DayNum@(day.MonthAbbr != null ? $" {day.MonthAbbr}" : "")@(day.IsToday ? " · hoy" : "")</div>
+                            @foreach (var e in day.Events)
+                            {
+                                <div data-student="@e.StudentId" style="display:flex;align-items:center;gap:.45rem;margin:.25rem 0 .25rem .3rem;">
+                                    <span style="flex:none;width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
+                                    <span>@e.Title <span style="color:#999;">· @e.CourseName · @e.StudentName</span></span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @if (Model.UndatedUpcoming.Any())
+                    {
+                        <div style="margin-top:.6rem;">
+                            <div style="font-weight:700;color:#444;">📌 Sin fecha definida</div>
+                            @foreach (var e in Model.UndatedUpcoming)
+                            {
+                                <div data-student="@e.StudentId" style="display:flex;align-items:center;gap:.45rem;margin:.25rem 0 .25rem .3rem;">
+                                    <span style="flex:none;width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
+                                    <span>@e.Title <span style="color:#999;">· @e.CourseName · @e.StudentName</span></span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
                 <script>
-                    const calData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CalDays.Where(d => d.Events.Count > 0).ToDictionary(d => d.Index, d => d.Events)));
-                    function showCalDay(d) {
-                        const evs = calData[d] || [];
-                        const el = document.getElementById('cal-detail');
-                        if (!evs.length) { el.innerHTML = ''; return; }
-                        el.innerHTML = '<ul style="margin:.3rem 0 0;padding-left:1rem;list-style:none;">' +
-                            evs.map(e => '<li style="margin:.2rem 0;"><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:' + e.Color + ';margin-right:.4rem;"></span><strong>' + e.Letter + '</strong> ' +
-                                e.Title + ' <span style="color:#999;">· ' + e.CourseName + ' · ' + e.StudentName + '</span></li>').join('') + '</ul>';
-                        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    const activeKids = new Set(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CalLegend.Select(k => k.Id))));
+                    function toggleKid(id, el) {
+                        if (activeKids.has(id)) { activeKids.delete(id); el.style.opacity = '.4'; }
+                        else { activeKids.add(id); el.style.opacity = '1'; }
+                        document.querySelectorAll('[data-student]').forEach(n => {
+                            const sid = parseInt(n.getAttribute('data-student'), 10);
+                            n.style.display = activeKids.has(sid) ? '' : 'none';
+                        });
                     }
                 </script>
             }

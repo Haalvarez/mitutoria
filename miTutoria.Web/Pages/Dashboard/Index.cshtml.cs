@@ -51,6 +51,7 @@ public class IndexModel : PageModel
     public int CalPrevOff { get; private set; }
     public int CalNextOff { get; private set; }
     public List<CalDayVM> CalDays { get; private set; } = new();
+    public List<CalEvent> UndatedUpcoming { get; private set; } = new();   // entregas sin fecha parseada
     public List<(int Id, string Name, string Color)> CalLegend { get; private set; } = new();
     public bool HasCalendar => CalDays.Any(d => d.Events.Count > 0);
     public record CalEvent(int StudentId, string StudentName, string Color, string Letter, string Title, string CourseName);
@@ -237,6 +238,23 @@ public class IndexModel : PageModel
             }
             CalDays = slots.Select(sl => new CalDayVM(sl.Index, sl.DayNum, sl.MonthAbbr, sl.IsToday, sl.IsPast,
                 byDate.GetValueOrDefault(sl.Date.Date) ?? new())).ToList();
+
+            // Entregas sin fecha parseada (tarea/recordatorio): no caen en un día pero importan.
+            var undated = await _dbContext.DetectedAssignments
+                .Where(d => studentIds.Contains(d.StudentId) && !d.Done && d.DueDate == null
+                            && (d.Type == ClassroomItemType.Assignment || d.Type == ClassroomItemType.DueReminder))
+                .OrderByDescending(d => d.MessageDate)
+                .Take(30)
+                .ToListAsync();
+            foreach (var d in undated)
+            {
+                var color = colorById.TryGetValue(d.StudentId, out var c) ? c : "#888";
+                var name = nameById.TryGetValue(d.StudentId, out var n) ? n : "—";
+                UndatedUpcoming.Add(new CalEvent(d.StudentId, name, color,
+                    Infrastructure.AgendaWindow.LetterFor(d.Type, d.Title), d.Title, d.CourseName));
+                legend.Add(d.StudentId);
+            }
+
             CalLegend = Students.Where(s => legend.Contains(s.Id))
                 .Select(s => (s.Id, Name: nameById[s.Id], Color: colorById[s.Id])).ToList();
         }
