@@ -75,8 +75,8 @@
             @foreach (var d in Model.CalDays)
             {
                 var has = d.Events.Count > 0;
-                <div class="agenda-cell" onclick="@(has ? $"showCalDay({d.Index})" : "")"
-                     style="@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")@(has ? "cursor:pointer;" : "")">
+                <div class="agenda-cell"
+                     style="@(d.IsPast ? "opacity:.5;" : "")@(d.IsToday ? "border-color:#C94A1F;background:#fdf6f3;" : "")">
                     <div style="font-size:.72rem;font-weight:@(d.IsToday ? "700" : "400");color:@(d.IsToday ? "#C94A1F" : "#bbb");">
                         @d.DayNum@(d.MonthAbbr != null ? $" {d.MonthAbbr}" : "")
                     </div>
@@ -94,21 +94,37 @@
             }
         </div>
 
-        @if (Model.HasCalendar)
+        @* Lista siempre visible (en mobile no hay hover): nombre + materia de cada entrega. *@
+        @if (Model.HasCalendar || Model.UndatedUpcoming.Any())
         {
-            <div id="cal-detail" style="margin-top:.8rem;font-size:.85rem;color:#555;"></div>
-            <script>
-                const calData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CalDays.Where(d => d.Events.Count > 0).ToDictionary(d => d.Index, d => d.Events)));
-                function showCalDay(d) {
-                    const evs = calData[d] || [];
-                    const el = document.getElementById('cal-detail');
-                    if (!evs.length) { el.innerHTML = ''; return; }
-                    el.innerHTML = '<ul style="margin:.3rem 0 0;padding-left:1rem;list-style:none;">' +
-                        evs.map(e => '<li style="margin:.2rem 0;"><span style="display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:' + e.Color + ';margin-right:.4rem;"></span><strong>' + e.Letter + '</strong> ' +
-                            e.Title + ' <span style="color:#999;">· ' + e.CourseName + '</span></li>').join('') + '</ul>';
-                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            <div style="margin-top:1rem;border-top:1px solid #eee;padding-top:.8rem;font-size:.85rem;color:#555;">
+                @foreach (var day in Model.CalDays.Where(d => d.Events.Count > 0))
+                {
+                    <div style="margin:.5rem 0;">
+                        <div style="font-weight:700;color:#444;">@day.DayNum@(day.MonthAbbr != null ? $" {day.MonthAbbr}" : "")@(day.IsToday ? " · hoy" : "")</div>
+                        @foreach (var e in day.Events)
+                        {
+                            <div style="display:flex;align-items:center;gap:.45rem;margin:.25rem 0 .25rem .3rem;">
+                                <span style="flex:none;width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
+                                <span>@e.Title <span style="color:#999;">· @e.CourseName</span></span>
+                            </div>
+                        }
+                    </div>
                 }
-            </script>
+                @if (Model.UndatedUpcoming.Any())
+                {
+                    <div style="margin-top:.6rem;">
+                        <div style="font-weight:700;color:#444;">📌 Sin fecha definida</div>
+                        @foreach (var e in Model.UndatedUpcoming)
+                        {
+                            <div style="display:flex;align-items:center;gap:.45rem;margin:.25rem 0 .25rem .3rem;">
+                                <span style="flex:none;width:1.1rem;height:1.1rem;border-radius:50%;background:@e.Color;color:#fff;font-size:.62rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">@e.Letter</span>
+                                <span>@e.Title <span style="color:#999;">· @e.CourseName</span></span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
         }
         else
         {
