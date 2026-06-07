@@ -73,7 +73,7 @@ public class IndexModel : PageModel
     public List<AgendaItem> UrgentAgenda { get; private set; } = new();
     public record AgendaItem(int Id, ClassroomItemType Type, string Title, string CourseName,
         int? ClassroomId, DateTime? DueDate, string? DueDateRaw, string? Description, string Teacher, bool Done,
-        string? CourseId, string? ItemId);
+        string? CourseId, string? ItemId, DateTime MessageDate);
 
     // Tutor: texto sembrado en el chat al apretar "💬 Tutor" en un ítem (prefill, no auto-envía).
     [TempData] public string? TutorSeed { get; set; }
@@ -163,14 +163,13 @@ public class IndexModel : PageModel
         if (InboxEnabled)
         {
             Agenda = await _dbContext.DetectedAssignments
-                .Where(d => d.StudentId == studentId)
-                .OrderBy(d => d.Done)                 // pendientes arriba
-                .ThenBy(d => d.DueDate == null)       // con fecha primero
+                .Where(d => d.StudentId == studentId && !d.Done)   // los hechos se ocultan (desaparecen al recargar)
+                .OrderBy(d => d.DueDate == null)       // con fecha primero
                 .ThenBy(d => d.DueDate)
                 .ThenByDescending(d => d.MessageDate)
                 .Take(40)
                 .Select(d => new AgendaItem(d.Id, d.Type, d.Title, d.CourseName, d.ClassroomId,
-                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done, d.CourseId, d.ItemId))
+                    d.DueDate, d.DueDateRaw, d.Description, d.Teacher, d.Done, d.CourseId, d.ItemId, d.MessageDate))
                 .ToListAsync();
 
             // Urgente para el banner: vence en ≤1 día (o ya marcado "entrega mañana"), sin hacer.

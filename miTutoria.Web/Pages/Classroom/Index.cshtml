@@ -612,6 +612,21 @@ async function toggleAgenda(id, btn) {
         });
         if (!res.ok) return;
         const data = await res.json();
+        // Hecho = "cerrar": se anima y se saca de la vista (ya no carga al recargar).
+        if (data.done && li) {
+            const h = li.offsetHeight;
+            li.style.overflow = 'hidden';
+            li.style.maxHeight = h + 'px';
+            li.style.transition = 'opacity .2s ease, max-height .25s ease, margin .25s ease, padding .25s ease';
+            requestAnimationFrame(() => {
+                li.style.opacity = '0';
+                li.style.maxHeight = '0';
+                li.style.margin = '0';
+                li.style.padding = '0';
+            });
+            setTimeout(() => li.remove(), 280);
+            return;
+        }
         btn.textContent = data.done ? '✅' : '○';
         if (li) { li.classList.toggle('agenda-item--done', data.done); if (data.done) li.classList.remove('agenda-item--due'); }
     } catch {}

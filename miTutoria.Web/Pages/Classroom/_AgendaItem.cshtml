@@ -4,6 +4,10 @@
     var studentId = (int)(ViewData["StudentId"] ?? 0);
     var classroomEmail = ViewData["StudentClassroomEmail"] as string;
 
+    // Fecha de referencia: cuándo apareció en Classroom (ART).
+    var pub = Model.MessageDate.AddHours(-3);
+    var pubTxt = $"{pub.Day} {miTutoria.Web.Infrastructure.AgendaWindow.MesesAbbr[pub.Month - 1]}";
+
     // Deep-link a Google Classroom: a la tarea exacta si hay ItemId, si no al curso.
     string? classroomUrl = null;
     if (!string.IsNullOrEmpty(Model.CourseId) && !string.IsNullOrEmpty(Model.ItemId))
@@ -29,7 +33,12 @@
     })</span>
     <div class="agenda-item__body">
         <span class="agenda-item__title">@Model.Title</span>
-        <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")</span>
+        <span class="agenda-item__meta">@Model.CourseName@(string.IsNullOrEmpty(Model.DueDateRaw) ? "" : $" · entrega {Model.DueDateRaw}")@(string.IsNullOrWhiteSpace(Model.Teacher) ? "" : $" · {Model.Teacher}")</span>
+        <span class="agenda-item__meta" style="color:#aaa;font-size:.72rem;" title="Cuándo apareció en Classroom">📅 publicado @pubTxt</span>
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <span style="display:block;font-size:.78rem;color:#999;margin-top:.15rem;">@Model.Description</span>
+        }
         <div class="agenda-item__actions" style="display:flex;gap:.5rem;margin-top:.25rem;flex-wrap:wrap;">
             <form method="post" asp-page-handler="WorkWithTutor" asp-route-studentId="@studentId" style="margin:0;">
                 <input type="hidden" name="id" value="@Model.Id" />
