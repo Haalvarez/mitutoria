@@ -83,10 +83,15 @@ public class IndexModel : PageModel
         Students = family.Users.OrderBy(u => u.FullName).ToList();
 
         var now = DateTime.UtcNow;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        var weekStart  = now.Date.AddDays(-(int)now.DayOfWeek).ToUniversalTime();
-        var dayStart   = now.Date.ToUniversalTime();
-        DaysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+        // Los límites "hoy/semana/mes" se anclan a la medianoche ARGENTINA (UTC-3 fijo, sin DST),
+        // no a la UTC: si no, lo que el chico estudia después de las 21:00 ART cae en "mañana".
+        var argOffset = TimeSpan.FromHours(-3);
+        var nowLocal  = now + argOffset;                                   // hora de pared argentina
+        DateTime ToUtc(DateTime local) => DateTime.SpecifyKind(local - argOffset, DateTimeKind.Utc);
+        var monthStart = ToUtc(new DateTime(nowLocal.Year, nowLocal.Month, 1));
+        var weekStart  = ToUtc(nowLocal.Date.AddDays(-(int)nowLocal.DayOfWeek));
+        var dayStart   = ToUtc(nowLocal.Date);
+        DaysInMonth = DateTime.DaysInMonth(nowLocal.Year, nowLocal.Month);
 
         // Global (kill-switch) Y por-familia: el botón solo aparece para las familias habilitadas.
         MpEnabled = _config.GetValue("MP_ENABLED", false)
