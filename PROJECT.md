@@ -90,7 +90,7 @@ auth.waitlist_entries   — lista de espera del landing
 - [x] Guard de acceso por `subscription_status` → `/Blocked`
 - [x] Racha de días en aula y dashboard
 - [x] Botonera del aula: Quiz, Tarjetas, Examen de práctica
-- [x] PDF upload integrado al chat + drag&drop + OCR fallback
+- [x] PDF y **foto** (JPG/PNG/WebP) integrados al chat + drag&drop + OCR/Vision fallback
 - [x] Secciones de material persistentes
 - [x] Mochila — materias por alumno (Sesión 15)
 - [x] Admin `/admin` con monitor de piloto y error log
@@ -108,6 +108,14 @@ auth.waitlist_entries   — lista de espera del landing
 - [ ] Invitar 5-10 familias conocidas
 - [ ] Medición de uso real (token_events) durante 2-3 semanas
 - [ ] **Cobro / fiscalidad: PARQUEADO hasta validar retención** — ver Backlog
+
+#### Pulido de producto previo a invitar (Sesión 18 — 2026-06-20)
+- [x] Tutor: regla absoluta sin insultos + **ayuda escalonada** cuando el alumno se traba de verdad (sin comprometer el "no doy la respuesta")
+- [x] Material como **ancla, no cárcel** — tolera preguntas de la misma materia fuera del PDF
+- [x] Subida de material por **foto** (JPG/PNG/WebP) vía Vision, además de PDF
+- [x] **Analítica de landing** (`public.landing_hits`) + tarjetas en `/admin` (hits + conversión a waitlist) — mide alcance de envíos (WhatsApp)
+- [x] **Landing responsive en mobile** (6 fixes: overflow, titular, demo, nav, flotante)
+- [ ] Correr `tools/prompt-harness.ps1` para validar el prompt calibrado (escenario "Trabada de verdad" + dimensión `no_ayuda`)
 
 ### 🟡 Fase 3 — Cobro y régimen formal (parqueado, ~2 meses)
 **Objetivo:** Pasar del piloto cerrado a cobro recurrente. Roadmap específico al activarse.

@@ -16,10 +16,11 @@ plataforma con uso sostenido en 2-3 semanas.
 ---
 
 ## Estado actual
-- **Sesión:** 16
+- **Sesión:** 18 (2026-06-20)
 - **Fase activa:** Fase 2 — Piloto cerrado (Track 1) + Fase 4 exploratoria (Track 2)
 - **Branch activo:** `main` (Track 1) · `feature/inbox-pipeline` por abrir (Track 2)
-- **Último commit:** feat: mochila — el alumno crea materias (cuadernos) y cambia de contexto (Sesión 15)
+- **Último commit:** feat: tutor ayuda cuando el alumno se traba de verdad (escalera de pistas) (Sesión 18)
+- **Pendiente de esta sesión:** correr `tools/prompt-harness.ps1` (incluye escenario nuevo "Trabada de verdad" + dimensión `no_ayuda`) para validar el prompt antes de invitar familias.
 
 ## Tracks en paralelo — disciplina de foco
 
@@ -68,6 +69,14 @@ No se discute hasta ~2 meses antes de cobrar de verdad. Roadmap específico al a
 ---
 
 ## Funciona hoy
+- ✅ Prompt del tutor calibrado (Sesión 18)
+  - Regla absoluta contra insultos/groserías ("boludo" etc.) en todo contexto, aunque el alumno los use
+  - Material como **ancla, no cárcel**: tolera preguntas genuinas de la misma materia fuera del PDF; solo deriva al cambiar de MATERIA
+  - **Escalera de ayuda** cuando el alumno se traba de verdad (achica el paso → enseña el concepto → pista concreta → ejemplo parecido); nunca da el resultado de SU ejercicio
+  - Harness con dimensión `no_ayuda` + escenario "Trabada de verdad" (sincronizado con `BuildSystemPrompt`)
+- ✅ Subida de material por **foto** además de PDF (Sesión 18) — JPG/PNG/WebP/GIF vía Claude Vision (tope 5 MB), con `accept`/validación/UI actualizados
+- ✅ Analítica de landing (Sesión 18) — tabla `public.landing_hits` (filtra bots y preview de WhatsApp) + tarjetas en `/admin`: hits hoy/7d/histórico + conversión a waitlist
+- ✅ Landing responsive en mobile (Sesión 18) — 6 fixes: sin scroll horizontal, titular que escala, botón "Enviar" del demo visible, nav abreviado ("Estudiante"/"Familiar"), botón flotante como píldora inferior
 - ✅ Mochila — materias por alumno (Sesión 15)
   - `Classroom` = cuaderno de materia: un alumno tiene varias, cada una con nombre,
     modo pedagógico, historia de chat y material propios
@@ -178,6 +187,7 @@ No se discute hasta ~2 meses antes de cobrar de verdad. Roadmap específico al a
 | `20260531000000_AddMaterialSections` | `material_sections jsonb`, `material_section_index`, `material_ocr_source` — **verificar TablePlus** |
 | `20260531100000_AddFamilyBilling` | `created_at`, `subscription_status`, `trial_ends_at`, `paid_until` en families — **verificar TablePlus** |
 | `20260603120000_AddSubjectMochila` | `name`, `mode`, `last_active_at` en classrooms — **aplicado en TablePlus (Sesión 15)** |
+| `20260620120000_AddLandingHits` | `public.landing_hits` (analítica de la landing) — **auto-aplicable: corre sola con `Migrate()` en el arranque, NO requiere TablePlus** |
 
 > `public.error_logs` — crear manualmente, no tiene migración EF.
 > **Sesión 16+ (Track 2):** se agregarán tablas `inbox_aliases`, `inbox_messages_raw`, `detected_assignments` cuando arranque Sprint 1.
@@ -308,4 +318,4 @@ mitutoria/
 
 ---
 
-*Actualizado al cierre de Sesión 16 — replanificación dual-track (Track 1 piloto + Track 2 inbox exploratorio)*
+*Actualizado al cierre de Sesión 18 (2026-06-20) — pulido de producto previo a invitar familias: tutor calibrado (sin insultos, material como ancla, ayuda escalonada), subida por foto, analítica de landing y fixes mobile. Pruebas del harness pendientes.*
