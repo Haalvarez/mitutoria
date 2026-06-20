@@ -153,6 +153,13 @@ public class IndexModel : PageModel
     public decimal ProjectionUsdMonth { get; private set; }   // proyección lineal a fin de mes
     public decimal AllTimeCostUsd { get; private set; }       // histórico
 
+    // ── Hits de la landing (alcance de envíos: WhatsApp, etc.) ──────────────────
+    public int HitsToday { get; private set; }
+    public int Hits7d { get; private set; }
+    public int HitsTotal { get; private set; }
+    public int Hits7dMobile { get; private set; }
+    public int WaitlistCount { get; private set; }
+
     // ── Racha (misma lógica que Classroom) ──────────────────────────────────────
     private static int CalcStreak(IEnumerable<DateTime> dates)
     {
@@ -342,6 +349,14 @@ public class IndexModel : PageModel
         var dayOfMonth     = now.Day;
         var daysInMonth    = DateTime.DaysInMonth(now.Year, now.Month);
         ProjectionUsdMonth = dayOfMonth > 0 ? TotalCostUsdMonth / dayOfMonth * daysInMonth : TotalCostUsdMonth;
+
+        // Hits de la landing (alcance de los envíos) + conversión a waitlist
+        var todayStart = now.Date;
+        HitsToday    = await _db.LandingHits.CountAsync(h => h.CreatedAt >= todayStart);
+        Hits7d       = await _db.LandingHits.CountAsync(h => h.CreatedAt >= weekStart);
+        Hits7dMobile = await _db.LandingHits.CountAsync(h => h.CreatedAt >= weekStart && h.IsMobile);
+        HitsTotal    = await _db.LandingHits.CountAsync();
+        WaitlistCount = Waitlist.Count;
 
         return Page();
     }

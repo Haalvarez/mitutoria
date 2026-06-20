@@ -123,6 +123,39 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
     </div>
 </div>
 
+@* ── Alcance de la landing (hits humanos, sin GA) ──────────────────────── *@
+@{
+    var convPct = Model.Hits7d > 0 ? (Model.WaitlistCount * 100.0 / Model.Hits7d) : 0;
+    var mobilePct = Model.Hits7d > 0 ? (Model.Hits7dMobile * 100.0 / Model.Hits7d) : 0;
+}
+<h2 style="margin-top:1.5rem;">📈 Alcance de la landing
+    <span class="help" title="Analítica first-party de la home (sin cookies, sin Google Analytics). Una fila por visita humana — los bots y el preview de WhatsApp NO cuentan. Sirve para medir cuánta gente entró tras un envío y cuántos se anotaron.">ⓘ</span>
+</h2>
+<div class="grid" style="margin-bottom:1rem;">
+    <div class="card">
+        <div class="card__label">Hits hoy</div>
+        <div class="card__value">@Model.HitsToday</div>
+        <div class="card__sub">visitas a la landing</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Hits 7 días</div>
+        <div class="card__value">@Model.Hits7d</div>
+        <div class="card__sub">@Model.Hits7dMobile desde celular (@mobilePct.ToString("F0")%)</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Histórico</div>
+        <div class="card__value">@Model.HitsTotal</div>
+        <div class="card__sub">desde el día uno</div>
+    </div>
+    <div class="card">
+        <div class="card__label">Conversión 7d
+            <span class="help" title="Inscriptos totales en la waitlist sobre los hits de los últimos 7 días. Aproximado: la waitlist es histórica, los hits son de la semana — útil como termómetro, no como número exacto.">ⓘ</span>
+        </div>
+        <div class="card__value">@convPct.ToString("F0")%</div>
+        <div class="card__sub">@Model.WaitlistCount en waitlist</div>
+    </div>
+</div>
+
 @* ── Scoreboard del piloto ────────────────────────────────────────────── *@
 <p style="font-size:.8rem;color:#888;margin-bottom:.75rem;">
     Semáforo: 🟢 alcanzó el umbral · 🟡 entre 60% y el umbral (vigilar) · 🔴 por debajo del 60% (actuar) · ⚪ sin datos.

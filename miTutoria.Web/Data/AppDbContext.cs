@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Promo> Promos => Set<Promo>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
     public DbSet<AgendaView> AgendaViews => Set<AgendaView>();
+    public DbSet<LandingHit> LandingHits => Set<LandingHit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -188,6 +189,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AgendaView>().Property(x => x.Referrer).HasColumnName("referrer");
         modelBuilder.Entity<AgendaView>().Property(x => x.Kind).HasColumnName("kind");
         modelBuilder.Entity<AgendaView>().HasIndex(x => x.StudentId);
+
+        modelBuilder.Entity<LandingHit>().ToTable("landing_hits", "public");
+        modelBuilder.Entity<LandingHit>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<LandingHit>().Property(x => x.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<LandingHit>().Property(x => x.Path).HasColumnName("path");
+        modelBuilder.Entity<LandingHit>().Property(x => x.Referrer).HasColumnName("referrer");
+        modelBuilder.Entity<LandingHit>().Property(x => x.UserAgent).HasColumnName("user_agent");
+        modelBuilder.Entity<LandingHit>().Property(x => x.IsMobile).HasColumnName("is_mobile");
+        modelBuilder.Entity<LandingHit>().HasIndex(x => x.CreatedAt);
 
         modelBuilder.Entity<Message>()
             .Property(m => m.Role)

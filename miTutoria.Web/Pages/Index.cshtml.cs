@@ -18,9 +18,40 @@ public class IndexModel : PageModel
 
     public bool WaitlistSent { get; private set; }
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         WaitlistSent = Request.Query.ContainsKey("joined");
+        await RecordHitAsync();
+    }
+
+    // Registra una visita humana a la landing (sin cookies). Nunca rompe el render.
+    private async Task RecordHitAsync()
+    {
+        try
+        {
+            var ua = Request.Headers.UserAgent.ToString();
+            var uaLower = ua.ToLowerInvariant();
+
+            // Mismo criterio que la analítica de la agenda: descartamos crawlers
+            // y el preview de WhatsApp (que NO es una visita humana real).
+            var isBot = string.IsNullOrEmpty(uaLower) || uaLower.Contains("bot") || uaLower.Contains("crawl")
+                        || uaLower.Contains("spider") || uaLower.Contains("preview")
+                        || uaLower.Contains("facebookexternalhit") || uaLower.Contains("whatsapp");
+            if (isBot) return;
+
+            var isMobile = uaLower.Contains("mobi") || uaLower.Contains("android")
+                           || uaLower.Contains("iphone") || uaLower.Contains("ipad");
+
+            _dbContext.LandingHits.Add(new Data.Entities.LandingHit
+            {
+                Path     = Request.Path.Value,
+                Referrer = Request.Headers.Referer.ToString() is { Length: > 0 } r ? r : null,
+                UserAgent = ua is { Length: > 0 } ? (ua.Length > 400 ? ua[..400] : ua) : null,
+                IsMobile = isMobile
+            });
+            await _dbContext.SaveChangesAsync();
+        }
+        catch { /* la analítica nunca rompe la landing */ }
     }
 
     public async Task<IActionResult> OnPostWaitlistAsync(string email, string? name)
