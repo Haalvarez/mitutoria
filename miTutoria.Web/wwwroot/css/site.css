@@ -90,6 +90,7 @@ nav ul a:hover{color:var(--ink)}
 .nav-btn-student:hover,.nav-btn-family:hover{color:var(--ink)}
 .nav-btn-live{font-size:.78rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--paper);background:var(--ink);padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;transition:opacity .2s}
 .nav-btn-live:hover{opacity:.8}
+.nav-txt-compact{display:none}  /* versión abreviada de los links del nav (solo mobile) */
 
 /* Mobile: el nav anónimo de 4 links se desbordaba en pantallas chicas */
 @media (max-width:600px){
@@ -2088,8 +2089,10 @@ body.focus-mode .agenda-anuncios { display: none; }
   /* Watermark "pensar": que no genere ancho extra */
   .hero-watermark { right: 0; font-size: 30vw; }
 
-  /* Nav: que los links no se partan en dos líneas */
-  .nav-btn-student, .nav-btn-family { white-space: nowrap; font-size: .74rem; }
+  /* Nav: links abreviados ("Estudiante" / "Familiar") para que entren sin cortarse */
+  .nav-btn-student, .nav-btn-family { white-space: nowrap; font-size: .78rem; }
+  .nav-txt-full { display: none; }
+  .nav-txt-compact { display: inline; }
 
   /* Demo: menos padding lateral + fila que no desborda (el botón quedaba cortado) */
   .demo-section { padding: 3.5rem 1.25rem; }
