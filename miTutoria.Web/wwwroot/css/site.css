@@ -2072,3 +2072,40 @@ body.focus-mode .agenda-anuncios { display: none; }
   }
   .classroom-chat { height: 70dvh; }
 }
+
+/* ── Landing en mobile: fixes de overflow y legibilidad (≤600px) ──────────────
+   Corrige: scroll horizontal (watermark + fila del demo), titular que desborda,
+   botón "Enviar" cortado, "Acceso familiar" partido en 2 líneas y el botón
+   flotante "Probalo en vivo" tapando el hero. */
+@media (max-width: 600px) {
+  /* Mata cualquier scroll horizontal residual (watermark, etc.). nav es fixed,
+     no sticky, así que no se ve afectado. */
+  html, body { overflow-x: hidden; }
+
+  /* Titular: que escale por debajo de 51px y no desborde en pantallas chicas */
+  .hero-headline { font-size: clamp(2.5rem, 9vw, 3.2rem); }
+
+  /* Watermark "pensar": que no genere ancho extra */
+  .hero-watermark { right: 0; font-size: 30vw; }
+
+  /* Nav: que los links no se partan en dos líneas */
+  .nav-btn-student, .nav-btn-family { white-space: nowrap; font-size: .74rem; }
+
+  /* Demo: menos padding lateral + fila que no desborda (el botón quedaba cortado) */
+  .demo-section { padding: 3.5rem 1.25rem; }
+  .demo-input-row { gap: 0.5rem; }
+  .demo-input-row input { min-width: 0; }   /* permite que el input encoja en flex */
+  .demo-input-row .btn-main { flex: 0 0 auto; padding: 1rem 1.2rem; white-space: nowrap; }
+
+  /* Botón flotante "Probalo en vivo": de barra vertical lateral (tapaba el H1)
+     a píldora abajo a la derecha, alcanzable con el pulgar */
+  .floating-demo {
+    top: auto; bottom: 1rem; right: 1rem;
+    transform: none;
+    writing-mode: horizontal-tb;
+    border-radius: 999px;
+    padding: 0.7rem 1.1rem;
+    font-size: 0.78rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  }
+}
