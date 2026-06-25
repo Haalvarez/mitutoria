@@ -336,6 +336,11 @@ public class IndexModel : PageModel
             .Select(f => (f.Email ?? "").ToLowerInvariant())
             .ToHashSet();
 
+        // Si ya es trial/active, no tiene sentido que figure en la waitlist (histórico incluido).
+        Waitlist = Waitlist
+            .Where(w => !InvitedEmails.Contains((w.Email ?? "").ToLowerInvariant()))
+            .ToList();
+
         // Calendarios públicos compartidos + sus visitas (solo lo ve el admin).
         var shared = await _db.Users
             .Where(u => u.Role == Data.Entities.Auth.UserRole.Student && u.AgendaShareToken != null)
