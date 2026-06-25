@@ -88,6 +88,43 @@ public class IndexModel : PageModel
             InviteResult = $"error:Error al enviar: {ex.Message}";
         }
 
+        // Ya pasó a trial: la sacamos de la waitlist (deja de figurar en la lista).
+        var inWaitlist = await _db.WaitlistEntries
+            .Where(w => w.Email != null && w.Email.ToLower() == email)
+            .ToListAsync();
+        if (inWaitlist.Count > 0)
+        {
+            _db.WaitlistEntries.RemoveRange(inWaitlist);
+            await _db.SaveChangesAsync();
+        }
+
+        return RedirectToPage(new { token });
+    }
+
+    // Eliminar una entrada de la waitlist (prueba, spam o bots de scraper que llenan el form).
+    public async Task<IActionResult> OnPostDeleteWaitlistAsync([FromQuery] string? token, string email)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var target = (email ?? "").Trim().ToLowerInvariant();
+        if (target.Length == 0)
+        {
+            InviteResult = "error:Email vacío.";
+            return RedirectToPage(new { token });
+        }
+
+        var rows = await _db.WaitlistEntries
+            .Where(w => w.Email != null && w.Email.ToLower() == target)
+            .ToListAsync();
+        if (rows.Count == 0)
+        {
+            InviteResult = $"error:\"{target}\" no estaba en la waitlist.";
+            return RedirectToPage(new { token });
+        }
+
+        _db.WaitlistEntries.RemoveRange(rows);
+        await _db.SaveChangesAsync();
+        InviteResult = $"ok:{rows.Count} entrada(s) de \"{target}\" eliminada(s) de la waitlist.";
         return RedirectToPage(new { token });
     }
 

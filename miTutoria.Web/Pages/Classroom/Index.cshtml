@@ -143,13 +143,9 @@
             </details>
         }
 
-        @if (!string.IsNullOrEmpty(Model.CompactSummary))
-        {
-            <div class="sidebar-summary">
-                <span class="sidebar-summary__label">📝 Sesión anterior</span>
-                <p>@Model.CompactSummary</p>
-            </div>
-        }
+        @* El resumen de la sesión anterior (CompactSummary) es interno: se inyecta al
+           prompt en silencio y NO se le muestra al alumno. Su lugar como feedback es
+           el panel del padre, no la barra lateral del aula. *@
 
         @* Material *@
         <details class="sidebar-panel" @(string.IsNullOrEmpty(Model.Material) && Model.Sections.Count == 0 ? "" : "open")>

@@ -58,16 +58,6 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
     var isOk = inviteResult?.StartsWith("ok:") == true;
     var inviteMsg = inviteResult?.Substring(inviteResult.IndexOf(':') + 1);
 
-    int.TryParse(Request.Query["kr3"].ToString(), out var kr3Val);
-    int.TryParse(Request.Query["kr4"].ToString(), out var kr4Val);
-    var kr3Note = Request.Query["kr3note"].ToString();
-    var kr4Names = Request.Query["kr4names"].ToString();
-
-    string Semaforo(int val, int threshold, int total) =>
-        total == 0 ? "⚪" : val >= threshold ? "🟢" : val >= threshold * 0.6 ? "🟡" : "🔴";
-
-    var t = Model.Thresholds;          // [kr1, kr2, kr3, kr4]
-    var pilotTotal = Model.PilotTotal;
     var inv = System.Globalization.CultureInfo.InvariantCulture;
 }
 
@@ -153,42 +143,6 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
         </div>
         <div class="card__value">@convPct.ToString("F0")%</div>
         <div class="card__sub">@Model.WaitlistCount en waitlist</div>
-    </div>
-</div>
-
-@* ── Scoreboard del piloto ────────────────────────────────────────────── *@
-<p style="font-size:.8rem;color:#888;margin-bottom:.75rem;">
-    Semáforo: 🟢 alcanzó el umbral · 🟡 entre 60% y el umbral (vigilar) · 🔴 por debajo del 60% (actuar) · ⚪ sin datos.
-    Pasá el mouse por la ⓘ de cada KR.
-</p>
-<div class="grid" style="margin-bottom:1rem;">
-    <div class="card">
-        <div class="card__label">KR1 Retención
-            <span class="help" title="Mide si las familias VUELVEN — el riesgo #1. Familias con suficientes intercambios (PILOT_KR1_MIN_EXCHANGES) en 7 días. 🔴 = no usan: revisá onboarding y material.">ⓘ</span>
-        </div>
-        <div class="card__value">@Semaforo(Model.Kr1Active, t[0], pilotTotal) @Model.Kr1Active/@pilotTotal</div>
-        <div class="card__sub">activas 7 días (umbral @t[0])</div>
-    </div>
-    <div class="card">
-        <div class="card__label">KR2 Hábito
-            <span class="help" title="Mide si se vuelve COSTUMBRE. Hijos con racha ≥7 días. 🔴 = el valor no engancha todavía.">ⓘ</span>
-        </div>
-        <div class="card__value">@Semaforo(Model.Kr2HabitStudents, t[1], Model.Kr2TotalStudents) @Model.Kr2HabitStudents/@Model.Kr2TotalStudents</div>
-        <div class="card__sub">hijos con racha ≥7 (umbral @t[1])</div>
-    </div>
-    <div class="card">
-        <div class="card__label">KR3 Intención de pago
-            <span class="help" title="Señal de monetización. Lo cargás a mano abajo. 🔴 = el precio/valor no cierra; conversá antes de fijar precio.">ⓘ</span>
-        </div>
-        <div class="card__value">@Semaforo(kr3Val, t[2], pilotTotal) @kr3Val/@pilotTotal</div>
-        <div class="card__sub">manual · umbral @t[2]</div>
-    </div>
-    <div class="card">
-        <div class="card__label">KR4 Referidos
-            <span class="help" title="Boca-a-boca, el motor orgánico. Lo cargás a mano: familias que trajeron a otra.">ⓘ</span>
-        </div>
-        <div class="card__value">@Semaforo(kr4Val, t[3], pilotTotal) @kr4Val</div>
-        <div class="card__sub">manual · umbral @t[3]</div>
     </div>
 </div>
 
@@ -344,32 +298,6 @@ else
     </p>
 }
 
-@* ── KR3 y KR4 — datos de cierre (manual) ──────────────────────────────── *@
-<h2>KR3 y KR4 — Datos de cierre (manual)</h2>
-<form method="get" action="/admin" style="background:#fff;border-radius:8px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:1.5rem;">
-    <input type="hidden" name="token" value="@token" />
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-        <div>
-            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR3 — Familias con intención de pago</label>
-            <input type="number" name="kr3" value="@kr3Val" min="0" max="@pilotTotal"
-                   style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
-            <span style="font-size:.8rem;color:#888;margin-left:.5rem;">de @pilotTotal</span>
-            <textarea name="kr3note" rows="2" placeholder="Notas (sí/no/depende por familia...)"
-                      style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr3Note</textarea>
-        </div>
-        <div>
-            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:.4rem;">KR4 — Referidos</label>
-            <input type="number" name="kr4" value="@kr4Val" min="0"
-                   style="width:5rem;padding:.4rem;border:1px solid #ddd;border-radius:4px;" />
-            <textarea name="kr4names" rows="2" placeholder="Nombres referidos..."
-                      style="display:block;margin-top:.5rem;width:100%;padding:.4rem;border:1px solid #ddd;border-radius:4px;font-size:.82rem;">@kr4Names</textarea>
-        </div>
-    </div>
-    <button type="submit" style="margin-top:1rem;padding:.4rem 1rem;background:#333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:.82rem;">
-        Actualizar semáforo
-    </button>
-</form>
-
 @* ── Vencimientos próximos ─────────────────────────────────────────────── *@
 @if (Model.ExpiringFamilies.Count > 0)
 {
@@ -441,13 +369,19 @@ else
                 }
                 else
                 {
-                    <form method="post" asp-page-handler="Invite" asp-route-token="@token" style="margin:0;"
+                    <form method="post" asp-page-handler="Invite" asp-route-token="@token" style="display:inline;margin:0;"
                           onsubmit="return confirm('¿Invitar a @w.Email al piloto? Se le activa trial de 30 días y se le manda el magic link.');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="inviteEmail" value="@w.Email" />
                         <button type="submit" class="btn-mini">Invitar al trial</button>
                     </form>
                 }
+                <form method="post" asp-page-handler="DeleteWaitlist" asp-route-token="@token" style="display:inline;margin:0 0 0 .4rem;"
+                      onsubmit="return confirm('¿Eliminar @w.Email de la waitlist? (no afecta su cuenta si ya tiene trial)');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="email" value="@w.Email" />
+                    <button type="submit" class="btn-mini" title="Eliminar de la waitlist (prueba, spam o scraper)">🗑</button>
+                </form>
             </td>
         </tr>
     }
