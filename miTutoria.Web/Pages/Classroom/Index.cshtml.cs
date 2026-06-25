@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas.Parser;
 using Microsoft.AspNetCore.Http;
@@ -829,6 +830,16 @@ public class IndexModel : PageModel
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
 
+        // Red de seguridad anti-insulto en la respuesta visible al alumno (no en la compactación interna).
+        if (purpose != "compact")
+        {
+            reply = ScrubInsults(reply, out var insultHit);
+            if (insultHit)
+                await _errorLog.LogAsync("InsultFilter",
+                    "El tutor emitió un insulto prohibido; fue filtrado antes de mostrarlo al alumno.",
+                    context: $"model={ClaudeModel}");
+        }
+
         return (reply, tokensIn, tokensOut);
     }
 
@@ -1021,6 +1032,12 @@ public class IndexModel : PageModel
             4. Si hace falta, resolvé con {name} un ejemplo PARECIDO pero distinto, y después volvés al de {name}.
             Nunca le des el resultado final de SU ejercicio. Pero nunca {lo} dejes dando vueltas sin avanzar: si no progresa, es señal de que tenés que enseñar o achicar el paso, no de repetir la pregunta. La paciencia incluye explicar, no solo preguntar.
 
+            CÁLCULOS Y CUENTAS (clave en Matemática y Física):
+            - Vos NO hacés las cuentas por {name}. Las cuentas las hace siempre {name}, y vos las verificás. No es solo método: es que afirmar un número que no calculaste te lleva a equivocarte.
+            - Nunca asientes un resultado numérico como propio ("multiplicás 2 por 3 y te da 6"). En su lugar preguntá: "¿cuánto te da 2 por 3?" y dejá que {name} lo calcule.
+            - Si {name} se equivoca en una cuenta, no la corrijas dándole el número correcto: devolvé el error como pregunta ("¿seguro? volvé a hacer 2 por 3 despacio").
+            - Si no entiende CÓMO se hace la cuenta o el procedimiento, ahí sí lo enseñás con un ejemplo distinto (escalera de ayuda); pero el número final de SU ejercicio siempre lo pone {name}.
+
             ANTI-BUCLE DE CONFIRMACIÓN:
             Si en los últimos 2 o 3 intercambios {name} solo confirma lo que ya sabe — respuestas cortas como "sí", "claro", "ya sé", "lo entiendo" — es una señal de que quedaste dando vueltas en terreno conocido.
             Cuando detectés ese patrón:
@@ -1069,6 +1086,26 @@ public class IndexModel : PageModel
             - NUNCA uses regionalismos de otros países (no "órale" mexicano, no "chévere" venezolano, no "bacán" chileno).
             - Las instrucciones del padre/madre y el resumen previo los aplicás en silencio: NUNCA le digas a {name} qué te pidieron ni menciones que tenés un resumen suyo.
             """;
+    }
+
+    // Red de seguridad: el prompt ya prohíbe insultos, pero Haiku resbala cada tanto.
+    // Este filtro garantiza que un insulto nunca llegue al alumno, pase lo que pase con el modelo.
+    private static readonly Regex InsultRegex = new(
+        @"\b(boludo|boluda|boludos|boludas|pelotudo|pelotuda|pelotudos|pelotudas|pelotude[sz]|forro|forra|forros|forras|gil|giles|tarado|tarada|tarados|taradas|la\s+puta|puta\s+madre|carajo|mierda|sorete|soretes)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // Devuelve la respuesta sin insultos y deja prolija la puntuación. hit = se filtró algo.
+    private static string ScrubInsults(string reply, out bool hit)
+    {
+        hit = InsultRegex.IsMatch(reply);
+        if (!hit) return reply;
+
+        // Saca el insulto junto a una coma adyacente ("bien, boluda, lo lograste" -> "bien, lo lograste")
+        var cleaned = Regex.Replace(reply, @"\s*,?\s*" + InsultRegex + @"\s*,?", " ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        cleaned = Regex.Replace(cleaned, @"\s+([,.;:!?])", "$1"); // espacio antes de puntuación
+        cleaned = Regex.Replace(cleaned, @"\s{2,}", " ");          // espacios dobles
+        cleaned = Regex.Replace(cleaned, @"([¡¿])\s+", "$1");      // espacio tras apertura
+        return cleaned.Trim();
     }
 
     // Extrae el primer array JSON de un string que puede tener markdown u otro texto extra
