@@ -51,6 +51,7 @@ builder.Services.AddSingleton<miTutoria.Web.Infrastructure.TelegramService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.SchedulerHeartbeat>();
 builder.Services.AddHostedService<miTutoria.Web.Infrastructure.PilotMonitorService>();
 builder.Services.AddHostedService<miTutoria.Web.Infrastructure.AgendaDigestService>();
+builder.Services.AddHostedService<miTutoria.Web.Infrastructure.WeeklyDigestService>();
 builder.Services.AddScoped<miTutoria.Web.Infrastructure.ErrorLogService>();
 builder.Services.AddScoped<miTutoria.Web.Inbox.InboxProcessor>();
 builder.Services.Configure<ResendClientOptions>(o =>

@@ -33,6 +33,10 @@ public class Family
     // Cobro: rollout del botón "Quiero pagar" familia por familia (para probar sin habilitarlo a todos)
     public bool PayEnabled { get; set; }
 
+    // Resumen semanal por mail al padre (viernes 20hs ARG). Opt-in del padre + dedup del envío.
+    public bool WeeklyDigestOptIn { get; set; }
+    public DateTime? LastDigestSentAt { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

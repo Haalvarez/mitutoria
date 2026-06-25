@@ -61,6 +61,7 @@ public class IndexModel : PageModel
     public string SubscriptionStatus { get; private set; } = "trial";
     public DateTime? AccessEndsAt { get; private set; }   // PaidUntil ?? TrialEndsAt — sirve para fin de trial y renovación mensual
     public int DaysRemaining { get; private set; }
+    public bool WeeklyDigestOptIn { get; private set; }   // resumen semanal por mail (viernes 20hs)
     public List<User> Students { get; private set; } = new();
     public List<StudentSummary> StudentSummaries { get; private set; } = new();
     public int TotalExchangesMonth { get; private set; }
@@ -113,6 +114,7 @@ public class IndexModel : PageModel
         PagoResult = Request.Query["pago"].FirstOrDefault();
 
         SubscriptionStatus = family.SubscriptionStatus;
+        WeeklyDigestOptIn = family.WeeklyDigestOptIn;
         AccessEndsAt = family.PaidUntil ?? family.TrialEndsAt;
         DaysRemaining = AccessEndsAt.HasValue
             ? Math.Max(0, (int)Math.Ceiling((AccessEndsAt.Value - now).TotalDays))
@@ -274,6 +276,21 @@ public class IndexModel : PageModel
         if (student is not null && string.IsNullOrEmpty(student.AgendaShareToken))
         {
             student.AgendaShareToken = Guid.NewGuid().ToString("N");
+            await _dbContext.SaveChangesAsync();
+        }
+        return RedirectToPage("/Dashboard/Index");
+    }
+
+    // El padre activa/desactiva el resumen semanal por mail (viernes 20hs ARG).
+    public async Task<IActionResult> OnPostToggleDigestAsync(bool optIn)
+    {
+        var familyId = HttpContext.Session.GetInt32("FamilyId");
+        if (familyId is null) return RedirectToPage("/Login");
+
+        var family = await _dbContext.Families.FirstOrDefaultAsync(f => f.Id == familyId.Value);
+        if (family is not null)
+        {
+            family.WeeklyDigestOptIn = optIn;
             await _dbContext.SaveChangesAsync();
         }
         return RedirectToPage("/Dashboard/Index");

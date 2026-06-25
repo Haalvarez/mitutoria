@@ -215,6 +215,17 @@
         }
     </section>
 
+    @* Resumen semanal por mail — opt-in del padre, sin opciones de calendario (viernes 20hs fijo) *@
+    <form method="post" asp-page-handler="ToggleDigest" id="digestForm"
+          style="background:#fff;border:1px solid #eee;border-radius:8px;padding:.85rem 1.2rem;margin-bottom:1.5rem;">
+        <label style="display:flex;align-items:center;gap:.6rem;font-size:.9rem;color:#444;cursor:pointer;margin:0;">
+            <input type="checkbox" name="optIn" value="true" @(Model.WeeklyDigestOptIn ? "checked" : "")
+                   onchange="document.getElementById('digestForm').submit();"
+                   style="width:1.1rem;height:1.1rem;cursor:pointer;" />
+            <span>📬 Recibir un resumen semanal por mail — cómo le fue a tus hijos (viernes a la noche)</span>
+        </label>
+    </form>
+
     @* Feedback del retorno de MercadoPago *@
     @if (!string.IsNullOrEmpty(Model.PagoResult))
     {

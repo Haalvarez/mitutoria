@@ -167,6 +167,14 @@ public class AppDbContext : DbContext
             .HasColumnName("pay_enabled");
 
         modelBuilder.Entity<Family>()
+            .Property(f => f.WeeklyDigestOptIn)
+            .HasColumnName("weekly_digest_optin");
+
+        modelBuilder.Entity<Family>()
+            .Property(f => f.LastDigestSentAt)
+            .HasColumnName("last_digest_sent_at");
+
+        modelBuilder.Entity<Family>()
             .Property(f => f.PasswordHash)
             .HasColumnName("password_hash");
 
