@@ -1370,6 +1370,68 @@ footer{
   border-top: 1px solid var(--line);
 }
 
+/* ── Video de conversación real (facade lite-youtube) ───────────────────── */
+.video-section {
+  padding: 5rem 2rem;
+  background: var(--paper);
+  color: var(--ink);
+  border-top: 1px solid var(--line);
+}
+.video-facade,
+.video-frame {
+  display: block;
+  width: 100%;
+  max-width: 340px;          /* Short vertical: ancho tipo celular */
+  margin: 0 auto;
+  aspect-ratio: 9 / 16;
+  border: 0;
+  border-radius: 14px;
+}
+.video-facade {
+  position: relative;
+  cursor: pointer;
+  background-color: #000;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+.video-facade::after {            /* leve oscurecido para que resalte el play */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.12);
+  transition: background 0.2s;
+}
+.video-facade:hover::after { background: rgba(0,0,0,0.04); }
+.video-facade__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 50px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.65);
+  cursor: pointer;
+  z-index: 1;
+  transition: background 0.2s, transform 0.2s;
+}
+.video-facade__play::before {     /* triángulo ▶ */
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -50%);
+  border-style: solid;
+  border-width: 11px 0 11px 18px;
+  border-color: transparent transparent transparent #fff;
+}
+.video-facade:hover .video-facade__play {
+  background: var(--sage);
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
 .demo-header {
   max-width: 720px;
   margin: 0 auto 2.5rem;
@@ -2096,6 +2158,7 @@ body.focus-mode .agenda-anuncios { display: none; }
 
   /* Demo: menos padding lateral + fila que no desborda (el botón quedaba cortado) */
   .demo-section { padding: 3.5rem 1.25rem; }
+  .video-section { padding: 3.5rem 1.25rem; }
   .demo-input-row { gap: 0.5rem; }
   .demo-input-row input { min-width: 0; }   /* permite que el input encoja en flex */
   .demo-input-row .btn-main { flex: 0 0 auto; padding: 1rem 1.2rem; white-space: nowrap; }

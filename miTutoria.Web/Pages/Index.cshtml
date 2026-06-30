@@ -3,6 +3,10 @@
 @{
     Layout = "_Layout";
     ViewData["Title"] = "miTutorIA — Aprendé con inteligencia";
+
+    // Video de una conversación real (YouTube, no listado). Pegá acá el ID del video
+    // (la parte después de watch?v= o youtu.be/). Vacío = la sección no se muestra.
+    var youtubeId = "dCWEHCATysw";
 }
 
 <a href="#probalo" class="floating-demo" aria-label="Probalo en vivo">Probalo en vivo</a>
@@ -14,6 +18,28 @@ document.addEventListener('DOMContentLoaded', function(){
     new IntersectionObserver(function(entries){
         entries.forEach(function(e){ fb.classList.toggle('floating-demo--hidden', e.isIntersecting); });
     }, { threshold: 0.15 }).observe(demo);
+});
+
+// Facade del video: carga el iframe de YouTube recién al hacer click (no pesa en la carga inicial)
+document.addEventListener('DOMContentLoaded', function(){
+    var facade = document.querySelector('.video-facade');
+    if (!facade) return;
+    function loadVideo(){
+        var id = facade.getAttribute('data-yt-id');
+        if (!id) return;
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0';
+        iframe.title = 'Conversación real con el tutor';
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        iframe.allowFullscreen = true;
+        iframe.loading = 'lazy';
+        iframe.className = 'video-frame';
+        facade.replaceWith(iframe);
+    }
+    facade.addEventListener('click', loadVideo);
+    facade.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadVideo(); }
+    });
 });
 </script>
 
@@ -157,6 +183,22 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
     </div>
 </section>
+
+@* ── Conversación real (video) ────────────────────────────────────────── *@
+@if (!string.IsNullOrWhiteSpace(youtubeId))
+{
+    <section class="video-section" id="conversacion-real">
+        <div class="demo-header">
+            <h2>Una conversación real</h2>
+            <p class="demo-subtitle">Así guía el tutor, paso a paso, sin dar la respuesta. Mirá y después probalo vos.</p>
+        </div>
+        <div class="video-facade" data-yt-id="@youtubeId" role="button" tabindex="0"
+             aria-label="Reproducir video de una conversación real con el tutor"
+             style="background-image:url('https://i.ytimg.com/vi/@(youtubeId)/oardefault.jpg');">
+            <button type="button" class="video-facade__play" aria-hidden="true"></button>
+        </div>
+    </section>
+}
 
 @* ── Demo en vivo ─────────────────────────────────────────────────────── *@
 <section class="demo-section" id="probalo">
