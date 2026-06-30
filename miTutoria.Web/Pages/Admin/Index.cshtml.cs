@@ -132,7 +132,7 @@ public class IndexModel : PageModel
 
     public record FamilyRow(
         int Id, string Name, string Email, string Status, bool HasConsented,
-        int Students, int Exchanges7d, decimal CostUsd30d,
+        int Students, int Exchanges7d, int ExchangesAll, decimal CostUsd30d,
         DateTime? LastActivity, DateTime? AccessEndsAt,
         bool NearLimit, bool Inactive7Days, bool NoMaterial,
         bool Active, bool Cooling, bool InboxEnabled, bool PayEnabled);
@@ -167,7 +167,7 @@ public class IndexModel : PageModel
 
     // ── Waitlist ─────────────────────────────────────────────────────────────
 
-    public record WaitlistRow(string Email, string? Name, DateTime CreatedAt);
+    public record WaitlistRow(string Email, string? Name, string? Phone, DateTime CreatedAt);
     public List<WaitlistRow> Waitlist { get; private set; } = [];
     public HashSet<string> InvitedEmails { get; private set; } = new();
 
@@ -247,6 +247,14 @@ public class IndexModel : PageModel
 
         var classrooms = await _db.Classrooms.ToListAsync();
 
+        // Intercambios de chat históricos (sin filtro de fecha) por familia — agregado en SQL.
+        var chatAllByFamily = (await _db.TokenEvents
+                .Where(t => t.Feature == "chat")
+                .GroupBy(t => t.FamilyId)
+                .Select(g => new { FamilyId = g.Key, Count = g.Count() })
+                .ToListAsync())
+            .ToDictionary(x => x.FamilyId, x => x.Count);
+
         Families = families.Select(f =>
         {
             var ev30   = events.Where(e => e.FamilyId == f.Id && e.CreatedAt >= thirtyAgo).ToList();
@@ -269,6 +277,7 @@ public class IndexModel : PageModel
                 f.ConsentAt.HasValue,
                 f.Users.Count,
                 chat7d,
+                chatAllByFamily.GetValueOrDefault(f.Id),
                 costUsd30,
                 lastActivity,
                 f.PaidUntil ?? f.TrialEndsAt,
@@ -328,7 +337,7 @@ public class IndexModel : PageModel
 
         Waitlist = await _db.WaitlistEntries
             .OrderByDescending(w => w.CreatedAt)
-            .Select(w => new WaitlistRow(w.Email, w.Name, w.CreatedAt))
+            .Select(w => new WaitlistRow(w.Email, w.Name, w.Phone, w.CreatedAt))
             .ToListAsync();
 
         InvitedEmails = families

@@ -1,3 +1,33 @@
+## [Sesión 19] — 2026-06-30
+
+### fix — el tutor no veía todo el material del PDF
+- **Causa:** cuando el material se segmentaba (hasta 5 secciones), el prompt inyectaba
+  **solo la sección activa** (`sections[idx]`); el resto del PDF quedaba fuera del contexto.
+  Si el alumno preguntaba por algo de otra sección, el tutor no lo tenía → daba la sensación
+  de "no se basa en el material"
+- **Causa secundaria:** el contenido de cada sección venía de la **reescritura de Claude**
+  (`SegmentMaterialAsync`), que podía parafrasear/abreviar y perder detalle del original
+- **Fix:** ahora se inyecta **siempre el material completo** (`classroom.Material`, texto
+  verbatim extraído, cap 30k chars). Las secciones quedan como **puntero pedagógico**
+  ("estás en la sección 2 de 4…"), no como filtro de lo que el tutor puede ver
+- El costo está cubierto por el prompt caching (~90% de ahorro en el material por sesión)
+
+### feat — waitlist: nombre obligatorio + WhatsApp opcional
+- Nombre ahora **requerido** en el form de la landing (antes opcional); validación server-side
+- Campo nuevo **WhatsApp opcional** (`type="tel"`) — canal anti-spam si el mail cae en correo no deseado
+- Microcopy: "Te aviso por WhatsApp cuando se libere tu lugar · Sin spam · Sin costo"
+- La alerta de Telegram incluye el WhatsApp; `/admin` muestra columna WhatsApp con link `wa.me`
+- `WaitlistEntry.Phone` (nullable) + migración `20260630120000_AddWaitlistPhone`
+  (idempotente, `ADD COLUMN IF NOT EXISTS`, corre sola con `Migrate()` en el arranque)
+
+### feat — dashboard: columna de intercambios histórico
+- Junto a "Interc. 7d" en la tabla de familias de `/admin`, columna nueva **"Interc. total"**
+  (histórico completo, sin límite de fecha), ordenable
+- Query agregada aparte en SQL (`GroupBy(FamilyId).Count()` sobre `chat`) — no carga eventos
+  en memoria; los `events` ya cargados están filtrados a ~30 días
+
+---
+
 ## [Sesión 17] — 2026-06-03
 
 ### fix — chat en texto plano de verdad + caras en las burbujas

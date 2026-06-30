@@ -54,9 +54,11 @@ public class IndexModel : PageModel
         catch { /* la analítica nunca rompe la landing */ }
     }
 
-    public async Task<IActionResult> OnPostWaitlistAsync(string email, string? name)
+    public async Task<IActionResult> OnPostWaitlistAsync(string email, string? name, string? phone)
     {
-        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+        // Nombre y email son obligatorios; el teléfono (WhatsApp) es opcional.
+        if (string.IsNullOrWhiteSpace(name)
+            || string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
             return RedirectToPage();
 
         var exists = _dbContext.WaitlistEntries.Any(w => w.Email == email.Trim().ToLower());
@@ -65,13 +67,14 @@ public class IndexModel : PageModel
             _dbContext.WaitlistEntries.Add(new WaitlistEntry
             {
                 Email = email.Trim().ToLower(),
-                Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim()
+                Name  = name.Trim(),
+                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim()
             });
             await _dbContext.SaveChangesAsync();
 
-            var displayName = string.IsNullOrWhiteSpace(name) ? email : $"{name} ({email})";
+            var phoneLine = string.IsNullOrWhiteSpace(phone) ? string.Empty : $"\n📱 {phone.Trim()}";
             var total = _dbContext.WaitlistEntries.Count();
-            await _telegram.SendAsync($"🙋 Nueva inscripción en waitlist\n<b>{displayName}</b>\nTotal: {total}");
+            await _telegram.SendAsync($"🙋 Nueva inscripción en waitlist\n<b>{name.Trim()} ({email})</b>{phoneLine}\nTotal: {total}");
         }
 
         return RedirectToPage(new { joined = true });

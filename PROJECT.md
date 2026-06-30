@@ -62,7 +62,7 @@ Family (Tenant)
 
 billing.token_events    — registro append-only de cada llamada a Claude
 public.error_logs       — errores internos para /admin
-auth.waitlist_entries   — lista de espera del landing
+auth.waitlist_entries   — lista de espera del landing (email, name, phone/WhatsApp opcional, created_at)
 ```
 
 ---
@@ -116,6 +116,11 @@ auth.waitlist_entries   — lista de espera del landing
 - [x] **Analítica de landing** (`public.landing_hits`) + tarjetas en `/admin` (hits + conversión a waitlist) — mide alcance de envíos (WhatsApp)
 - [x] **Landing responsive en mobile** (6 fixes: overflow, titular, demo, nav, flotante)
 - [ ] Correr `tools/prompt-harness.ps1` para validar el prompt calibrado (escenario "Trabada de verdad" + dimensión `no_ayuda`)
+
+#### Fixes previos a invitar (Sesión 19 — 2026-06-30)
+- [x] **El tutor ahora ve TODO el material del PDF** — antes solo recibía la sección activa; corrige el "no se basa en el material"
+- [x] Waitlist con **nombre obligatorio + WhatsApp opcional** (canal anti-spam si el mail cae en correo no deseado)
+- [x] Columna **histórico de intercambios** en la tabla de familias de `/admin`
 
 ### 🟡 Fase 3 — Cobro y régimen formal (parqueado, ~2 meses)
 **Objetivo:** Pasar del piloto cerrado a cobro recurrente. Roadmap específico al activarse.
@@ -246,4 +251,4 @@ Revisar outputs           →     CHANGES.md actualizado en cada commit
 
 ---
 
-*Última actualización: Sesión 16 — replanificación dual-track (piloto + inbox exploratorio)*
+*Última actualización: Sesión 19 (2026-06-30) — fix del material del PDF + waitlist nombre/WhatsApp + histórico en admin*

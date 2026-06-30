@@ -212,11 +212,12 @@ document.addEventListener('DOMContentLoaded', function(){
         {
             <p>Estamos armando el acceso anticipado. Si tenés hijos en edad escolar y querés probar la plataforma antes del lanzamiento, dejá tu mail acá.</p>
             <form method="post" asp-page-handler="Waitlist" class="email-form">
-                <input type="text"  name="name"  placeholder="Tu nombre (opcional)" />
+                <input type="text"  name="name"  placeholder="Tu nombre" autocomplete="name" required />
                 <input type="email" name="email" placeholder="tu@email.com" autocomplete="email" required />
+                <input type="tel"   name="phone" placeholder="WhatsApp (opcional)" autocomplete="tel" inputmode="tel" />
                 <button type="submit">Anotarme</button>
             </form>
-            <p class="cta-note">Sin spam · Sin costo · Solo te avisamos cuando esté lista</p>
+            <p class="cta-note">Te aviso por WhatsApp cuando se libere tu lugar · Sin spam · Sin costo</p>
         }
     </div>
 </section>

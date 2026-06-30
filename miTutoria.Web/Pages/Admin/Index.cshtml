@@ -156,7 +156,7 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
 
 @* ── Familias (una sola tabla, ordenable, en USD) ──────────────────────── *@
 <h2>Familias (@Model.Families.Count)
-    <span class="help" title="Click en una columna para ordenar. $ USD = costo real de API de la familia en los últimos 30 días. Interc. 7d = mensajes del alumno respondidos en 7 días. 'Ver' abre el detalle por hijo.">ⓘ</span>
+    <span class="help" title="Click en una columna para ordenar. $ USD = costo real de API de la familia en los últimos 30 días. Interc. 7d = mensajes del alumno respondidos en 7 días. Interc. total = histórico completo (sin límite de fecha). 'Ver' abre el detalle por hijo.">ⓘ</span>
 </h2>
 <table id="famTable">
     <thead>
@@ -165,6 +165,7 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
             <th class="sortable" onclick="sortTable(this)">Estado</th>
             <th class="sortable" onclick="sortTable(this)">Hijos</th>
             <th class="sortable" onclick="sortTable(this)">Interc. 7d</th>
+            <th class="sortable" onclick="sortTable(this)">Interc. total</th>
             <th class="sortable" onclick="sortTable(this)">$ USD 30d</th>
             <th class="sortable" onclick="sortTable(this)">Últ. uso</th>
             <th>Flags</th>
@@ -199,6 +200,7 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
             </td>
             <td data-val="@f.Students">@f.Students</td>
             <td data-val="@f.Exchanges7d">@f.Exchanges7d</td>
+            <td data-val="@f.ExchangesAll"><span class="dim">@f.ExchangesAll</span></td>
             <td data-val="@(((double)f.CostUsd30d).ToString(inv))">$@f.CostUsd30d.ToString("F3")</td>
             <td data-val="@agoVal"><span class="@(f.Inactive7Days ? "signal" : "")">@agoLabel</span></td>
             <td>
@@ -353,7 +355,7 @@ else
     </p>
 }
 <table>
-    <thead><tr><th>Email</th><th>Nombre</th><th>Fecha</th><th>Acción</th></tr></thead>
+    <thead><tr><th>Email</th><th>Nombre</th><th>WhatsApp</th><th>Fecha</th><th>Acción</th></tr></thead>
     <tbody>
     @foreach (var w in Model.Waitlist)
     {
@@ -361,6 +363,17 @@ else
         <tr>
             <td>@w.Email</td>
             <td>@(w.Name ?? "-")</td>
+            <td>
+                @if (string.IsNullOrWhiteSpace(w.Phone))
+                {
+                    <span class="dim">-</span>
+                }
+                else
+                {
+                    var waNum = new string((w.Phone ?? "").Where(char.IsDigit).ToArray());
+                    <a href="https://wa.me/@waNum" target="_blank" rel="noopener">@w.Phone</a>
+                }
+            </td>
             <td>@w.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
             <td>
                 @if (alreadyInvited)

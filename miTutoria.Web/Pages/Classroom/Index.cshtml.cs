@@ -911,37 +911,37 @@ public class IndexModel : PageModel
             ? "\nAjustes de estilo para este estudiante:\n" + string.Join("\n", prefs.Select(p => $"- {p}"))
             : string.Empty;
 
+        // El material COMPLETO siempre entra al contexto: el tutor tiene todo el PDF disponible
+        // para responder cualquier pregunta. Las secciones solo marcan el ritmo (dónde estamos),
+        // no filtran lo que el tutor puede ver.
         var sections = ParseSections(classroom.MaterialSections);
         string materialSection;
-        if (sections.Count > 0)
+        var fullMaterial = classroom.Material;
+        if (string.IsNullOrWhiteSpace(fullMaterial))
         {
-            var idx = Math.Clamp(classroom.MaterialSectionIndex, 0, sections.Count - 1);
-            var current = sections[idx];
-            var worked = idx > 0
-                ? $"Secciones ya trabajadas: {string.Join(", ", sections.Take(idx).Select(s => s.Title))}. "
-                : string.Empty;
-            var nav = sections.Count > 1
-                ? $"Estás en la sección {idx + 1} de {sections.Count}: \"{current.Title}\". {worked}"
-                : string.Empty;
-            var content = current.Content.Length > 15_000
-                ? current.Content[..15_000] + "\n[Sección truncada]"
-                : current.Content;
-            materialSection = $"""
-
-                {nav}Material de trabajo (tu punto de partida; si {name} pregunta algo genuino de la materia fuera de esta sección, acompañalo igual):
-                ---
-                {content}
-                ---
-                """;
+            materialSection = string.Empty;
         }
         else
         {
-            var material = classroom.Material;
-            materialSection = string.IsNullOrWhiteSpace(material) ? string.Empty : $"""
+            // Puntero pedagógico: en qué sección estamos y cuáles ya trabajamos.
+            var nav = string.Empty;
+            if (sections.Count > 1)
+            {
+                var idx = Math.Clamp(classroom.MaterialSectionIndex, 0, sections.Count - 1);
+                var current = sections[idx];
+                var worked = idx > 0
+                    ? $"Secciones ya trabajadas: {string.Join(", ", sections.Take(idx).Select(s => s.Title))}. "
+                    : string.Empty;
+                nav = $"Vas guiando a {name} por secciones: ahora estás en la {idx + 1} de {sections.Count} (\"{current.Title}\"). {worked}Seguí ese ritmo, pero si {name} pregunta por algo de otra parte del material, tenés el texto completo más abajo para responder.\n";
+            }
+            var content = fullMaterial.Length > 30_000
+                ? fullMaterial[..30_000] + "\n[Material truncado]"
+                : fullMaterial;
+            materialSection = $"""
 
-                Material de trabajo (tu punto de partida; si {name} pregunta algo genuino de la materia fuera de este texto, acompañalo igual):
+                {nav}Material de trabajo (tu punto de partida; si {name} pregunta algo genuino de la materia fuera de este texto, acompañalo igual):
                 ---
-                {(material.Length > 15_000 ? material[..15_000] + "\n[Material truncado]" : material)}
+                {content}
                 ---
                 """;
         }
