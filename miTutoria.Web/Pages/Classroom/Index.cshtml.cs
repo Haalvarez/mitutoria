@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Academic;
 using miTutoria.Web.Data.Entities.Auth;
@@ -467,13 +470,28 @@ public class IndexModel : PageModel
             {
                 if (isImage)
                 {
-                    extracted = await ExtractImageWithClaudeAsync(pdfFile, imageMediaType!);
+                    byte[] bytes;
+                    using (var ms = new MemoryStream())
+                    {
+                        await pdfFile.CopyToAsync(ms);
+                        bytes = ms.ToArray();
+                    }
+                    var (data, mediaType) = PreprocessImageForOcr(bytes, imageMediaType!);
+                    var res = await ExtractImageWithClaudeAsync(data, mediaType);
+                    if (res.Legibility == "baja")
+                        return new JsonResult(new { error = "La foto salió difícil de leer (borrosa, con poca luz o muy inclinada). Sacala de nuevo con buena luz, de frente y que ocupe toda la pantalla — o pegá el texto directamente." });
+                    extracted = res.Text;
                 }
                 else
                 {
                     extracted = ExtractPdfText(pdfFile);
                     if (string.IsNullOrWhiteSpace(extracted))
-                        extracted = await ExtractPdfWithClaudeAsync(pdfFile);
+                    {
+                        var res = await ExtractPdfWithClaudeAsync(pdfFile);
+                        if (res.Legibility == "baja")
+                            return new JsonResult(new { error = "Ese PDF está escaneado con muy baja calidad y no pude leerlo bien. Probá con un escaneo más nítido o pegá el texto directamente." });
+                        extracted = res.Text;
+                    }
                 }
             }
             catch (Exception ex)
@@ -1219,7 +1237,7 @@ public class IndexModel : PageModel
         return cycleCost >= cap;
     }
 
-    private async Task<string> ExtractPdfWithClaudeAsync(IFormFile pdfFile)
+    private async Task<OcrResult> ExtractPdfWithClaudeAsync(IFormFile pdfFile)
     {
         using var ms = new MemoryStream();
         await pdfFile.CopyToAsync(ms);
@@ -1236,7 +1254,7 @@ public class IndexModel : PageModel
                     content = new object[]
                     {
                         new { type = "document", source = new { type = "base64", media_type = "application/pdf", data = base64 } },
-                        new { type = "text", text = "Transcribí el texto completo de este documento, respetando la estructura original. Solo el texto, sin comentarios." }
+                        new { type = "text", text = OcrPrompt("Transcribí el texto completo de este documento, respetando la estructura original.") }
                     }
                 }
             }
@@ -1249,7 +1267,7 @@ public class IndexModel : PageModel
         if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Claude OCR error {(int)response.StatusCode}: {raw}");
 
         using var doc = JsonDocument.Parse(raw);
-        return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        return ParseOcrResult(doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString());
     }
 
     // Devuelve el media_type de Claude (image/jpeg|png|webp|gif) si el archivo es una imagen soportada; null si no.
@@ -1273,11 +1291,9 @@ public class IndexModel : PageModel
         };
     }
 
-    private async Task<string> ExtractImageWithClaudeAsync(IFormFile imageFile, string mediaType)
+    private async Task<OcrResult> ExtractImageWithClaudeAsync(byte[] data, string mediaType)
     {
-        using var ms = new MemoryStream();
-        await imageFile.CopyToAsync(ms);
-        var base64 = Convert.ToBase64String(ms.ToArray());
+        var base64 = Convert.ToBase64String(data);
 
         var body = JsonSerializer.Serialize(new
         {
@@ -1290,7 +1306,7 @@ public class IndexModel : PageModel
                     content = new object[]
                     {
                         new { type = "image", source = new { type = "base64", media_type = mediaType, data = base64 } },
-                        new { type = "text", text = "Transcribí todo el texto visible en esta imagen (apunte, fotocopia, pizarrón, ejercicio), respetando la estructura. Si hay diagramas o fórmulas, describilos brevemente. Solo el contenido, sin comentarios tuyos." }
+                        new { type = "text", text = OcrPrompt("Transcribí todo el texto visible en esta imagen (apunte, fotocopia, pizarrón, ejercicio), respetando la estructura. Si hay diagramas o fórmulas, describilos brevemente. Marcá con [ilegible] cualquier parte que no puedas leer con seguridad.") }
                     }
                 }
             }
@@ -1303,8 +1319,66 @@ public class IndexModel : PageModel
         if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Claude Vision error {(int)response.StatusCode}: {raw}");
 
         using var doc = JsonDocument.Parse(raw);
-        return doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        return ParseOcrResult(doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString());
     }
+
+    // Instrucción de OCR común: pide la transcripción precedida por un encabezado de legibilidad
+    // que el gate usa para decidir si el material sirve o hay que pedir una foto/escaneo mejor.
+    private static string OcrPrompt(string instruction) => instruction + """
+
+        Antes de la transcripción, escribí una sola línea de encabezado con este formato exacto:
+        LEGIBILIDAD: alta
+        Usá 'alta' si se lee todo bien; 'media' si hay partes dudosas pero el contenido general es claro; 'baja' si gran parte es ilegible, está muy borroso/oscuro/torcido o casi no hay texto reconocible.
+        Después escribí una línea con solo '---' y a continuación la transcripción, sin comentarios tuyos.
+        """;
+
+    // Separa el encabezado LEGIBILIDAD del cuerpo transcripto. Si no viene encabezado
+    // (respuesta vieja o inesperada), asume 'alta' y devuelve el texto tal cual — no bloquea.
+    private static OcrResult ParseOcrResult(string? rawText)
+    {
+        var text = (rawText ?? string.Empty).Trim();
+        var m = Regex.Match(text, @"^\s*LEGIBILIDAD:\s*(alta|media|baja)\b", RegexOptions.IgnoreCase);
+        if (!m.Success) return new OcrResult(text, "alta");
+
+        var legibility = m.Groups[1].Value.ToLowerInvariant();
+        var sep = text.IndexOf("---", m.Length, StringComparison.Ordinal);
+        var body = sep >= 0 ? text[(sep + 3)..].Trim() : text[m.Length..].Trim();
+        return new OcrResult(body, legibility);
+    }
+
+    // Mejora la legibilidad de la imagen antes de mandarla a Claude Vision: corrige la
+    // orientación EXIF, normaliza el borde largo al óptimo de Vision (~1568px), sube contraste
+    // y afila. Si algo falla, cae al original sin bloquear la subida.
+    private static (byte[] Data, string MediaType) PreprocessImageForOcr(byte[] original, string originalMediaType)
+    {
+        try
+        {
+            using var image = Image.Load(original);
+            image.Mutate(x => x.AutoOrient());
+
+            int longEdge = Math.Max(image.Width, image.Height);
+            int desired = longEdge > 1568 ? 1568 : (longEdge < 1200 ? 1400 : longEdge);
+            if (desired != longEdge)
+            {
+                double scale = (double)desired / longEdge;
+                int w = Math.Max(1, (int)Math.Round(image.Width * scale));
+                int h = Math.Max(1, (int)Math.Round(image.Height * scale));
+                image.Mutate(x => x.Resize(w, h));
+            }
+
+            image.Mutate(x => x.Contrast(1.1f).GaussianSharpen(0.6f));
+
+            using var ms = new MemoryStream();
+            image.SaveAsJpeg(ms, new JpegEncoder { Quality = 90 });
+            return (ms.ToArray(), "image/jpeg");
+        }
+        catch
+        {
+            return (original, originalMediaType);
+        }
+    }
+
+    private readonly record struct OcrResult(string Text, string Legibility); // Legibility: "alta" | "media" | "baja"
 
     private static string ExtractPdfText(IFormFile pdfFile)
     {
