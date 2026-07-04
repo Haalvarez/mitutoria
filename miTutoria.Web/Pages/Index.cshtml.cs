@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Infrastructure;
@@ -61,20 +62,27 @@ public class IndexModel : PageModel
             || string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
             return RedirectToPage();
 
-        var exists = _dbContext.WaitlistEntries.Any(w => w.Email == email.Trim().ToLower());
+        // Acotar longitudes: evita filas basura gigantes y mensajes de Telegram enormes.
+        name  = name.Trim();  if (name.Length  > 100) name  = name[..100];
+        email = email.Trim().ToLower();  if (email.Length > 254) email = email[..254];
+        phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        if (phone is { Length: > 30 }) phone = phone[..30];
+
+        var exists = await _dbContext.WaitlistEntries.AnyAsync(w => w.Email == email);
         if (!exists)
         {
             _dbContext.WaitlistEntries.Add(new WaitlistEntry
             {
-                Email = email.Trim().ToLower(),
-                Name  = name.Trim(),
-                Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim()
+                Email = email,
+                Name  = name,
+                Phone = phone
             });
             await _dbContext.SaveChangesAsync();
 
-            var phoneLine = string.IsNullOrWhiteSpace(phone) ? string.Empty : $"\n📱 {phone.Trim()}";
-            var total = _dbContext.WaitlistEntries.Count();
-            await _telegram.SendAsync($"🙋 Nueva inscripción en waitlist\n<b>{name.Trim()} ({email})</b>{phoneLine}\nTotal: {total}");
+            // Escapar antes de interpolar en el mensaje HTML (un nombre con '<' rompía o spoofeaba la notificación).
+            var phoneLine = phone is null ? string.Empty : $"\n📱 {TelegramService.EscapeHtml(phone)}";
+            var total = await _dbContext.WaitlistEntries.CountAsync();
+            await _telegram.SendAsync($"🙋 Nueva inscripción en waitlist\n<b>{TelegramService.EscapeHtml(name)} ({TelegramService.EscapeHtml(email)})</b>{phoneLine}\nTotal: {total}");
         }
 
         return RedirectToPage(new { joined = true });
