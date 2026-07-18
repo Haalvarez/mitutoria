@@ -14,16 +14,28 @@ public class IndexModel : PageModel
     private readonly IResend _resend;
     private readonly miTutoria.Web.Infrastructure.SchedulerHeartbeat _heartbeat;
     private readonly miTutoria.Web.Inbox.InboxProcessor _inboxProcessor;
+    private readonly miTutoria.Web.Infrastructure.WeeklyDigestService _weeklyDigest;
 
     public IndexModel(AppDbContext db, IConfiguration config, IResend resend,
         miTutoria.Web.Infrastructure.SchedulerHeartbeat heartbeat,
-        miTutoria.Web.Inbox.InboxProcessor inboxProcessor)
+        miTutoria.Web.Inbox.InboxProcessor inboxProcessor,
+        miTutoria.Web.Infrastructure.WeeklyDigestService weeklyDigest)
     {
         _db = db;
         _config = config;
         _resend = resend;
         _heartbeat = heartbeat;
         _inboxProcessor = inboxProcessor;
+        _weeklyDigest = weeklyDigest;
+    }
+
+    // ── Resumen semanal: envío de prueba a una familia (saltea el gate de viernes) ──
+    public async Task<IActionResult> OnPostTestDigestAsync([FromQuery] string? token, int familyId)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+        var (ok, detalle) = await _weeklyDigest.SendNowAsync(familyId, HttpContext.RequestAborted);
+        MaintResult = $"{(ok ? "ok" : "error")}:{detalle}";
+        return RedirectToPage(new { token });
     }
 
     // ── Mantenimiento (Track 2 / Inbox) ──────────────────────────────────────

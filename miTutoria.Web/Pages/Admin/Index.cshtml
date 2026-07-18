@@ -267,6 +267,18 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
         </label>
         <button type="submit" class="btn-mini" style="color:#C94A1F;">🗑️ Borrar agendas</button>
     </form>
+    <form method="post" asp-page-handler="TestDigest" asp-route-token="@token" style="margin:0;display:flex;gap:.5rem;align-items:flex-end;">
+        <label style="display:flex;flex-direction:column;font-size:.78rem;color:#666;gap:.2rem;">
+            Resumen de prueba a
+            <select name="familyId" style="padding:.4rem;">
+                @foreach (var f in Model.Families)
+                {
+                    <option value="@f.Id">@f.Name (@f.Email)</option>
+                }
+            </select>
+        </label>
+        <button type="submit" class="btn-mini" title="Manda el resumen semanal de los últimos 7 días a esa familia AHORA, salteando el gate de viernes/hora/opt-in.">📬 Enviar resumen ahora</button>
+    </form>
 </div>
 
 @* ── Calendarios públicos compartidos (analítica: visitas → clics a landing) ── *@

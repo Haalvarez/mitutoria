@@ -97,6 +97,40 @@ public class WeeklyDigestService : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Envío manual desde /admin: manda el resumen de los últimos 7 días a UNA familia,
+    /// salteando el gate de viernes/hora/opt-in/dedup. Sirve para probar el mail end-to-end.
+    /// Devuelve (ok, detalle) para mostrar en el admin.
+    /// </summary>
+    public async Task<(bool ok, string detalle)> SendNowAsync(int familyId, CancellationToken ct = default)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var resend = scope.ServiceProvider.GetRequiredService<IResend>();
+
+        var family = await db.Families
+            .Include(f => f.Users.Where(u => u.Role == UserRole.Student))
+            .FirstOrDefaultAsync(f => f.Id == familyId, ct);
+
+        if (family is null) return (false, "No se encontró la familia.");
+        if (string.IsNullOrWhiteSpace(family.Email)) return (false, "La familia no tiene email cargado.");
+        if (family.Users.Count == 0) return (false, "La familia no tiene hijos cargados.");
+
+        try
+        {
+            var sent = await SendDigestAsync(db, resend, family, ct);
+            if (!sent) return (false, "No había actividad para resumir (o Claude no devolvió texto). No se mandó nada.");
+            family.LastDigestSentAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            return (true, $"Resumen de prueba enviado a {family.Email}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "WeeklyDigest: falló el envío de prueba a la familia {FamilyId}", familyId);
+            return (false, $"Error al enviar: {ex.Message}");
+        }
+    }
+
     private async Task<bool> SendDigestAsync(AppDbContext db, IResend resend, Family family, CancellationToken ct)
     {
         var studentIds = family.Users.Select(u => u.Id).ToList();

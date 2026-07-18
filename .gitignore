@@ -10,3 +10,12 @@ out/
 
 # Static libraries restored by LibMan
 miTutoria.Web/wwwroot/lib/
+
+# Videos de trabajo / grabaciones (no van al repo)
+Vids/
+*.mp4
+
+# Scripts y logs de build locales
+dotnet_*.bat
+dotnet_*.log
+dotnet_*.txt
