@@ -10,6 +10,13 @@ public sealed record PodcastTurn(string Speaker, string Text);
 // sintetizados (para estimar el costo).
 public sealed record PodcastAudio(byte[] Wav, string Mime, string TtsModel, int Chars, int DurationSec);
 
+// Error específico de saldo/cuota agotada (429 RESOURCE_EXHAUSTED / billing).
+// La página lo distingue para avisar por Telegram y decirle al alumno "probá en 30 min".
+public sealed class PodcastQuotaException : Exception
+{
+    public PodcastQuotaException(string message) : base(message) { }
+}
+
 // Genera el audio multi-speaker con Gemini (una sola llamada). El guión (los turnos)
 // lo arma Claude en la página; este servicio solo convierte texto → voz.
 public sealed class PodcastTtsService
@@ -70,7 +77,9 @@ public sealed class PodcastTtsService
         var resp = await client.PostAsync(url, content, ct);
         var raw = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Gemini TTS {(int)resp.StatusCode}: {raw}");
+            throw IsQuotaError((int)resp.StatusCode, raw)
+                ? new PodcastQuotaException(raw)
+                : new InvalidOperationException($"Gemini TTS {(int)resp.StatusCode}: {raw}");
 
         using var doc = JsonDocument.Parse(raw);
         var b64 = doc.RootElement.GetProperty("candidates")[0]
@@ -92,7 +101,9 @@ public sealed class PodcastTtsService
             $"https://generativelanguage.googleapis.com/v1beta/models?key={_apiKey}", ct);
         var txt = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
-            throw new InvalidOperationException($"Gemini ListModels {(int)resp.StatusCode}: {txt}");
+            throw IsQuotaError((int)resp.StatusCode, txt)
+                ? new PodcastQuotaException(txt)
+                : new InvalidOperationException($"Gemini ListModels {(int)resp.StatusCode}: {txt}");
 
         using var doc = JsonDocument.Parse(txt);
         var names = new List<string>();
@@ -112,6 +123,15 @@ public sealed class PodcastTtsService
             .FirstOrDefault();
 
         return tts ?? throw new InvalidOperationException("Gemini no ofrece ningún modelo TTS en esta cuenta.");
+    }
+
+    // ¿El error de Gemini es por saldo/cuota agotada? (429, o billing/quota en el cuerpo)
+    private static bool IsQuotaError(int status, string body)
+    {
+        if (status == 429) return true;
+        var b = body.ToLowerInvariant();
+        return b.Contains("resource_exhausted") || b.Contains("quota")
+            || b.Contains("billing") || b.Contains("exceeded");
     }
 
     private static byte[] WrapWav(byte[] pcm, int rate)

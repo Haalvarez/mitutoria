@@ -327,6 +327,52 @@
     </div>
 </div>
 
+@* Modal de opciones del podcast *@
+@if (Model.PodcastEnabled)
+{
+    <div id="podcast-modal" class="cards-modal" style="display:none;" role="dialog" aria-modal="true">
+        <div class="cards-modal__backdrop"></div>
+        <div class="cards-modal__box" style="text-align:left;max-width:420px;">
+            <button class="cards-modal__close" id="podcast-close" aria-label="Cerrar">✕</button>
+            <h3 style="margin:.2rem 0 1rem;">🎧 Armar podcast</h3>
+
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-weight:600;margin-bottom:.35rem;">Formato</label>
+                <label style="margin-right:.9rem;"><input type="radio" name="pc-formato" value="dialogo" checked> Diálogo</label>
+                <label style="margin-right:.9rem;"><input type="radio" name="pc-formato" value="clase"> Clase</label>
+                <label><input type="radio" name="pc-formato" value="debate"> Debate</label>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-weight:600;margin-bottom:.35rem;">Largo</label>
+                <label style="margin-right:.9rem;"><input type="radio" name="pc-largo" value="corto"> Corto ~2min</label>
+                <label style="margin-right:.9rem;"><input type="radio" name="pc-largo" value="medio" checked> Medio ~4min</label>
+                <label><input type="radio" name="pc-largo" value="largo"> Largo ~6min</label>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-weight:600;margin-bottom:.35rem;">Sobre qué</label>
+                <select id="pc-section" style="width:100%;padding:.4rem;">
+                    <option value="all">Todo el material</option>
+                    <option value="chat">Lo que te costó (según el chat)</option>
+                    @for (int i = 0; i < Model.Sections.Count; i++)
+                    {
+                        <option value="@i">@Model.Sections[i].Title</option>
+                    }
+                </select>
+            </div>
+
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-weight:600;margin-bottom:.35rem;">Pedido especial (opcional)</label>
+                <input id="pc-pedido" type="text" maxlength="200" style="width:100%;padding:.4rem;"
+                       placeholder="ej: enfocate en las fracciones equivalentes">
+            </div>
+
+            <button class="btn-main" id="pc-generate" style="width:100%;margin-top:.4rem;">Generar 🎧</button>
+        </div>
+    </div>
+}
+
 @* Modal de tarjetas *@
 <div id="cards-modal" class="cards-modal" style="display:none;" role="dialog" aria-modal="true">
     <div class="cards-modal__backdrop"></div>
@@ -855,49 +901,98 @@ btnQuiz.addEventListener('click',  () => toolbarAction('Quiz',       'Quiz'));
 btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
 btnExam.addEventListener('click',  () => toolbarAction('Exam',       'Examen de práctica'));
 
-// Podcast: audio-resumen de 2 hosts. Tarda ~15-30s (guión + TTS), por eso su propio flujo.
+// Podcast: click abre el panel de opciones; "Generar" dispara guión + TTS (~15-30s).
 const btnPodcast = document.getElementById('btn-podcast');
-if (btnPodcast) btnPodcast.addEventListener('click', generatePodcast);
+const podcastModal = document.getElementById('podcast-modal');
+
+function openPodcastModal() {
+    // Precargar la última elección guardada por local.
+    try {
+        const saved = JSON.parse(localStorage.getItem('mt_podcast') || '{}');
+        if (saved.formato) { const r = document.querySelector(`input[name="pc-formato"][value="${saved.formato}"]`); if (r) r.checked = true; }
+        if (saved.largo)   { const r = document.querySelector(`input[name="pc-largo"][value="${saved.largo}"]`);     if (r) r.checked = true; }
+        const ped = document.getElementById('pc-pedido'); if (ped && saved.pedido) ped.value = saved.pedido;
+    } catch {}
+    podcastModal.style.display = 'flex';
+}
+
+if (btnPodcast) btnPodcast.addEventListener('click', openPodcastModal);
+if (podcastModal) {
+    document.getElementById('podcast-close').addEventListener('click', () => podcastModal.style.display = 'none');
+    podcastModal.querySelector('.cards-modal__backdrop').addEventListener('click', () => podcastModal.style.display = 'none');
+    document.getElementById('pc-generate').addEventListener('click', generatePodcast);
+}
+
+// Mensajes animados mientras se arma el podcast (estilo carga de PDF).
+const podcastMessages = [
+    'Escribiendo el guión con tus dos hosts...',
+    'Dándole voz a Sol y a Mateo 🎙️',
+    'Grabando la conversación...',
+    'Editando el audio, ya casi...',
+    'Un toque más y lo tenés 🎧',
+];
+let _podcastMsgInterval = null;
 
 async function generatePodcast() {
+    const formato = document.querySelector('input[name="pc-formato"]:checked')?.value || 'dialogo';
+    const largo   = document.querySelector('input[name="pc-largo"]:checked')?.value || 'medio';
+    const section = document.getElementById('pc-section')?.value || 'all';
+    const pedido  = document.getElementById('pc-pedido')?.value.trim() || '';
+
+    // Guardar la elección para la próxima vez (local).
+    try { localStorage.setItem('mt_podcast', JSON.stringify({ formato, largo, pedido })); } catch {}
+
+    podcastModal.style.display = 'none';
     btnPodcast.disabled = true;
+
+    // Burbuja de "procesando" con mensajes rotativos, como al cargar un PDF.
     messagesEl.querySelector('.empty-state')?.remove();
-    typing.style.display = 'flex';
+    const bubbleWrap = document.createElement('div');
+    bubbleWrap.className = 'msg msg--assistant';
+    bubbleWrap.innerHTML = `
+        <div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
+        <div class="msg__body">
+            <span class="msg__label">${tutorLabel}</span>
+            <div class="msg__bubble upload-thinking">
+                <span class="upload-icon">🎧</span>
+                <span class="upload-msg" id="podcast-msg">${podcastMessages[0]}</span>
+            </div>
+        </div>`;
+    messagesEl.insertBefore(bubbleWrap, typing);
     scrollBottom();
+    let idx = 1;
+    _podcastMsgInterval = setInterval(() => {
+        const el = document.getElementById('podcast-msg');
+        if (el) { el.style.opacity = '0'; setTimeout(() => { el.textContent = podcastMessages[idx % podcastMessages.length]; el.style.opacity = '1'; idx++; }, 300); }
+    }, 3000);
+
     try {
         const res = await fetch(`/Classroom/${studentId}?handler=Podcast`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
-            body: new URLSearchParams({ studentId })
+            body: new URLSearchParams({ studentId, formato, largo, section, pedido })
         });
-        typing.style.display = 'none';
+        clearInterval(_podcastMsgInterval);
         if (res.status === 401) { location.href = '/Login'; return; }
         const data = await res.json();
-        if (data.type === 'podcast') addPodcast(data);
-        else addBubble(data.reply || data.error || 'No pude generar el podcast.', 'assistant');
+        const bubble = bubbleWrap.querySelector('.msg__bubble');
+        bubble.className = 'msg__bubble';
+        if (data.type === 'podcast') {
+            const mins = Math.max(1, Math.round((data.durationSec || 0) / 60));
+            bubble.innerHTML = `🎧 ${data.title} (~${mins} min)
+                <audio controls preload="none" style="display:block;margin-top:.5rem;width:100%;" src="${data.url}"></audio>`;
+        } else {
+            bubble.textContent = data.reply || data.error || 'No pude generar el podcast.';
+        }
+        scrollBottom();
     } catch {
-        typing.style.display = 'none';
-        addBubble('Error al generar el podcast. Probá de nuevo.', 'assistant');
+        clearInterval(_podcastMsgInterval);
+        const bubble = bubbleWrap.querySelector('.msg__bubble');
+        bubble.className = 'msg__bubble';
+        bubble.textContent = 'Error al generar el podcast. Probá de nuevo.';
     } finally {
         btnPodcast.disabled = false;
     }
-}
-
-function addPodcast(data) {
-    const mins = Math.max(1, Math.round((data.durationSec || 0) / 60));
-    const wrap = document.createElement('div');
-    wrap.className = 'msg msg--assistant';
-    wrap.innerHTML = `
-        <div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
-        <div class="msg__body">
-            <span class="msg__label">${tutorLabel}</span>
-            <div class="msg__bubble">
-                🎧 ${data.title} (~${mins} min)
-                <audio controls preload="none" style="display:block;margin-top:.5rem;width:100%;" src="${data.url}"></audio>
-            </div>
-        </div>`;
-    messagesEl.insertBefore(wrap, typing);
-    scrollBottom();
 }
 
 // Navegación de secciones
