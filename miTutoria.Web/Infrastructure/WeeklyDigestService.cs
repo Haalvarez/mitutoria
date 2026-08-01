@@ -138,12 +138,15 @@ public class WeeklyDigestService : BackgroundService
 
         var weekStartUtc = DateTime.UtcNow.AddDays(-7);
 
-        // Actividad de chat de la semana, por hijo.
-        var weekChat = await db.TokenEvents
-            .Where(t => t.FamilyId == family.Id && t.Feature == "chat"
-                        && t.UserId.HasValue && t.CreatedAt >= weekStartUtc)
-            .Select(t => new { t.UserId, t.CreatedAt })
+        // Acciones de la semana por hijo (compromiso): chat, archivos subidos y uso de la botonera.
+        var weekEvents = await db.TokenEvents
+            .Where(t => t.FamilyId == family.Id && t.UserId.HasValue && t.CreatedAt >= weekStartUtc)
+            .Select(t => new { t.UserId, t.Feature, t.CreatedAt })
             .ToListAsync(ct);
+
+        // Qué features cuentan como qué acción.
+        static bool IsUpload(string f) => f is "ocr_pdf" or "ocr_image";
+        static bool IsTool(string f)   => f is "quiz" or "flashcards" or "exam" or "podcast_script";
 
         // Resúmenes acumulados de cada materia (lo que viene trabajando cada hijo).
         var classrooms = await db.Classrooms
@@ -156,18 +159,26 @@ public class WeeklyDigestService : BackgroundService
         foreach (var child in family.Users)
         {
             var name = child.Nickname ?? child.FullName;
-            var myWeek = weekChat.Where(e => e.UserId == child.Id).ToList();
-            var days = myWeek.Select(e => (e.CreatedAt + ArgOffset).Date).Distinct().Count();
-            var exchanges = myWeek.Count;
+            var myWeek = weekEvents.Where(e => e.UserId == child.Id).ToList();
+            var chatEvents = myWeek.Where(e => e.Feature == "chat").ToList();
+            var days = chatEvents.Select(e => (e.CreatedAt + ArgOffset).Date).Distinct().Count();
+            var exchanges = chatEvents.Count;
+            var uploads = myWeek.Count(e => IsUpload(e.Feature));
+            var podcasts = myWeek.Count(e => e.Feature == "podcast_script");
+            var tools = myWeek.Count(e => IsTool(e.Feature));
 
             sb.AppendLine($"### {name}");
-            if (exchanges == 0)
+            if (myWeek.Count == 0)
             {
                 sb.AppendLine("Esta semana no usó la plataforma.");
             }
             else
             {
                 sb.AppendLine($"Días que estudió esta semana: {days}. Intercambios con el tutor: {exchanges}.");
+                if (uploads > 0) sb.AppendLine($"Material que subió (PDF o fotos): {uploads}.");
+                if (tools > 0)
+                    sb.AppendLine($"Usó las herramientas de estudio {tools} {(tools == 1 ? "vez" : "veces")}" +
+                        (podcasts > 0 ? $" (incluyendo {podcasts} podcast{(podcasts == 1 ? "" : "s")})" : "") + ".");
                 var mySummaries = classrooms
                     .Where(c => c.StudentId == child.Id && !string.IsNullOrWhiteSpace(c.CompactSummary))
                     .ToList();
@@ -203,9 +214,11 @@ public class WeeklyDigestService : BackgroundService
             "cálido y honesto sobre cómo les fue a sus hijos. Reglas: tono cercano y humano, español " +
             "rioplatense, SIN tecnicismos y SIN markdown (texto plano, sin asteriscos, sin viñetas, sin " +
             "títulos). Un párrafo breve por hijo, nombrándolo: qué trabajó, un logro concreto y, si se " +
-            "trabó en algo, decilo con cariño. Si un hijo no estudió esta semana, mencionalo con suavidad " +
-            "como un recordatorio, sin culpar a nadie. Cerrá con una frase corta de aliento. No inventes " +
-            "datos que no estén en la información que te paso.";
+            "trabó en algo, decilo con cariño. Valorá el compromiso concreto: si subió material para estudiar " +
+            "o usó las herramientas (quiz, tarjetas, examen de práctica, podcast), mencionalo como señal de " +
+            "que se enganchó. Si un hijo no estudió esta semana, mencionalo con suavidad como un recordatorio, " +
+            "sin culpar a nadie. Cerrá con una frase corta de aliento. No inventes datos que no estén en la " +
+            "información que te paso.";
 
         var userMsg = $"Información de la semana (no la repitas literal, contala natural):\n\n{childrenData}";
 
