@@ -223,6 +223,12 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
                         @(f.PayEnabled ? "💳 ON" : "💳 off")
                     </button>
                 </form>
+                <form method="post" asp-page-handler="TogglePodcast" asp-route-token="@token" style="display:inline;margin:0;">
+                    <input type="hidden" name="id" value="@f.Id" />
+                    <button type="submit" class="btn-mini" title="Activar/desactivar el Podcast (audio-resumen) para esta familia (rollout/prueba)">
+                        @(f.PodcastEnabled ? "🎧 ON" : "🎧 off")
+                    </button>
+                </form>
                 <form method="post" asp-page-handler="DeleteFamily" asp-route-token="@token" style="display:inline;margin:0;"
                       onsubmit="return confirm('⚠️ Eliminar la familia @(f.Name) y TODOS sus datos (hijos, aulas, mensajes, agendas, pagos)? No se puede deshacer.');">
                     <input type="hidden" name="id" value="@f.Id" />

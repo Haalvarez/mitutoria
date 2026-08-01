@@ -288,6 +288,10 @@
             <button id="btn-quiz" class="toolbar-btn" title="Quiz rápido con 5 preguntas sobre el material">Quiz</button>
             <button id="btn-cards" class="toolbar-btn" title="Tarjetas para repasar los conceptos clave">Tarjetas</button>
             <button id="btn-exam" class="toolbar-btn" title="Practicá con preguntas de opción múltiple como en un examen real">Examen de práctica</button>
+            @if (Model.PodcastEnabled)
+            {
+                <button id="btn-podcast" class="toolbar-btn" title="Audio-resumen tipo podcast (2 voces) sobre el material">🎧 Podcast</button>
+            }
         </div>
 
         <div class="chat-input-bar">
@@ -850,6 +854,51 @@ document.querySelector('#exam-modal .cards-modal__backdrop').addEventListener('c
 btnQuiz.addEventListener('click',  () => toolbarAction('Quiz',       'Quiz'));
 btnCards.addEventListener('click', () => toolbarAction('Flashcards', 'Tarjetas'));
 btnExam.addEventListener('click',  () => toolbarAction('Exam',       'Examen de práctica'));
+
+// Podcast: audio-resumen de 2 hosts. Tarda ~15-30s (guión + TTS), por eso su propio flujo.
+const btnPodcast = document.getElementById('btn-podcast');
+if (btnPodcast) btnPodcast.addEventListener('click', generatePodcast);
+
+async function generatePodcast() {
+    btnPodcast.disabled = true;
+    messagesEl.querySelector('.empty-state')?.remove();
+    typing.style.display = 'flex';
+    scrollBottom();
+    try {
+        const res = await fetch(`/Classroom/${studentId}?handler=Podcast`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId })
+        });
+        typing.style.display = 'none';
+        if (res.status === 401) { location.href = '/Login'; return; }
+        const data = await res.json();
+        if (data.type === 'podcast') addPodcast(data);
+        else addBubble(data.reply || data.error || 'No pude generar el podcast.', 'assistant');
+    } catch {
+        typing.style.display = 'none';
+        addBubble('Error al generar el podcast. Probá de nuevo.', 'assistant');
+    } finally {
+        btnPodcast.disabled = false;
+    }
+}
+
+function addPodcast(data) {
+    const mins = Math.max(1, Math.round((data.durationSec || 0) / 60));
+    const wrap = document.createElement('div');
+    wrap.className = 'msg msg--assistant';
+    wrap.innerHTML = `
+        <div class="msg__avatar msg__avatar--assistant">${tutorAv}</div>
+        <div class="msg__body">
+            <span class="msg__label">${tutorLabel}</span>
+            <div class="msg__bubble">
+                🎧 ${data.title} (~${mins} min)
+                <audio controls preload="none" style="display:block;margin-top:.5rem;width:100%;" src="${data.url}"></audio>
+            </div>
+        </div>`;
+    messagesEl.insertBefore(wrap, typing);
+    scrollBottom();
+}
 
 // Navegación de secciones
 const btnPrev = document.getElementById('btn-prev-section');

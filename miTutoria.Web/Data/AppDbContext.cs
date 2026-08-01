@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Promo> Promos => Set<Promo>();
     public DbSet<FocusSession> FocusSessions => Set<FocusSession>();
+    public DbSet<PodcastEpisode> PodcastEpisodes => Set<PodcastEpisode>();
     public DbSet<AgendaView> AgendaViews => Set<AgendaView>();
     public DbSet<LandingHit> LandingHits => Set<LandingHit>();
 
@@ -175,6 +176,10 @@ public class AppDbContext : DbContext
             .HasColumnName("last_digest_sent_at");
 
         modelBuilder.Entity<Family>()
+            .Property(f => f.PodcastEnabled)
+            .HasColumnName("podcast_enabled");
+
+        modelBuilder.Entity<Family>()
             .Property(f => f.PasswordHash)
             .HasColumnName("password_hash");
 
@@ -272,6 +277,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Promo>().Property(x => x.UsedCount).HasColumnName("used_count");
         modelBuilder.Entity<Promo>().Property(x => x.CreatedAt).HasColumnName("created_at");
         modelBuilder.Entity<Promo>().HasIndex(x => x.Code).IsUnique();
+
+        // ── Podcast: audio-resumen del material (bytea en Postgres) ──
+        modelBuilder.Entity<PodcastEpisode>().ToTable("podcast_episodes", "academic");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.Id).HasColumnName("id");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.StudentId).HasColumnName("student_id");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.ClassroomId).HasColumnName("classroom_id");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.Title).HasColumnName("title");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.Audio).HasColumnName("audio");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.Mime).HasColumnName("mime");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.DurationSec).HasColumnName("duration_sec");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<PodcastEpisode>().HasIndex(x => x.StudentId);
 
         // ── Atención dedicada: sesiones de foco del Aula ──
         modelBuilder.Entity<FocusSession>().ToTable("focus_sessions", "academic");

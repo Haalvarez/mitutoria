@@ -147,7 +147,7 @@ public class IndexModel : PageModel
         int Students, int Exchanges7d, int ExchangesAll, decimal CostUsd30d,
         DateTime? LastActivity, DateTime? AccessEndsAt,
         bool NearLimit, bool Inactive7Days, bool NoMaterial,
-        bool Active, bool Cooling, bool InboxEnabled, bool PayEnabled);
+        bool Active, bool Cooling, bool InboxEnabled, bool PayEnabled, bool PodcastEnabled);
 
     public List<FamilyRow> Families { get; private set; } = [];
 
@@ -299,7 +299,8 @@ public class IndexModel : PageModel
                 Active: isPilot && active,
                 Cooling: isPilot && cooling,
                 InboxEnabled: f.InboxEnabled,
-                PayEnabled: f.PayEnabled
+                PayEnabled: f.PayEnabled,
+                PodcastEnabled: f.PodcastEnabled
             );
         })
         .OrderByDescending(f => f.CostUsd30d)   // money-first: el más caro arriba
@@ -434,6 +435,21 @@ public class IndexModel : PageModel
         if (family is not null)
         {
             family.InboxEnabled = !family.InboxEnabled;
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToPage(new { token });
+    }
+
+    // ── Toggle del Podcast (audio-resumen) por familia ───────────────────────────
+
+    public async Task<IActionResult> OnPostTogglePodcastAsync([FromQuery] string? token, int id)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        var family = await _db.Families.FindAsync(id);
+        if (family is not null)
+        {
+            family.PodcastEnabled = !family.PodcastEnabled;
             await _db.SaveChangesAsync();
         }
         return RedirectToPage(new { token });

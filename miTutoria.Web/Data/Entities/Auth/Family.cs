@@ -37,6 +37,9 @@ public class Family
     public bool WeeklyDigestOptIn { get; set; }
     public DateTime? LastDigestSentAt { get; set; }
 
+    // Podcast (audio-resumen del material): rollout familia por familia (para probar con Dasha primero).
+    public bool PodcastEnabled { get; set; }
+
     public ICollection<User> Users { get; set; } = new List<User>();
 
     public bool IsAccessAllowed =>

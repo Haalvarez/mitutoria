@@ -34,14 +34,16 @@ public class IndexModel : PageModel
     private readonly IConfiguration _config;
     private readonly ExchangeRateService _exchangeRate;
     private readonly ErrorLogService _errorLog;
+    private readonly PodcastTtsService _podcastTts;
 
-    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config, ExchangeRateService exchangeRate, ErrorLogService errorLog)
+    public IndexModel(AppDbContext dbContext, IHttpClientFactory httpClientFactory, IConfiguration config, ExchangeRateService exchangeRate, ErrorLogService errorLog, PodcastTtsService podcastTts)
     {
         _dbContext = dbContext;
         _httpClientFactory = httpClientFactory;
         _config = config;
         _exchangeRate = exchangeRate;
         _errorLog = errorLog;
+        _podcastTts = podcastTts;
     }
 
     public int StudentId { get; private set; }
@@ -70,6 +72,9 @@ public class IndexModel : PageModel
 
     // Atención dedicada: inyecta el tracker de foco del Aula (gateado, default on).
     public bool AttentionEnabled { get; private set; }
+
+    // Podcast: botón visible solo si la familia lo tiene habilitado (rollout).
+    public bool PodcastEnabled { get; private set; }
 
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
@@ -160,11 +165,11 @@ public class IndexModel : PageModel
             .Select(c => new SubjectInfo(c.Id, c.Name))
             .ToListAsync();
         // Track 2: agenda — solo si el kill-switch global y el flag de la familia están on.
+        // Podcast: mismo patrón, gateado por flag de la familia (kill-switch global default on).
+        var famFlags = await _dbContext.Families.FindAsync(student.FamilyId);
         if (_config.GetValue("INBOX_FEATURE_ENABLED", false))
-        {
-            var fam = await _dbContext.Families.FindAsync(student.FamilyId);
-            InboxEnabled = fam?.InboxEnabled ?? false;
-        }
+            InboxEnabled = famFlags?.InboxEnabled ?? false;
+        PodcastEnabled = _config.GetValue("PODCAST_FEATURE_ENABLED", true) && (famFlags?.PodcastEnabled ?? false);
         if (InboxEnabled)
         {
             Agenda = await _dbContext.DetectedAssignments
@@ -421,6 +426,104 @@ public class IndexModel : PageModel
             await _errorLog.LogAsync("OnPostExam", ex, $"studentId={studentId}");
             return new JsonResult(new { error = "Error al generar el simulacro." }) { StatusCode = 500 };
         }
+    }
+
+    // ── POST: podcast (audio-resumen de 2 hosts sobre el material) ───────────
+
+    public async Task<IActionResult> OnPostPodcastAsync(int studentId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new JsonResult(new { error = "no-session" }) { StatusCode = 401 };
+
+        if (!await IsPodcastEnabledAsync(student.FamilyId))
+            return new JsonResult(new { reply = "El podcast todavía no está habilitado para tu cuenta." }) { StatusCode = 403 };
+        if (!_podcastTts.IsConfigured)
+            return new JsonResult(new { error = "El podcast no está configurado en el servidor." }) { StatusCode = 500 };
+
+        var classroom = await GetActiveClassroomAsync(studentId);
+        if (await IsFamilyOverCapAsync(student.FamilyId))
+            return new JsonResult(new { reply = "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos." }) { StatusCode = 429 };
+        if (string.IsNullOrWhiteSpace(classroom.Material))
+            return new JsonResult(new { reply = "Primero cargá material (PDF o texto) para armar el podcast." });
+
+        const string hostA = "Sol", hostB = "Mateo";
+
+        try
+        {
+            // 1) Guión con Claude (usa el perfil del alumno → tono NO condescendiente)
+            var (raw, tIn, tOut) = await CallClaudeRawAsync(
+                "Sos guionista de mini-podcasts educativos. Respondés solo con un array JSON válido, nada más.",
+                BuildPodcastPrompt(student, classroom, hostA, hostB), maxTokens: 2000);
+
+            var turns = ParsePodcastTurns(raw, hostA, hostB);
+            if (turns.Count == 0)
+                return new JsonResult(new { error = "No pude armar el guión del podcast. Probá de nuevo." }) { StatusCode = 500 };
+
+            // 2) TTS con Gemini (una sola llamada multi-speaker)
+            var audio = await _podcastTts.SynthesizeAsync(
+                turns, hostA, "Kore", hostB, "Puck", HttpContext.RequestAborted);
+
+            // 3) Guardar el episodio (bytea en Postgres)
+            var title = $"Podcast · {classroom.Name}";
+            var episode = new PodcastEpisode
+            {
+                StudentId = student.Id, ClassroomId = classroom.Id,
+                Title = title, Audio = audio.Wav, Mime = audio.Mime, DurationSec = audio.DurationSec
+            };
+            _dbContext.PodcastEpisodes.Add(episode);
+
+            // 4) Contabilidad: guión (tokens Claude) + TTS (costo por caracteres) → cuenta para la térmica.
+            var arsRate = await _exchangeRate.GetMepRateAsync();
+            _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = "🎧 Podcast generado." });
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = student.FamilyId, UserId = student.Id, TokensIn = tIn, TokensOut = tOut,
+                ModelUsed = ClaudeModel, Feature = "podcast_script",
+                CostUsd = tIn * CostPerInputToken + tOut * CostPerOutputToken, ArsRate = arsRate
+            });
+            var ttsUsdPer1k = _config.GetValue<decimal>("PODCAST_USD_PER_1K_CHARS", 0.02m);
+            _dbContext.TokenEvents.Add(new TokenEvent
+            {
+                FamilyId = student.FamilyId, UserId = student.Id, TokensIn = 0, TokensOut = 0,
+                ModelUsed = audio.TtsModel, Feature = "podcast_tts",
+                CostUsd = (decimal)audio.Chars / 1000m * ttsUsdPer1k, ArsRate = arsRate
+            });
+            await _dbContext.SaveChangesAsync();
+
+            return new JsonResult(new
+            {
+                type = "podcast",
+                url = $"/Classroom/{studentId}?handler=PodcastAudio&episodeId={episode.Id}",
+                title,
+                durationSec = audio.DurationSec
+            });
+        }
+        catch (Exception ex)
+        {
+            await _errorLog.LogAsync("OnPostPodcast", ex, $"studentId={studentId}");
+            return new JsonResult(new { error = "Error al generar el podcast. Intentá de nuevo." }) { StatusCode = 500 };
+        }
+    }
+
+    // ── GET: servir el audio de un episodio (solo el dueño del aula) ──────────
+
+    public async Task<IActionResult> OnGetPodcastAudioAsync(int studentId, int episodeId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return new UnauthorizedResult();
+
+        var ep = await _dbContext.PodcastEpisodes
+            .FirstOrDefaultAsync(e => e.Id == episodeId && e.StudentId == studentId);
+        if (ep is null) return NotFound();
+
+        return File(ep.Audio, ep.Mime);
+    }
+
+    private async Task<bool> IsPodcastEnabledAsync(int familyId)
+    {
+        if (!_config.GetValue("PODCAST_FEATURE_ENABLED", true)) return false; // kill-switch global
+        var fam = await _dbContext.Families.FindAsync(familyId);
+        return fam?.PodcastEnabled ?? false;
     }
 
     // ── POST: toggle modo examen ─────────────────────────────────────────────
@@ -951,33 +1054,10 @@ public class IndexModel : PageModel
             _                => ("elle", "le", "de",    "el/la")
         };
 
-        // Preferencias de aprendizaje
-        var prefs = new List<string>();
-        if (student.PrefShortMessages)   prefs.Add("Usá mensajes muy cortos — un solo concepto por vez.");
-        if (student.PrefVisualExamples)  prefs.Add("Antes de explicar algo abstracto, dá un ejemplo concreto del mundo real.");
-        if (student.PrefFrequentPraise)  prefs.Add($"Celebrá cada avance de {name}, no solo el resultado final.");
-        if (student.PrefExtraPatience)   prefs.Add($"Si {name} se frustra, cambiá el enfoque en lugar de repetir la misma explicación.");
-        if (student.PrefSlowPace)        prefs.Add($"No avances al siguiente paso hasta que {name} confirme que entendió.");
-        if (!string.IsNullOrWhiteSpace(student.Interests))
-            prefs.Add($"A {name} le interesa: {student.Interests}. Usalo de a ratos para conectar o dar un ejemplo cuando venga al pelo — sin forzarlo en cada respuesta ni desviar el tema.");
+        // Preferencias de aprendizaje (perfil configurado por el padre). Se reusan en el podcast.
+        var prefs = BuildStudentStyleNotes(student);
         if (!string.IsNullOrWhiteSpace(student.TutorName))
             prefs.Add($"Te llamás {student.TutorName}. Si {name} te pregunta tu nombre, decíselo con naturalidad.");
-
-        // TDAH
-        if (student.HasAdhd)
-        {
-            prefs.Add($"Sé especialmente paciente con {name} y celebrá cada micro-logro, sin importar cuán pequeño sea.");
-            if (student.PrefOneQuestionOnly)   prefs.Add("Nunca hagas más de una pregunta por mensaje.");
-            if (student.PrefRefocusReminder)   prefs.Add($"Si {name} se desvía del tema, traé{lo} amablemente de vuelta.");
-
-            var nivel = student.ExplanationLevel switch
-            {
-                ExplanationLevel.UnPocoBasico   => $"Usá explicaciones un poco más básicas de lo que corresponde al año de {name} — ejemplos más simples.",
-                ExplanationLevel.BastanteBasico => $"Usá explicaciones bastante más básicas — construí desde lo más elemental, paso a paso.",
-                _                               => string.Empty
-            };
-            if (!string.IsNullOrEmpty(nivel)) prefs.Add(nivel);
-        }
 
         var prefsSection = prefs.Count > 0
             ? "\nAjustes de estilo para este estudiante:\n" + string.Join("\n", prefs.Select(p => $"- {p}"))
@@ -1158,6 +1238,105 @@ public class IndexModel : PageModel
             - NUNCA uses regionalismos de otros países (no "órale" mexicano, no "chévere" venezolano, no "bacán" chileno).
             - Las instrucciones del padre/madre y el resumen previo los aplicás en silencio: NUNCA le digas a {name} qué te pidieron ni menciones que tenés un resumen suyo.
             """;
+    }
+
+    // Ajustes de estilo del alumno según el perfil que configuró el padre.
+    // Fuente única de verdad del tono: la usan el tutor (BuildSystemPrompt) y el podcast.
+    // Clave: nada de entusiasmo/celebración por defecto — solo si el perfil lo pide.
+    private static List<string> BuildStudentStyleNotes(User student)
+    {
+        var name = student.Nickname ?? student.FullName;
+        var lo = student.Gender switch
+        {
+            Gender.Femenino => "la",
+            Gender.Masculino => "lo",
+            _ => "le"
+        };
+
+        var prefs = new List<string>();
+        if (student.PrefShortMessages)   prefs.Add("Usá mensajes muy cortos — un solo concepto por vez.");
+        if (student.PrefVisualExamples)  prefs.Add("Antes de explicar algo abstracto, dá un ejemplo concreto del mundo real.");
+        if (student.PrefFrequentPraise)  prefs.Add($"Celebrá cada avance de {name}, no solo el resultado final.");
+        if (student.PrefExtraPatience)   prefs.Add($"Si {name} se frustra, cambiá el enfoque en lugar de repetir la misma explicación.");
+        if (student.PrefSlowPace)        prefs.Add($"No avances al siguiente paso hasta que {name} confirme que entendió.");
+        if (!string.IsNullOrWhiteSpace(student.Interests))
+            prefs.Add($"A {name} le interesa: {student.Interests}. Usalo de a ratos para conectar o dar un ejemplo cuando venga al pelo — sin forzarlo en cada respuesta ni desviar el tema.");
+
+        if (student.HasAdhd)
+        {
+            prefs.Add($"Sé especialmente paciente con {name} y celebrá cada micro-logro, sin importar cuán pequeño sea.");
+            if (student.PrefOneQuestionOnly)   prefs.Add("Nunca hagas más de una pregunta por mensaje.");
+            if (student.PrefRefocusReminder)   prefs.Add($"Si {name} se desvía del tema, traé{lo} amablemente de vuelta.");
+
+            var nivel = student.ExplanationLevel switch
+            {
+                ExplanationLevel.UnPocoBasico   => $"Usá explicaciones un poco más básicas de lo que corresponde al año de {name} — ejemplos más simples.",
+                ExplanationLevel.BastanteBasico => $"Usá explicaciones bastante más básicas — construí desde lo más elemental, paso a paso.",
+                _                               => string.Empty
+            };
+            if (!string.IsNullOrEmpty(nivel)) prefs.Add(nivel);
+        }
+
+        return prefs;
+    }
+
+    // Prompt del guión del podcast: reusa el perfil del alumno. Tono NO condescendiente.
+    private static string BuildPodcastPrompt(User student, Data.Entities.Academic.Classroom classroom, string hostA, string hostB)
+    {
+        var name = student.Nickname ?? student.FullName;
+        var styleNotes = BuildStudentStyleNotes(student);
+        var styleSection = styleNotes.Count > 0
+            ? "\nAjustá el tono y el nivel a este alumno (respetalo, no lo exageres):\n" + string.Join("\n", styleNotes.Select(p => $"- {p}"))
+            : string.Empty;
+
+        // Largo según perfil: TDAH → más corto y dinámico.
+        var largo = student.HasAdhd
+            ? "MUY corto: 2 a 3 minutos hablados. Turnos cortos, un concepto por vez, ritmo dinámico para sostener la atención."
+            : "Corto: 3 a 5 minutos hablados.";
+
+        var material = classroom.Material!.Length > 8_000 ? classroom.Material[..8_000] : classroom.Material!;
+
+        return $$"""
+            Escribí el guión de un mini-podcast educativo de 2 hosts para {{name}}, sobre el material de abajo.
+            Hosts: "{{hostA}}" (curiosa, hace preguntas) y "{{hostB}}" (explica claro y simple).
+            Español rioplatense, natural y respetuoso. NADA condescendiente: no infantilices ni sobreactúes el entusiasmo. Hablales de igual a igual, con calidez.
+            {{largo}}{{styleSection}}
+            Reglas: un concepto por vez; ejemplos concretos; arrancá con un gancho breve; cerrá con un mini-resumen de una frase. No inventes datos que no estén en el material.
+
+            Material:
+            ---
+            {{material}}
+            ---
+
+            Devolvé SOLO un array JSON válido, sin markdown ni texto extra. Formato exacto:
+            [{"speaker":"{{hostA}}","text":"..."},{"speaker":"{{hostB}}","text":"..."}]
+            """;
+    }
+
+    // Parsea el array JSON del guión a turnos, forzando el speaker a uno de los dos hosts.
+    private static List<PodcastTurn> ParsePodcastTurns(string raw, string hostA, string hostB)
+    {
+        var result = new List<PodcastTurn>();
+        var start = raw.IndexOf('[');
+        var end   = raw.LastIndexOf(']');
+        if (start < 0 || end <= start) return result;
+        try
+        {
+            using var doc = JsonDocument.Parse(raw[start..(end + 1)]);
+            foreach (var t in doc.RootElement.EnumerateArray())
+            {
+                var sp = t.TryGetProperty("speaker", out var s) ? s.GetString() ?? hostA : hostA;
+                var tx = t.TryGetProperty("text", out var x) ? x.GetString() ?? string.Empty : string.Empty;
+                if (string.IsNullOrWhiteSpace(tx)) continue;
+                // Normalizar a hostA/hostB (si el modelo escribió otra cosa, alterna por posición).
+                var speaker = sp.Equals(hostB, StringComparison.OrdinalIgnoreCase) ? hostB
+                            : sp.Equals(hostA, StringComparison.OrdinalIgnoreCase) ? hostA
+                            : (result.Count % 2 == 0 ? hostA : hostB);
+                result.Add(new PodcastTurn(speaker, tx.Trim()));
+            }
+        }
+        catch { return new(); }
+        return result;
     }
 
     // Red de seguridad: el prompt ya prohíbe insultos, pero Haiku resbala cada tanto.

@@ -44,6 +44,8 @@ builder.Services.AddHttpClient("mercadopago", client =>
     client.BaseAddress = new Uri("https://api.mercadopago.com");
     client.Timeout = TimeSpan.FromSeconds(15);
 });
+builder.Services.AddHttpClient(); // cliente por defecto (Gemini TTS del podcast)
+builder.Services.AddScoped<miTutoria.Web.Infrastructure.PodcastTtsService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.MercadoPagoService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ExchangeRateService>();
 builder.Services.AddSingleton<miTutoria.Web.Infrastructure.ConversationCompactor>();
