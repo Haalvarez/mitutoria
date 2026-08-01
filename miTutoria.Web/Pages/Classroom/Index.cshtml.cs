@@ -813,6 +813,21 @@ public class IndexModel : PageModel
         var name = string.IsNullOrWhiteSpace(subjectName) ? "Nueva materia" : subjectName.Trim();
         if (name.Length > 40) name = name[..40];
 
+        // Regla anti-duplicados: si ya existe una materia con ese nombre (ignorando
+        // mayúsculas/espacios), no creamos otra — activamos la que ya está.
+        var existing = await _dbContext.Classrooms
+            .Where(c => c.StudentId == studentId)
+            .ToListAsync();
+        var dup = existing.FirstOrDefault(c =>
+            string.Equals(c.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
+        if (dup is not null)
+        {
+            dup.LastActiveAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+            HttpContext.Session.SetInt32($"ActiveClassroom_{studentId}", dup.Id);
+            return RedirectToPage(new { studentId });
+        }
+
         var classroom = new Data.Entities.Academic.Classroom
         {
             StudentId = studentId,
@@ -826,6 +841,42 @@ public class IndexModel : PageModel
         await _dbContext.SaveChangesAsync();
 
         HttpContext.Session.SetInt32($"ActiveClassroom_{studentId}", classroom.Id);
+        return RedirectToPage(new { studentId });
+    }
+
+    // ── POST: borrar una materia (del alumno, con aviso) ─────────────────────
+
+    public async Task<IActionResult> OnPostDeleteSubjectAsync(int studentId, int classroomId)
+    {
+        var student = await ResolveStudentAsync(studentId);
+        if (student is null) return RedirectToPage("/Login");
+
+        // No borrar la última: el alumno siempre tiene al menos una materia.
+        var total = await _dbContext.Classrooms.CountAsync(c => c.StudentId == studentId);
+        if (total <= 1) return RedirectToPage(new { studentId });
+
+        var classroom = await _dbContext.Classrooms
+            .Include(c => c.Messages)
+            .SingleOrDefaultAsync(c => c.Id == classroomId && c.StudentId == studentId);
+        if (classroom is null) return RedirectToPage(new { studentId });
+
+        // Limpiar lo que cuelga de la materia (respetando las FK).
+        var episodes = await _dbContext.PodcastEpisodes
+            .Where(e => e.ClassroomId == classroomId).ToListAsync();
+        _dbContext.PodcastEpisodes.RemoveRange(episodes);
+
+        var das = await _dbContext.DetectedAssignments
+            .Where(d => d.ClassroomId == classroomId).ToListAsync();
+        foreach (var d in das) d.ClassroomId = null;   // la tarea de la agenda queda, sin materia
+
+        _dbContext.Messages.RemoveRange(classroom.Messages);
+        _dbContext.Classrooms.Remove(classroom);
+        await _dbContext.SaveChangesAsync();
+
+        // Si era la activa, limpiar la sesión → GetActiveClassroom elige otra.
+        if (HttpContext.Session.GetInt32($"ActiveClassroom_{studentId}") == classroomId)
+            HttpContext.Session.Remove($"ActiveClassroom_{studentId}");
+
         return RedirectToPage(new { studentId });
     }
 
@@ -1787,8 +1838,10 @@ public class IndexModel : PageModel
             .ToListAsync();
 
         if (dates.Count == 0) return 0;
-        var today = DateTime.UtcNow.Date;
-        var activeDays = dates.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+        // Día en hora argentina (UTC-3): la racha no debe cortarse a la medianoche UTC (21hs ARG).
+        var arg = TimeSpan.FromHours(-3);
+        var today = (DateTime.UtcNow + arg).Date;
+        var activeDays = dates.Select(d => (d + arg).Date).Distinct().OrderByDescending(d => d).ToList();
         var start = activeDays.Contains(today) ? today : today.AddDays(-1);
         if (!activeDays.Contains(start)) return 0;
 

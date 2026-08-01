@@ -298,8 +298,10 @@ public class IndexModel : PageModel
 
     private static int CalculateStreak(IEnumerable<DateTime> createdAts)
     {
-        var today = DateTime.UtcNow.Date;
-        var activeDays = createdAts.Select(d => d.Date).Distinct().OrderByDescending(d => d).ToList();
+        // Día en hora argentina (UTC-3): la racha no debe cortarse a la medianoche UTC (21hs ARG).
+        var arg = TimeSpan.FromHours(-3);
+        var today = (DateTime.UtcNow + arg).Date;
+        var activeDays = createdAts.Select(d => (d + arg).Date).Distinct().OrderByDescending(d => d).ToList();
         if (activeDays.Count == 0) return 0;
 
         // Si hoy no hay actividad, la racha sigue viva desde ayer (igual que Duolingo)

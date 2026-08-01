@@ -64,6 +64,18 @@
                     <button type="submit" class="btn-main btn-sm" style="margin-top:.4rem;">Crear materia</button>
                 </form>
             </details>
+            @if (Model.Subjects.Count > 1)
+            {
+                <form method="post" asp-page-handler="DeleteSubject" class="sidebar-form" style="margin-top:.4rem;"
+                      onsubmit="return confirm('¿Borrar esta materia y todo su contenido (@Model.Messages.Count mensaje(s)@(string.IsNullOrWhiteSpace(Model.Material) ? "" : ", material cargado"))? No se puede deshacer.');">
+                    <input type="hidden" name="studentId" value="@Model.StudentId" />
+                    <input type="hidden" name="classroomId" value="@Model.ActiveClassroomId" />
+                    <button type="submit" class="mochila-delete"
+                            style="width:100%;margin-top:.2rem;background:none;border:none;color:#b55;font-size:.8rem;cursor:pointer;padding:.3rem;">
+                        🗑 Borrar “@Model.ActiveSubjectName”
+                    </button>
+                </form>
+            }
         </div>
 
         @* ── Agenda del aula (Track 2, gateada por flag) ──────────────── *@
