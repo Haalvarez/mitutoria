@@ -1896,6 +1896,25 @@ body.focus-mode .agenda-anuncios { display: none; }
   font-family: inherit;
   font-size: 0.85rem;
 }
+/* Borrar materia: acción secundaria y calma (muted), se enciende en rojo al hover. */
+.mochila-delete-form { margin: 0; }
+.mochila-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  padding: 0.2rem 0;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--dust);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.mochila-delete:hover,
+.mochila-delete:focus-visible { color: #b5544a; }
+.mochila-delete span { opacity: 0.7; }
+.mochila-delete:hover span { opacity: 1; }
 
 /* ── Chat area ── */
 .classroom-chat {

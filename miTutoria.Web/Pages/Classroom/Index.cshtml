@@ -66,13 +66,12 @@
             </details>
             @if (Model.Subjects.Count > 1)
             {
-                <form method="post" asp-page-handler="DeleteSubject" class="sidebar-form" style="margin-top:.4rem;"
-                      onsubmit="return confirm('¿Borrar esta materia y todo su contenido (@Model.Messages.Count mensaje(s)@(string.IsNullOrWhiteSpace(Model.Material) ? "" : ", material cargado"))? No se puede deshacer.');">
+                <form method="post" asp-page-handler="DeleteSubject" class="mochila-delete-form"
+                      onsubmit="return confirm('¿Borrar “@Model.ActiveSubjectName” y todo su contenido (@Model.Messages.Count mensaje(s)@(string.IsNullOrWhiteSpace(Model.Material) ? "" : ", material cargado"))? No se puede deshacer.');">
                     <input type="hidden" name="studentId" value="@Model.StudentId" />
                     <input type="hidden" name="classroomId" value="@Model.ActiveClassroomId" />
-                    <button type="submit" class="mochila-delete"
-                            style="width:100%;margin-top:.2rem;background:none;border:none;color:#b55;font-size:.8rem;cursor:pointer;padding:.3rem;">
-                        🗑 Borrar “@Model.ActiveSubjectName”
+                    <button type="submit" class="mochila-delete" title="Borrar la materia activa">
+                        <span aria-hidden="true">🗑</span> Borrar materia
                     </button>
                 </form>
             }
