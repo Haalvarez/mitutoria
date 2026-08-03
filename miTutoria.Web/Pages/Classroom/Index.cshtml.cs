@@ -78,6 +78,12 @@ public class IndexModel : PageModel
     // Podcast: botón visible solo si la familia lo tiene habilitado (rollout).
     public bool PodcastEnabled { get; private set; }
 
+    // "Cartero": aviso suave al alumno para que le transmita al padre que el acceso vence.
+    // No corta nada — solo informa. "expiring" = ≤3 días; "expired" = ya venció.
+    // Solo aplica a trials sin pagar (los pagos tienen su propio flujo de renovación).
+    public string TrialBanner { get; private set; } = "none";   // none | expiring | expired
+    public int TrialDaysRemaining { get; private set; }
+
     // Track 2: agenda de Classroom (gateada por flag).
     public bool InboxEnabled { get; private set; }
     public bool StudentHasAdhd { get; private set; }   // modo foco por defecto para la agenda
@@ -169,6 +175,17 @@ public class IndexModel : PageModel
         // Track 2: agenda — solo si el kill-switch global y el flag de la familia están on.
         // Podcast: mismo patrón, gateado por flag de la familia (kill-switch global default on).
         var famFlags = await _dbContext.Families.FindAsync(student.FamilyId);
+
+        // "Cartero": si el trial vence pronto o ya venció, mostramos un aviso suave para que
+        // el chico le transmita al padre (que casi nunca entra al Dashboard). No corta acceso.
+        if (famFlags?.SubscriptionStatus == "trial" && famFlags.TrialEndsAt.HasValue)
+        {
+            var days = (int)Math.Ceiling((famFlags.TrialEndsAt.Value - DateTime.UtcNow).TotalDays);
+            TrialDaysRemaining = Math.Max(0, days);
+            if (days <= 0) TrialBanner = "expired";
+            else if (days <= 3) TrialBanner = "expiring";
+        }
+
         if (_config.GetValue("INBOX_FEATURE_ENABLED", false))
             InboxEnabled = famFlags?.InboxEnabled ?? false;
         PodcastEnabled = _config.GetValue("PODCAST_FEATURE_ENABLED", true) && (famFlags?.PodcastEnabled ?? false);

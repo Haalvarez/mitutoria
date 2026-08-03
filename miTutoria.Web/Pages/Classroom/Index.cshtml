@@ -23,6 +23,36 @@
     }
 }
 
+@* ── "Cartero": aviso suave para que el chico le transmita al padre. No corta acceso. ── *@
+@if (Model.TrialBanner != "none")
+{
+    var expired = Model.TrialBanner == "expired";
+    var bannerMsg = expired
+        ? "Contale a mamá o papá que tu acceso a miTutorIA venció. Pueden reactivarlo en un minuto desde su panel. 🙌"
+        : $"Avisale a mamá o papá que tu acceso a miTutorIA vence en {Model.TrialDaysRemaining} día{(Model.TrialDaysRemaining == 1 ? "" : "s")} — lo renuevan desde su panel. 🙌";
+    <div id="trial-carter" data-state="@Model.TrialBanner"
+         style="display:none; background:@(expired ? "#F4E4DE" : "#F3EFE3"); color:#5a3a2a;
+                border-bottom:1px solid rgba(0,0,0,.08); padding:.6rem 1rem; font-size:.92rem;
+                align-items:center; justify-content:center; gap:.6rem; text-align:center;">
+        <span>🔔 @bannerMsg</span>
+        <button type="button" onclick="dismissCarter()" aria-label="Cerrar aviso"
+                style="background:none; border:none; cursor:pointer; font-size:1.1rem; line-height:1; opacity:.5; color:inherit;">✕</button>
+    </div>
+    <script>
+    (function(){
+        var el = document.getElementById('trial-carter');
+        if (!el) return;
+        // El aviso reaparece si cambia el estado (p. ej. de "vence pronto" a "vencido").
+        var key = 'mt-trial-carter';
+        if (localStorage.getItem(key) !== el.dataset.state) el.style.display = 'flex';
+        window.dismissCarter = function(){
+            localStorage.setItem(key, el.dataset.state);
+            el.style.display = 'none';
+        };
+    })();
+    </script>
+}
+
 <div class="classroom-layout">
 
     @* ── SIDEBAR ─────────────────────────────────────────────────── *@

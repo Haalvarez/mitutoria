@@ -29,6 +29,28 @@
         <a href="/Profile" class="btn-secondary">Editar perfil</a>
     </div>
 
+    @* ── Estado del acceso (trial): informativo, no corta nada ── *@
+    @if (Model.SubscriptionStatus == "trial" && Model.AccessEndsAt.HasValue && Model.DaysRemaining <= 7)
+    {
+        var expired = Model.DaysRemaining <= 0;
+        <div style="background:@(expired ? "#F4E4DE" : "#F3EFE3");border-left:3px solid #C94A1F;padding:.9rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <span>
+                @if (expired)
+                {
+                    <text>⏳ Tu período de prueba <strong>venció</strong>. Podés activar tu acceso cuando quieras.</text>
+                }
+                else
+                {
+                    <text>⏳ Tu período de prueba vence en <strong>@Model.DaysRemaining día@(Model.DaysRemaining == 1 ? "" : "s")</strong> (@Model.AccessEndsAt.Value.ToString("dd/MM/yyyy")).</text>
+                }
+            </span>
+            @if (Model.MpEnabled)
+            {
+                <a href="/api/pay/start" class="btn-main" style="white-space:nowrap;">Activar mi acceso</a>
+            }
+        </div>
+    }
+
     @* ── Mensaje de enganche ── *@
     @{
         var topStreak = Model.StudentSummaries.OrderByDescending(s => s.StreakDays).FirstOrDefault();
