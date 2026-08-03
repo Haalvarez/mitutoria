@@ -73,4 +73,6 @@ entra al Dashboard). Avisos suaves que empujan al padre al Dashboard. Corte real
 - **Ojo:** los comandos `dotnet` corren el `global.json` **solo desde la raíz del repo**; fuera del repo
   agarra el SDK más nuevo (10-preview).
 - **EF Core unificado en 8.0.11** (Design + Npgsql). No mezclar con 8.0.27 (daba warning MSB3277).
+- **En la sesión de la CLI de Claude** el `dotnet` a secas resuelve al x86 (sin SDK); compilar con
+  el x64 explícito: `"/c/Program Files/dotnet/dotnet.exe" build miTutoria.Web/miTutoria.Web.csproj`.
 - Recordatorio: las **migraciones son SQL a mano** (idempotente), no usar `dotnet ef migrations add`.

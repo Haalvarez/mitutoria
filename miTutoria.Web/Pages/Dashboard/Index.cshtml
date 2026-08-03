@@ -30,14 +30,17 @@
     </div>
 
     @* ── Estado del acceso (trial): informativo, no corta nada ── *@
-    @if (Model.SubscriptionStatus == "trial" && Model.AccessEndsAt.HasValue && Model.DaysRemaining <= 7)
+    @if (Model.SubscriptionStatus == "trial" && Model.AccessEndsAt.HasValue && (Model.AccessExpired || Model.DaysRemaining <= 7))
     {
-        var expired = Model.DaysRemaining <= 0;
-        <div style="background:@(expired ? "#F4E4DE" : "#F3EFE3");border-left:3px solid #C94A1F;padding:.9rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div style="background:@(Model.AccessExpired ? "#F4E4DE" : "#F3EFE3");border-left:3px solid #C94A1F;padding:.9rem 1.1rem;border-radius:6px;margin-bottom:1.5rem;font-size:.95rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
             <span>
-                @if (expired)
+                @if (Model.AccessExpired)
                 {
                     <text>⏳ Tu período de prueba <strong>venció</strong>. Podés activar tu acceso cuando quieras.</text>
+                }
+                else if (Model.DaysRemaining <= 0)
+                {
+                    <text>⏳ Tu período de prueba <strong>vence hoy</strong> (@Model.AccessEndsAt.Value.ToString("dd/MM/yyyy")).</text>
                 }
                 else
                 {
@@ -186,9 +189,17 @@
             "active" => ("Suscripción activa", "#5C7A5E"),
             _        => ("Cuenta", "#888")
         };
+        // Si el acceso ya venció, el estado real es "vencido" aunque el string en la base
+        // siga diciendo trial/active (todavía no hay corte automático).
+        if (Model.AccessExpired)
+        {
+            subLabel = Model.SubscriptionStatus == "active" ? "Suscripción vencida" : "Prueba vencida";
+            subColor = "#C94A1F";
+        }
         string remainingText;
         var warnExpiry = false;
         if (Model.AccessEndsAt is null) { remainingText = ""; }
+        else if (Model.AccessExpired) { remainingText = "Venció"; warnExpiry = true; }
         else if (Model.DaysRemaining <= 0) { remainingText = "Vence hoy"; warnExpiry = true; }
         else if (Model.SubscriptionStatus == "active") { remainingText = $"Se renueva en {Model.DaysRemaining} {(Model.DaysRemaining == 1 ? "día" : "días")}"; warnExpiry = Model.DaysRemaining <= 3; }
         else { remainingText = $"Te quedan {Model.DaysRemaining} {(Model.DaysRemaining == 1 ? "día" : "días")}"; warnExpiry = Model.DaysRemaining <= 3; }

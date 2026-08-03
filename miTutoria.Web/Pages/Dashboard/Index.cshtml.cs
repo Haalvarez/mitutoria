@@ -61,6 +61,7 @@ public class IndexModel : PageModel
     public string SubscriptionStatus { get; private set; } = "trial";
     public DateTime? AccessEndsAt { get; private set; }   // PaidUntil ?? TrialEndsAt — sirve para fin de trial y renovación mensual
     public int DaysRemaining { get; private set; }
+    public bool AccessExpired { get; private set; }        // el vencimiento ya pasó (venció, no "vence hoy")
     public bool WeeklyDigestOptIn { get; private set; }   // resumen semanal por mail (viernes 20hs)
     public List<User> Students { get; private set; } = new();
     public List<StudentSummary> StudentSummaries { get; private set; } = new();
@@ -116,9 +117,15 @@ public class IndexModel : PageModel
         SubscriptionStatus = family.SubscriptionStatus;
         WeeklyDigestOptIn = family.WeeklyDigestOptIn;
         AccessEndsAt = family.PaidUntil ?? family.TrialEndsAt;
-        DaysRemaining = AccessEndsAt.HasValue
-            ? Math.Max(0, (int)Math.Ceiling((AccessEndsAt.Value - now).TotalDays))
-            : 0;
+        // Comparamos por FECHA de pared argentina (no por instante UTC) para no confundir
+        // "vence hoy" con "venció": una fecha pasada NO debe colapsar a 0 y leerse como hoy.
+        if (AccessEndsAt.HasValue)
+        {
+            var endLocalDate = (AccessEndsAt.Value + argOffset).Date;   // día AR del vencimiento
+            var todayLocal   = nowLocal.Date;
+            AccessExpired = endLocalDate < todayLocal;
+            DaysRemaining = Math.Max(0, (endLocalDate - todayLocal).Days);
+        }
 
         var events = await _dbContext.TokenEvents
             .Where(t => t.FamilyId == familyId.Value && t.CreatedAt >= monthStart)
