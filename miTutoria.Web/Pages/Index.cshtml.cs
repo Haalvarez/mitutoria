@@ -55,8 +55,16 @@ public class IndexModel : PageModel
         catch { /* la analítica nunca rompe la landing */ }
     }
 
-    public async Task<IActionResult> OnPostWaitlistAsync(string email, string? name, string? phone)
+    public async Task<IActionResult> OnPostWaitlistAsync(string email, string? name, string? phone, string? website, long ts = 0)
     {
+        // Anti-bot inocuo (invisible para el usuario real):
+        //  a) Honeypot: si el campo "website" viene completo, lo llenó un bot.
+        //  b) Time-check: un POST en menos de ~2,5 s desde el render es automático.
+        // En ambos casos fingimos éxito para que el bot no reintente, pero NO guardamos nada.
+        var elapsedMs = ts > 0 ? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - ts : long.MaxValue;
+        if (!string.IsNullOrWhiteSpace(website) || elapsedMs < 2500)
+            return RedirectToPage(new { joined = true });
+
         // Nombre y email son obligatorios; el teléfono (WhatsApp) es opcional.
         if (string.IsNullOrWhiteSpace(name)
             || string.IsNullOrWhiteSpace(email) || !email.Contains('@'))

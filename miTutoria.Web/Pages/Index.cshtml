@@ -7,6 +7,70 @@
     // Video de una conversación real (YouTube, no listado). Pegá acá el ID del video
     // (la parte después de watch?v= o youtu.be/). Vacío = la sección no se muestra.
     var youtubeId = "dCWEHCATysw";
+
+    const string SiteUrl = "https://mitutoria.app";
+    const string OgImage = SiteUrl + "/img/logo.jpg";
+    const string MetaDesc = "miTutorIA es la IA que enseña a pensar, no a copiar. Mamá o papá configura el tutor digital de cada hijo — cuánto ayuda, cómo ayuda y cuándo dice que no. Tutor que hace preguntas sobre el material real de la clase.";
+}
+
+@section Head {
+    <meta name="description" content="@MetaDesc" />
+    <link rel="canonical" href="@SiteUrl/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    @* Open Graph (WhatsApp, Facebook, LinkedIn) *@
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="miTutorIA" />
+    <meta property="og:title" content="miTutorIA — La IA que enseña a pensar, no a copiar" />
+    <meta property="og:description" content="@MetaDesc" />
+    <meta property="og:url" content="@SiteUrl/" />
+    <meta property="og:image" content="@OgImage" />
+    <meta property="og:locale" content="es_AR" />
+
+    @* Twitter/X *@
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="miTutorIA — La IA que enseña a pensar, no a copiar" />
+    <meta name="twitter:description" content="@MetaDesc" />
+    <meta name="twitter:image" content="@OgImage" />
+
+    @* Datos estructurados: qué es el producto + preguntas frecuentes (búsquedas laterales) *@
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@type": "SoftwareApplication",
+      "name": "miTutorIA",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "url": "@SiteUrl/",
+      "description": "@MetaDesc",
+      "inLanguage": "es-AR",
+      "offers": { "@@type": "Offer", "category": "subscription", "priceCurrency": "ARS" },
+      "publisher": { "@@type": "Organization", "name": "miTutorIA", "url": "@SiteUrl/" }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@@context": "https://schema.org",
+      "@@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@@type": "Question",
+          "name": "¿Está bien que mi hijo use inteligencia artificial para la tarea?",
+          "acceptedAnswer": { "@@type": "Answer", "text": "Sí, si la IA lo guía en vez de resolverle la tarea. miTutorIA es un tutor que hace preguntas y da pistas sobre el material real de la clase, en lugar de darle la respuesta directa. Vos configurás cuánto ayuda en cada materia." }
+        },
+        {
+          "@@type": "Question",
+          "name": "¿Cómo evito que mi hijo copie las respuestas con ChatGPT?",
+          "acceptedAnswer": { "@@type": "Answer", "text": "Con miTutorIA definís las reglas del tutor aula por aula: puede dar pistas, hacer preguntas de vuelta o negarse a resolver ciertos pedidos. El tutor no cede aunque le pidan la respuesta directa." }
+        },
+        {
+          "@@type": "Question",
+          "name": "¿Qué es miTutorIA?",
+          "acceptedAnswer": { "@@type": "Answer", "text": "Una plataforma educativa donde mamá o papá configura un tutor de IA para cada hijo. Estudia el material propio de la clase (fotocopias o PDF), genera tarjetas de repaso, simulacros de examen y quizzes, y guía sin dar la respuesta hecha." }
+        }
+      ]
+    }
+    </script>
 }
 
 <a href="#probalo" class="floating-demo" aria-label="Probalo en vivo">Probalo en vivo</a>
@@ -254,6 +318,14 @@ document.addEventListener('DOMContentLoaded', function(){
         {
             <p>Estamos armando el acceso anticipado. Si tenés hijos en edad escolar y querés probar la plataforma antes del lanzamiento, dejá tu mail acá.</p>
             <form method="post" asp-page-handler="Waitlist" class="email-form">
+                @* Honeypot: un humano nunca ve ni completa este campo; los bots que rellenan todo, sí. *@
+                <div aria-hidden="true" style="position:absolute; left:-9999px; top:-9999px; height:0; width:0; overflow:hidden;">
+                    <label>No completar este campo
+                        <input type="text" name="website" tabindex="-1" autocomplete="off" />
+                    </label>
+                </div>
+                @* Marca de tiempo del render: un POST casi instantáneo delata a un bot. *@
+                <input type="hidden" name="ts" value="@DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()" />
                 <input type="text"  name="name"  placeholder="Tu nombre" autocomplete="name" required />
                 <input type="email" name="email" placeholder="tu@email.com" autocomplete="email" required />
                 <input type="tel"   name="phone" placeholder="WhatsApp (opcional)" autocomplete="tel" inputmode="tel" />

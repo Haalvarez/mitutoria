@@ -1,0 +1,31 @@
+# miTutorIA — robots.txt
+# La landing es pública y queremos que la indexen (Google, Bing) y la lean
+# los motores de IA. Las áreas privadas (cuenta, aula, admin, API) quedan fuera.
+
+User-agent: *
+Allow: /$
+Allow: /img/
+Allow: /css/
+Disallow: /Dashboard
+Disallow: /Classroom
+Disallow: /Admin
+Disallow: /Agenda
+Disallow: /Entrar
+Disallow: /Login
+Disallow: /Salir
+Disallow: /Auth/
+Disallow: /api/
+
+# Motores de IA — los dejamos leer el contenido público explícitamente.
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+
+Sitemap: https://mitutoria.app/sitemap.xml
