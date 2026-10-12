@@ -1,0 +1,196 @@
+@page
+@model miTutoria.Web.Pages.SubirModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Subir apuntes";
+}
+
+<style>
+    .subir { max-width: 520px; margin: 0 auto; padding: 1rem 1rem 3rem; }
+    .subir h1 { font-size: 1.4rem; margin: .2rem 0 1rem; }
+    .subir__crumbs { font-size: .9rem; margin-bottom: .8rem; color: var(--dust, #888); }
+    .subir__crumbs a { color: inherit; }
+    .subir__step { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--dust, #888); margin: 1.2rem 0 .5rem; }
+    .subir__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; }
+    .subir__pick {
+        display: flex; align-items: center; gap: .5rem; padding: .9rem 1rem; min-height: 56px;
+        border: 2px solid var(--line, #e0ddd5); border-radius: 12px; background: #fff;
+        color: var(--ink, #222); text-decoration: none; font-weight: 600; font-size: 1rem;
+    }
+    .subir__pick:active { border-color: var(--sage, #5C7A5E); }
+    .subir__pick small { display: block; font-weight: 400; font-size: .75rem; color: var(--dust, #888); }
+    .subir__avatar { font-size: 1.6rem; }
+    .subir__new { display: flex; gap: .5rem; margin-top: .6rem; }
+    .subir__new input { flex: 1; padding: .7rem; border: 1px solid var(--line, #e0ddd5); border-radius: 10px; font-size: 1rem; }
+    .subir__shoot {
+        width: 100%; padding: 1.2rem; font-size: 1.15rem; border-radius: 14px; border: none;
+        background: var(--sage, #5C7A5E); color: #fff; font-weight: 700; cursor: pointer;
+    }
+    .subir__thumbs { display: flex; gap: .4rem; overflow-x: auto; margin: .8rem 0; }
+    .subir__thumbs img { height: 90px; width: auto; flex: none; border-radius: 8px; border: 1px solid var(--line, #e0ddd5); }
+    .subir__mode { display: flex; gap: .5rem; margin: .8rem 0; }
+    .subir__mode label {
+        flex: 1; padding: .7rem; border: 2px solid var(--line, #e0ddd5); border-radius: 10px;
+        font-size: .9rem; cursor: pointer; text-align: center;
+    }
+    .subir__mode input { display: none; }
+    .subir__mode label:has(input:checked) { border-color: var(--sage, #5C7A5E); background: #f3f6f1; }
+    .subir__actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .subir__actions button, .subir__actions a { flex: 1; text-align: center; }
+    .subir__status { margin-top: 1rem; padding: .9rem; border-radius: 10px; background: #f6f4ef; line-height: 1.45; }
+    .subir__text {
+        white-space: pre-wrap; max-height: 45vh; overflow-y: auto; margin-top: .6rem; padding: .8rem;
+        background: #fff; border: 1px solid var(--line, #e0ddd5); border-radius: 8px; font-size: .9rem;
+    }
+</style>
+
+<main class="subir">
+    <h1>📷 Subir apuntes</h1>
+
+    @if (Model.Kid is not null && (Model.Kids.Count > 1 || Model.Subject is not null))
+    {
+        <div class="subir__crumbs">
+            @if (Model.Kids.Count > 1) { <a href="/Subir">Hijos</a> <span> › </span> }
+            @if (Model.Subject is not null) { <a href="/Subir?s=@Model.Kid.Id">@Model.Kid.Name</a> <span> › </span> <b>@Model.Subject.Name</b> }
+            else { <b>@Model.Kid.Name</b> }
+        </div>
+    }
+
+    @if (Model.Kid is null)
+    {
+        <div class="subir__step">1 · ¿Para quién?</div>
+        <div class="subir__grid">
+            @foreach (var k in Model.Kids)
+            {
+                <a class="subir__pick" href="/Subir?s=@k.Id"><span class="subir__avatar">@(k.Avatar ?? "🎒")</span>@k.Name</a>
+            }
+        </div>
+        @if (Model.Kids.Count == 0)
+        {
+            <p>Todavía no hay hijos cargados. Agregalos desde el <a href="/Dashboard">inicio</a>.</p>
+        }
+    }
+    else if (Model.Subject is null)
+    {
+        <div class="subir__step">@(Model.Kids.Count > 1 ? "2" : "1") · ¿De qué materia?</div>
+        <div class="subir__grid">
+            @foreach (var c in Model.Subjects)
+            {
+                <a class="subir__pick" href="/Subir?s=@Model.Kid.Id&c=@c.Id">
+                    <span>@c.Name<small>@(c.HasMaterial ? "con apuntes" : "sin apuntes")</small></span>
+                </a>
+            }
+        </div>
+        <form method="post" asp-page-handler="CreateSubject" class="subir__new">
+            <input type="hidden" name="studentId" value="@Model.Kid.Id" />
+            <input type="text" name="subjectName" placeholder="+ Nueva materia" maxlength="40" required />
+            <button type="submit" class="btn-main btn-sm">Crear</button>
+        </form>
+    }
+    else
+    {
+        <div class="subir__step">Fotos de @Model.Subject.Name</div>
+
+        <input type="file" accept="image/*" capture="environment" id="cam" style="display:none;" />
+        <button type="button" id="shoot" class="subir__shoot">📷 Sacar foto</button>
+        <div id="thumbs" class="subir__thumbs"></div>
+
+        <div id="send" style="display:none;">
+            @if (Model.Subject.HasMaterial)
+            {
+                <div class="subir__mode">
+                    <label><input type="radio" name="mode" value="append" checked /> ➕ Agregar a lo que ya hay</label>
+                    <label><input type="radio" name="mode" value="replace" /> ♻️ Reemplazar todo</label>
+                </div>
+            }
+            <div class="subir__actions">
+                <button type="button" id="upload" class="btn-main">Subir</button>
+                <button type="button" id="discard" class="btn-secondary">Descartar</button>
+            </div>
+        </div>
+
+        <div id="status" class="subir__status" style="display:none;"></div>
+        <div id="after" class="subir__actions" style="display:none; margin-top:.8rem;">
+            <a href="/Subir?s=@Model.Kid.Id&c=@Model.Subject.Id" class="btn-secondary">Subir más</a>
+            <a href="/Classroom/@Model.Kid.Id" class="btn-main">Abrir aula</a>
+        </div>
+    }
+</main>
+
+@if (Model.Kid is not null && Model.Subject is not null)
+{
+    <script>
+    (() => {
+        const studentId = @Model.Kid.Id, classroomId = @Model.Subject.Id, MAX = 15;
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+        const $ = id => document.getElementById(id);
+        let queue = [];
+
+        function render() {
+            $('thumbs').querySelectorAll('img').forEach(i => URL.revokeObjectURL(i.src));
+            $('thumbs').innerHTML = '';
+            queue.forEach((f, i) => {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                img.alt = `Página ${i + 1}`;
+                $('thumbs').appendChild(img);
+            });
+            $('shoot').textContent = queue.length ? '📷 Otra página' : '📷 Sacar foto';
+            $('upload').textContent = queue.length === 1 ? 'Subir 1 foto' : `Subir ${queue.length} fotos`;
+            $('send').style.display = queue.length ? 'block' : 'none';
+        }
+
+        $('shoot').addEventListener('click', () => {
+            if (queue.length >= MAX) { alertStatus(`Llegaste a ${MAX} fotos: subí estas y seguí en otra tanda.`); return; }
+            $('cam').click();
+        });
+        $('cam').addEventListener('change', function () {
+            if (this.files.length) queue.push(this.files[0]);
+            this.value = '';
+            render();
+        });
+        $('discard').addEventListener('click', () => { queue = []; render(); });
+
+        function alertStatus(html) { $('status').style.display = 'block'; $('status').innerHTML = html; }
+        const esc = t => (t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        $('upload').addEventListener('click', async () => {
+            const files = queue;
+            const append = (document.querySelector('input[name=mode]:checked')?.value ?? 'append') === 'append';
+            $('send').style.display = 'none';
+            $('shoot').style.display = 'none';
+            alertStatus(`Leyendo ${files.length === 1 ? 'la foto' : files.length + ' fotos'}… puede tardar un ratito ⏳`);
+
+            try {
+                const fd = new FormData();
+                fd.append('StudentId', studentId);
+                fd.append('classroomId', classroomId);
+                fd.append('append', append);
+                const compressed = await Promise.all(files.map(compressImage));
+                compressed.forEach((f, i) => fd.append('Photos', f, `pagina-${i + 1}.jpg`));
+
+                const res = await fetch(`/Classroom/${studentId}?handler=SaveMaterial`, {
+                    method: 'POST', headers: { 'RequestVerificationToken': csrf() }, body: fd
+                });
+                if (res.status === 401) { location.href = '/Login'; return; }
+                const data = await res.json();
+                if (data.error) {
+                    alertStatus('❌ ' + esc(data.error));
+                    $('send').style.display = 'block';
+                    $('shoot').style.display = 'block';
+                    return;
+                }
+                queue = [];
+                $('thumbs').innerHTML = '';
+                alertStatus(`✅ ¡Listo! ${append ? 'Se agregó' : 'Quedó cargado'} en la materia. Esto es lo que leí — fijate que esté bien:
+                    <div class="subir__text">${esc(data.text)}</div>`);
+                $('after').style.display = 'flex';
+            } catch {
+                alertStatus('Hubo un problema al subir las fotos. Probá de nuevo.');
+                $('send').style.display = 'block';
+                $('shoot').style.display = 'block';
+            }
+        });
+    })();
+    </script>
+}

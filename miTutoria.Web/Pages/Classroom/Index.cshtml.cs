@@ -604,8 +604,10 @@ public class IndexModel : PageModel
     // ── POST: guardar material (PDF o texto) ─────────────────────────────────
 
     public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile,
-        List<IFormFile>? photos, bool clearMaterial = false)
+        List<IFormFile>? photos, bool clearMaterial = false, int? classroomId = null, bool append = false)
     {
+        // classroomId: materia elegida explícitamente (página /Subir); si no, la activa del aula.
+        // append: suma lo nuevo al material existente en vez de reemplazarlo.
         // Fotos sacadas desde la cámara del celular: varias páginas en una sola subida.
         photos = photos?.Where(f => f.Length > 0).ToList();
         var hasPhotos = photos is { Count: > 0 };
@@ -618,8 +620,20 @@ public class IndexModel : PageModel
             return RedirectToPage("/Login");
         }
 
-        var classroom = await GetActiveClassroomAsync(studentId);
+        Data.Entities.Academic.Classroom classroom;
+        if (classroomId.HasValue)
+        {
+            var chosen = await _dbContext.Classrooms
+                .SingleOrDefaultAsync(c => c.Id == classroomId.Value && c.StudentId == studentId);
+            if (chosen is null) return new JsonResult(new { error = "No encontré esa materia." });
+            classroom = chosen;
+        }
+        else
+        {
+            classroom = await GetActiveClassroomAsync(studentId);
+        }
         bool materialNuevo = false;
+        string? addedText = null;   // lo que se leyó en esta subida (la página /Subir lo muestra para verificar)
 
         // Térmica: OCR + segmentación son los caminos más caros de la app. Si la familia llegó
         // al tope, no procesar material nuevo (borrar material sí se permite).
@@ -727,20 +741,43 @@ public class IndexModel : PageModel
                 return new JsonResult(new { error = isImage
                     ? "No pude leer el contenido de esa imagen. Probá con una foto más nítida o pegá el texto directamente."
                     : "No pude leer el contenido de ese PDF. Probá pegando el texto directamente." });
-            classroom.Material = extracted;
+            addedText = extracted;
 
             int segIn = 0, segOut = 0;
+            string? newSections;
             try
             {
                 var (sections, sIn, sOut) = await SegmentMaterialAsync(extracted);
-                classroom.MaterialSections = sections;
+                newSections = sections;
                 segIn = sIn; segOut = sOut;
             }
             catch
             {
-                classroom.MaterialSections = null; // sin secciones — el aula sigue funcionando con Material completo
+                newSections = null; // sin secciones — el aula sigue funcionando con Material completo
             }
-            classroom.MaterialSectionIndex = 0;
+
+            if (append && !string.IsNullOrWhiteSpace(classroom.Material))
+            {
+                // Se suma al final (con fecha) y las secciones nuevas se agregan a las existentes;
+                // el tutor arranca por lo recién cargado.
+                var label = $"Agregado el {DateTime.UtcNow.AddHours(-3):dd/MM}";
+                var merged = ParseSections(classroom.MaterialSections);
+                if (merged.Count == 0) merged.Add(new SectionInfo("Material anterior", classroom.Material));
+                var firstNew = merged.Count;
+                var added = ParseSections(newSections);
+                merged.AddRange(added.Count > 0 ? added : [new SectionInfo(label, extracted)]);
+
+                classroom.Material = $"{classroom.Material}\n\n---\n\n## {label}\n\n{extracted}";
+                classroom.MaterialSections = JsonSerializer.Serialize(
+                    merged.Select(x => new { title = x.Title, content = x.Content }));
+                classroom.MaterialSectionIndex = firstNew;
+            }
+            else
+            {
+                classroom.Material = extracted;
+                classroom.MaterialSections = newSections;
+                classroom.MaterialSectionIndex = 0;
+            }
             classroom.MaterialOcrSource = hasPhotos ? $"{photos!.Count} foto(s) de cámara" : pdfFile!.FileName;
             materialNuevo = true;
 
@@ -815,7 +852,7 @@ public class IndexModel : PageModel
 
         // PDF/fotos vienen vía AJAX — responder con JSON
         if (isAjax)
-            return new JsonResult(new { chars = classroom.Material?.Length ?? 0, reply = ackReply });
+            return new JsonResult(new { chars = classroom.Material?.Length ?? 0, reply = ackReply, text = addedText });
 
         return RedirectToPage(new { studentId });
     }
@@ -1901,7 +1938,7 @@ public class IndexModel : PageModel
 
     // Infiere el modo pedagógico del nombre de la materia. Las procedimentales
     // (mate, física, química...) van a Resolución; el resto a Comprensión.
-    private static Data.Entities.Academic.PedagogicalMode InferMode(string name)
+    internal static Data.Entities.Academic.PedagogicalMode InferMode(string name)
     {
         var n = name.ToLowerInvariant();
         string[] resolucion =
