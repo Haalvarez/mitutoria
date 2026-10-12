@@ -2115,6 +2115,23 @@ body.focus-mode .agenda-anuncios { display: none; }
   transition: color .15s, background .15s;
 }
 .chat-attach-btn:hover { color: var(--ink); background: var(--line, #eee); }
+.chat-attach-btn:disabled { opacity: .4; cursor: default; }
+
+/* Bandeja de fotos de la cámara (páginas pendientes de subir) */
+.photo-tray {
+  flex-direction: column;
+  gap: .5rem;
+  padding: .6rem;
+  margin-bottom: .5rem;
+  border: 1px solid var(--line, #eee);
+  border-radius: 10px;
+}
+.photo-tray__thumbs { display: flex; gap: .4rem; overflow-x: auto; }
+.photo-tray__thumbs img {
+  height: 64px; width: auto; flex: none;
+  border-radius: 6px; border: 1px solid var(--line, #eee); object-fit: cover;
+}
+.photo-tray__actions { display: flex; gap: .4rem; flex-wrap: wrap; }
 .chat-attach-btn:disabled { opacity: .35; cursor: not-allowed; }
 
 /* Burbuja de carga de PDF */

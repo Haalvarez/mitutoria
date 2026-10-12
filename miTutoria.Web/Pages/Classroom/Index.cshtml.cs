@@ -30,6 +30,7 @@ public class IndexModel : PageModel
     private const string RefusalReply = "Mmm, de eso no te puedo ayudar. ¿Seguimos con lo que estabas estudiando?";
     private const int MaxUploadBytes = 20 * 1024 * 1024; // 20 MB (PDF)
     private const int MaxImageBytes  = 5  * 1024 * 1024; // 5 MB (límite de la API de Claude Vision por imagen)
+    private const int MaxPhotosPerUpload = 15;
 
     private readonly AppDbContext _dbContext;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -602,12 +603,18 @@ public class IndexModel : PageModel
 
     // ── POST: guardar material (PDF o texto) ─────────────────────────────────
 
-    public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile, bool clearMaterial = false)
+    public async Task<IActionResult> OnPostSaveMaterialAsync(int studentId, string? material, IFormFile? pdfFile,
+        List<IFormFile>? photos, bool clearMaterial = false)
     {
+        // Fotos sacadas desde la cámara del celular: varias páginas en una sola subida.
+        photos = photos?.Where(f => f.Length > 0).ToList();
+        var hasPhotos = photos is { Count: > 0 };
+        var isAjax = pdfFile != null || hasPhotos;
+
         var student = await ResolveStudentAsync(studentId);
         if (student is null)
         {
-            if (pdfFile != null) return new JsonResult(new { error = "Sesión expirada." });
+            if (isAjax) return new JsonResult(new { error = "Sesión expirada." });
             return RedirectToPage("/Login");
         }
 
@@ -616,7 +623,7 @@ public class IndexModel : PageModel
 
         // Térmica: OCR + segmentación son los caminos más caros de la app. Si la familia llegó
         // al tope, no procesar material nuevo (borrar material sí se permite).
-        if (!clearMaterial && (pdfFile is { Length: > 0 } || !string.IsNullOrWhiteSpace(material))
+        if (!clearMaterial && (pdfFile is { Length: > 0 } || hasPhotos || !string.IsNullOrWhiteSpace(material))
             && await IsFamilyOverCapAsync(student.FamilyId))
             return new JsonResult(new { error = "Llegaste al tope de uso de este mes. Escribinos a hola@mitutoria.app y lo resolvemos." }) { StatusCode = 429 };
 
@@ -627,57 +634,94 @@ public class IndexModel : PageModel
             classroom.MaterialSectionIndex = 0;
             classroom.MaterialOcrSource = null;
         }
-        else if (pdfFile is { Length: > 0 })
+        else if (pdfFile is { Length: > 0 } || hasPhotos)
         {
-            var imageMediaType = ResolveImageMediaType(pdfFile);
+            var imageMediaType = hasPhotos ? "image/jpeg" : ResolveImageMediaType(pdfFile!);
             var isImage = imageMediaType != null;
-
-            // Las imágenes van a Claude Vision (base64): tope más bajo que el PDF.
-            var maxBytes = isImage ? MaxImageBytes : MaxUploadBytes;
-            if (pdfFile.Length > maxBytes)
-            {
-                var limitMb = maxBytes / 1024 / 1024;
-                var what = isImage ? "La imagen" : "El PDF";
-                return new JsonResult(new { error = $"{what} no puede superar los {limitMb} MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB)." });
-            }
-
             string extracted;
             int ocrIn = 0, ocrOut = 0;
-            try
+
+            if (hasPhotos)
             {
-                if (isImage)
+                if (photos!.Count > MaxPhotosPerUpload)
+                    return new JsonResult(new { error = $"Podés subir hasta {MaxPhotosPerUpload} fotos por vez. Subí el resto en otra tanda." });
+                if (photos.FirstOrDefault(f => f.Length > MaxImageBytes || ResolveImageMediaType(f) is null) is { } bad)
+                    return new JsonResult(new { error = $"La foto {photos.IndexOf(bad) + 1} no es una imagen válida o pesa más de {MaxImageBytes / 1024 / 1024} MB." });
+
+                try
                 {
-                    byte[] bytes;
-                    using (var ms = new MemoryStream())
+                    // Una llamada de OCR por página, en paralelo; después se unen en orden.
+                    var results = await Task.WhenAll(photos.Select(async f =>
                     {
-                        await pdfFile.CopyToAsync(ms);
-                        bytes = ms.ToArray();
-                    }
-                    var (data, mediaType) = PreprocessImageForOcr(bytes, imageMediaType!);
-                    var (res, tIn, tOut) = await ExtractImageWithClaudeAsync(data, mediaType);
-                    ocrIn = tIn; ocrOut = tOut;
-                    if (res.Legibility == "baja")
-                        return new JsonResult(new { error = "La foto salió difícil de leer (borrosa, con poca luz o muy inclinada). Sacala de nuevo con buena luz, de frente y que ocupe toda la pantalla — o pegá el texto directamente." });
-                    extracted = res.Text;
+                        using var ms = new MemoryStream();
+                        await f.CopyToAsync(ms);
+                        var (data, mediaType) = PreprocessImageForOcr(ms.ToArray(), ResolveImageMediaType(f)!);
+                        return await ExtractImageWithClaudeAsync(data, mediaType);
+                    }));
+
+                    var unreadable = results.Select((r, i) => (r, i)).Where(x => x.r.Result.Legibility == "baja").Select(x => x.i + 1).ToList();
+                    if (unreadable.Count > 0)
+                        return new JsonResult(new { error = $"{(unreadable.Count == 1 ? "La foto" : "Las fotos")} {string.Join(", ", unreadable)} salieron difíciles de leer (borrosas, con poca luz o muy inclinadas). Sacalas de nuevo con buena luz y de frente." });
+
+                    ocrIn = results.Sum(r => r.TokensIn);
+                    ocrOut = results.Sum(r => r.TokensOut);
+                    extracted = results.Length == 1
+                        ? results[0].Result.Text
+                        : string.Join("\n\n", results.Select((r, i) => $"## Página {i + 1}\n\n{r.Result.Text}"));
                 }
-                else
+                catch (Exception ex)
                 {
-                    extracted = ExtractPdfText(pdfFile);
-                    if (string.IsNullOrWhiteSpace(extracted))
-                    {
-                        var (res, tIn, tOut) = await ExtractPdfWithClaudeAsync(pdfFile);
-                        ocrIn = tIn; ocrOut = tOut;
-                        if (res.Legibility == "baja")
-                            return new JsonResult(new { error = "Ese PDF está escaneado con muy baja calidad y no pude leerlo bien. Probá con un escaneo más nítido o pegá el texto directamente." });
-                        extracted = res.Text;
-                    }
+                    await _errorLog.LogAsync("OcrExtract", ex, $"studentId={studentId}, photos={photos.Count}");
+                    return new JsonResult(new { error = "No pude procesar las fotos. Probá de nuevo o pegá el texto directamente." });
                 }
             }
-            catch (Exception ex)
+            else
             {
-                // No exponer el error crudo del proveedor al usuario; queda en el log.
-                await _errorLog.LogAsync("OcrExtract", ex, $"studentId={studentId}, file={pdfFile.FileName}");
-                return new JsonResult(new { error = "No pude procesar el archivo. Probá de nuevo con mejor calidad o pegá el texto directamente." });
+                // Las imágenes van a Claude Vision (base64): tope más bajo que el PDF.
+                var maxBytes = isImage ? MaxImageBytes : MaxUploadBytes;
+                if (pdfFile.Length > maxBytes)
+                {
+                    var limitMb = maxBytes / 1024 / 1024;
+                    var what = isImage ? "La imagen" : "El PDF";
+                    return new JsonResult(new { error = $"{what} no puede superar los {limitMb} MB (el archivo pesa {pdfFile.Length / 1024 / 1024} MB)." });
+                }
+
+                try
+                {
+                    if (isImage)
+                    {
+                        byte[] bytes;
+                        using (var ms = new MemoryStream())
+                        {
+                            await pdfFile.CopyToAsync(ms);
+                            bytes = ms.ToArray();
+                        }
+                        var (data, mediaType) = PreprocessImageForOcr(bytes, imageMediaType!);
+                        var (res, tIn, tOut) = await ExtractImageWithClaudeAsync(data, mediaType);
+                        ocrIn = tIn; ocrOut = tOut;
+                        if (res.Legibility == "baja")
+                            return new JsonResult(new { error = "La foto salió difícil de leer (borrosa, con poca luz o muy inclinada). Sacala de nuevo con buena luz, de frente y que ocupe toda la pantalla — o pegá el texto directamente." });
+                        extracted = res.Text;
+                    }
+                    else
+                    {
+                        extracted = ExtractPdfText(pdfFile);
+                        if (string.IsNullOrWhiteSpace(extracted))
+                        {
+                            var (res, tIn, tOut) = await ExtractPdfWithClaudeAsync(pdfFile);
+                            ocrIn = tIn; ocrOut = tOut;
+                            if (res.Legibility == "baja")
+                                return new JsonResult(new { error = "Ese PDF está escaneado con muy baja calidad y no pude leerlo bien. Probá con un escaneo más nítido o pegá el texto directamente." });
+                            extracted = res.Text;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // No exponer el error crudo del proveedor al usuario; queda en el log.
+                    await _errorLog.LogAsync("OcrExtract", ex, $"studentId={studentId}, file={pdfFile.FileName}");
+                    return new JsonResult(new { error = "No pude procesar el archivo. Probá de nuevo con mejor calidad o pegá el texto directamente." });
+                }
             }
             if (string.IsNullOrWhiteSpace(extracted))
                 return new JsonResult(new { error = isImage
@@ -697,7 +741,7 @@ public class IndexModel : PageModel
                 classroom.MaterialSections = null; // sin secciones — el aula sigue funcionando con Material completo
             }
             classroom.MaterialSectionIndex = 0;
-            classroom.MaterialOcrSource = pdfFile.FileName;
+            classroom.MaterialOcrSource = hasPhotos ? $"{photos!.Count} foto(s) de cámara" : pdfFile!.FileName;
             materialNuevo = true;
 
             // Registrar el costo de OCR + segmentación (antes invisible: no figuraba en la
@@ -737,7 +781,7 @@ public class IndexModel : PageModel
         catch (Exception ex)
         {
             await _errorLog.LogAsync("SaveMaterial", ex, $"studentId={studentId}");
-            if (pdfFile != null) return new JsonResult(new { error = "Hubo un problema al guardar el material. Intentá de nuevo." });
+            if (isAjax) return new JsonResult(new { error = "Hubo un problema al guardar el material. Intentá de nuevo." });
             throw;
         }
 
@@ -769,8 +813,8 @@ public class IndexModel : PageModel
             }
         }
 
-        // PDF viene vía AJAX — responder con JSON
-        if (pdfFile != null)
+        // PDF/fotos vienen vía AJAX — responder con JSON
+        if (isAjax)
             return new JsonResult(new { chars = classroom.Material?.Length ?? 0, reply = ackReply });
 
         return RedirectToPage(new { studentId });
