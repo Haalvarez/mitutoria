@@ -23,9 +23,11 @@ namespace miTutoria.Web.Pages.Classroom;
 [RequestFormLimits(MultipartBodyLengthLimit = 21 * 1024 * 1024)]
 public class IndexModel : PageModel
 {
-    private const string ClaudeModel = "claude-haiku-4-5-20251001";
-    private const decimal CostPerInputToken  = 0.80m  / 1_000_000;
-    private const decimal CostPerOutputToken = 4.00m  / 1_000_000;
+    private const string ClaudeModel = ClaudeApi.Model;
+    private const decimal CostPerInputToken  = ClaudeApi.CostPerInputToken;
+    private const decimal CostPerOutputToken = ClaudeApi.CostPerOutputToken;
+    // Si el modelo declina un pedido (filtro de seguridad), el alumno ve esto en vez de un error.
+    private const string RefusalReply = "Mmm, de eso no te puedo ayudar. ¿Seguimos con lo que estabas estudiando?";
     private const int MaxUploadBytes = 20 * 1024 * 1024; // 20 MB (PDF)
     private const int MaxImageBytes  = 5  * 1024 * 1024; // 5 MB (límite de la API de Claude Vision por imagen)
 
@@ -1097,7 +1099,8 @@ public class IndexModel : PageModel
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = purpose == "compact" ? 512 : 1024,
+            max_tokens = ClaudeApi.MaxTokens(purpose == "compact" ? 512 : 1024),
+            thinking = ClaudeApi.NoThinking,
             system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } },
             messages = messagesPayload
         });
@@ -1110,7 +1113,7 @@ public class IndexModel : PageModel
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var root = doc.RootElement;
-        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var reply = ClaudeApi.ExtractText(root, purpose == "compact" ? "" : RefusalReply);
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
 
@@ -1133,7 +1136,8 @@ public class IndexModel : PageModel
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = maxTokens,
+            max_tokens = ClaudeApi.MaxTokens(maxTokens),
+            thinking = ClaudeApi.NoThinking,
             system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } },
             messages = new[] { new { role = "user", content = userMessage } }
         });
@@ -1145,7 +1149,7 @@ public class IndexModel : PageModel
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var root = doc.RootElement;
-        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var reply = ClaudeApi.ExtractText(root);
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
         return (reply, tokensIn, tokensOut);
@@ -1620,7 +1624,8 @@ public class IndexModel : PageModel
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = 4096,
+            max_tokens = ClaudeApi.MaxTokens(4096),
+            thinking = ClaudeApi.NoThinking,
             messages = new[]
             {
                 new {
@@ -1642,7 +1647,7 @@ public class IndexModel : PageModel
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
-        var result = ParseOcrResult(root.GetProperty("content")[0].GetProperty("text").GetString());
+        var result = ParseOcrResult(ClaudeApi.ExtractText(root));
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
         return (result, tokensIn, tokensOut);
@@ -1676,7 +1681,8 @@ public class IndexModel : PageModel
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = 4096,
+            max_tokens = ClaudeApi.MaxTokens(4096),
+            thinking = ClaudeApi.NoThinking,
             messages = new[]
             {
                 new {
@@ -1698,7 +1704,7 @@ public class IndexModel : PageModel
 
         using var doc = JsonDocument.Parse(raw);
         var root = doc.RootElement;
-        var result = ParseOcrResult(root.GetProperty("content")[0].GetProperty("text").GetString());
+        var result = ParseOcrResult(ClaudeApi.ExtractText(root));
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
         return (result, tokensIn, tokensOut);

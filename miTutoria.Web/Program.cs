@@ -134,8 +134,9 @@ app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
 
         var requestBody = JsonSerializer.Serialize(new
         {
-            model = "claude-haiku-4-5-20251001",
-            max_tokens = 512,
+            model = miTutoria.Web.Infrastructure.ClaudeApi.Model,
+            max_tokens = miTutoria.Web.Infrastructure.ClaudeApi.MaxTokens(512),
+            thinking = miTutoria.Web.Infrastructure.ClaudeApi.NoThinking,
             system = systemPrompt,
             messages
         });
@@ -147,7 +148,7 @@ app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
         response.EnsureSuccessStatusCode();
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var reply = doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString();
+        var reply = miTutoria.Web.Infrastructure.ClaudeApi.ExtractText(doc.RootElement, "Mmm, de eso no puedo ayudarte. ¿Probamos con otra pregunta?");
         return Results.Json(new { reply });
     }
     catch (Exception ex)

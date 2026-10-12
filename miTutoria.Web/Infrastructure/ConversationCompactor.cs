@@ -14,9 +14,9 @@ namespace miTutoria.Web.Infrastructure;
 /// </summary>
 public class ConversationCompactor
 {
-    private const string ClaudeModel = "claude-haiku-4-5-20251001";
-    private const decimal CostPerInputToken  = 0.80m / 1_000_000;
-    private const decimal CostPerOutputToken = 4.00m / 1_000_000;
+    private const string ClaudeModel = ClaudeApi.Model;
+    private const decimal CostPerInputToken  = ClaudeApi.CostPerInputToken;
+    private const decimal CostPerOutputToken = ClaudeApi.CostPerOutputToken;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
@@ -111,7 +111,8 @@ public class ConversationCompactor
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = 512,
+            max_tokens = ClaudeApi.MaxTokens(512),
+            thinking = ClaudeApi.NoThinking,
             system = "Sos un asistente que genera resúmenes concisos de sesiones de tutoría. Respondé solo con el resumen, sin saludos ni explicaciones.",
             messages = new[] { new { role = "user", content = userMsg } }
         });
@@ -123,7 +124,7 @@ public class ConversationCompactor
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var root = doc.RootElement;
-        var summary = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var summary = ClaudeApi.ExtractText(root);
         var tIn  = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
         return (summary, tIn, tOut);

@@ -8,14 +8,15 @@ using Microsoft.EntityFrameworkCore;
 using miTutoria.Web.Data;
 using miTutoria.Web.Data.Entities.Auth;
 using miTutoria.Web.Data.Entities.Billing;
+using miTutoria.Web.Infrastructure;
 
 namespace miTutoria.Web.Pages.Students;
 
 public class EditModel : PageModel
 {
-    private const string ClaudeModel = "claude-haiku-4-5-20251001";
-    private const decimal CostPerInputToken  = 0.80m / 1_000_000;
-    private const decimal CostPerOutputToken = 4.00m / 1_000_000;
+    private const string ClaudeModel = ClaudeApi.Model;
+    private const decimal CostPerInputToken  = ClaudeApi.CostPerInputToken;
+    private const decimal CostPerOutputToken = ClaudeApi.CostPerOutputToken;
 
     private readonly AppDbContext _dbContext;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -227,7 +228,8 @@ public class EditModel : PageModel
         var body = JsonSerializer.Serialize(new
         {
             model      = ClaudeModel,
-            max_tokens = maxTokens,
+            max_tokens = ClaudeApi.MaxTokens(maxTokens),
+            thinking   = ClaudeApi.NoThinking,
             system     = systemPrompt,
             messages   = new[] { new { role = "user", content = userMessage } }
         });
@@ -239,7 +241,7 @@ public class EditModel : PageModel
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var root = doc.RootElement;
-        var reply = root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        var reply = ClaudeApi.ExtractText(root);
         var tokensIn  = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
         return (reply, tokensIn, tokensOut);

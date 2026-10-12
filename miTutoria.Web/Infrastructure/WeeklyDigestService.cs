@@ -17,7 +17,7 @@ namespace miTutoria.Web.Infrastructure;
 /// </summary>
 public class WeeklyDigestService : BackgroundService
 {
-    private const string ClaudeModel = "claude-haiku-4-5-20251001";
+    private const string ClaudeModel = ClaudeApi.Model;
     private static readonly TimeSpan CheckEvery = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan ArgOffset = TimeSpan.FromHours(-3); // UTC-3 fijo, sin DST
 
@@ -225,7 +225,8 @@ public class WeeklyDigestService : BackgroundService
         var body = JsonSerializer.Serialize(new
         {
             model = ClaudeModel,
-            max_tokens = 800,
+            max_tokens = ClaudeApi.MaxTokens(800),
+            thinking = ClaudeApi.NoThinking,
             system,
             messages = new[] { new { role = "user", content = userMsg } }
         });
@@ -237,7 +238,7 @@ public class WeeklyDigestService : BackgroundService
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var root = doc.RootElement;
-        return root.GetProperty("content")[0].GetProperty("text").GetString() ?? string.Empty;
+        return ClaudeApi.ExtractText(root);
     }
 
     private static string BuildEmailHtml(string body)
