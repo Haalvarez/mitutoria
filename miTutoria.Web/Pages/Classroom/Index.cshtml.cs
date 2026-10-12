@@ -1097,7 +1097,7 @@ public class IndexModel : PageModel
         }
 
         var system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } };
-        var useMath = purpose != "compact" && ClaudeApi.UsesMathModel(classroom.Mode);
+        var useMath = purpose != "compact" && ClaudeApi.UsesMathModel(classroom);
         var body = useMath
             ? JsonSerializer.Serialize(new
             {

@@ -21,8 +21,18 @@ public static class ClaudeApi
     public const int MathMaxTokens = 8000;   // incluye el pensamiento, no solo la respuesta visible
     public const string FallbackBeta = "server-side-fallback-2026-07-01";
 
-    public static bool UsesMathModel(Data.Entities.Academic.PedagogicalMode mode)
-        => mode == Data.Entities.Academic.PedagogicalMode.Resolucion;
+    // Mira el modo y también el nombre: las aulas creadas antes de que existiera el modo quedaron
+    // en Comprensión por default aunque sean de Matemática.
+    public static bool UsesMathModel(Data.Entities.Academic.Classroom classroom)
+        => classroom.Mode == Data.Entities.Academic.PedagogicalMode.Resolucion
+           || CalcKeywords.Any(k => classroom.Name.ToLowerInvariant().Contains(k));
+
+    private static readonly string[] CalcKeywords =
+    {
+        "matem", "mate", "álgebra", "algebra", "geometr", "trigonometr",
+        "física", "fisica", "químic", "quimic", "cálculo", "calculo",
+        "contab", "estadística", "estadistica", "aritmét", "aritmet"
+    };
 
     /// <summary>Costo en USD según el modelo que efectivamente respondió (campo "model" de la respuesta).</summary>
     public static decimal Cost(string model, int tokensIn, int tokensOut)

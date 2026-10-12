@@ -201,6 +201,7 @@ public class IndexModel : PageModel
     public decimal TotalCostUsdMonth { get; private set; }    // mes calendario = tu factura Anthropic
     public decimal ProjectionUsdMonth { get; private set; }   // proyección lineal a fin de mes
     public decimal AllTimeCostUsd { get; private set; }       // histórico
+    public List<(string Model, int Count, decimal CostUsd)> CostByModelMonth { get; private set; } = [];
 
     // ── Hits de la landing (alcance de envíos: WhatsApp, etc.) ──────────────────
     public int HitsToday { get; private set; }
@@ -410,6 +411,11 @@ public class IndexModel : PageModel
         // Plata (USD)
         TotalCostUsdMonth  = events.Where(e => e.CreatedAt >= monthStart).Sum(e => e.CostUsd);
         AllTimeCostUsd     = await _db.TokenEvents.SumAsync(e => e.CostUsd);
+        CostByModelMonth   = events.Where(e => e.CreatedAt >= monthStart)
+            .GroupBy(e => e.ModelUsed)
+            .Select(g => (g.Key, g.Count(), g.Sum(e => e.CostUsd)))
+            .OrderByDescending(x => x.Item3)
+            .ToList();
         var dayOfMonth     = now.Day;
         var daysInMonth    = DateTime.DaysInMonth(now.Year, now.Month);
         ProjectionUsdMonth = dayOfMonth > 0 ? TotalCostUsdMonth / dayOfMonth * daysInMonth : TotalCostUsdMonth;

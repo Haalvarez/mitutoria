@@ -79,6 +79,13 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
         <div class="card__sub">desde el día uno</div>
     </div>
     <div class="card">
+        <div class="card__label">Por modelo (mes)</div>
+        @foreach (var m in Model.CostByModelMonth)
+        {
+            <div class="card__sub"><b>@m.Model</b> · @m.Count usos · $@m.CostUsd.ToString("F3")</div>
+        }
+    </div>
+    <div class="card">
         <div class="card__label">Familias piloto</div>
         <div class="card__value">@Model.PilotTotal</div>
         <div class="card__sub">en trial o activas</div>
