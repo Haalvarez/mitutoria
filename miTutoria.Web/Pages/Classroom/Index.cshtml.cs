@@ -126,7 +126,7 @@ public class IndexModel : PageModel
 
             var history = await LoadMessagesAsync(classroom.Id);
             var examMode = HttpContext.Session.GetString($"ExamMode_{studentId}") == "1";
-            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat", examMode);
+            var (reply, tokensIn, tokensOut, modelUsed) = await CallClaudeAsync(student, classroom, history, "chat", examMode);
             var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
@@ -136,9 +136,9 @@ public class IndexModel : PageModel
                 UserId = student.Id,
                 TokensIn = tokensIn,
                 TokensOut = tokensOut,
-                ModelUsed = ClaudeModel,
+                ModelUsed = modelUsed,
                 Feature = "chat",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                CostUsd = ClaudeApi.Cost(modelUsed, tokensIn, tokensOut),
                 ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
@@ -259,7 +259,7 @@ public class IndexModel : PageModel
             await _dbContext.SaveChangesAsync();
 
             var history = await LoadMessagesAsync(classroom.Id);
-            var (reply, tokensIn, tokensOut) = await CallClaudeAsync(student, classroom, history, "chat");
+            var (reply, tokensIn, tokensOut, modelUsed) = await CallClaudeAsync(student, classroom, history, "chat");
             var arsRate = await _exchangeRate.GetMepRateAsync();
 
             _dbContext.Messages.Add(new Message { ClassroomId = classroom.Id, Role = MessageRole.Assistant, Content = reply });
@@ -269,9 +269,9 @@ public class IndexModel : PageModel
                 UserId = student.Id,
                 TokensIn = tokensIn,
                 TokensOut = tokensOut,
-                ModelUsed = ClaudeModel,
+                ModelUsed = modelUsed,
                 Feature = "chat",
-                CostUsd = tokensIn * CostPerInputToken + tokensOut * CostPerOutputToken,
+                CostUsd = ClaudeApi.Cost(modelUsed, tokensIn, tokensOut),
                 ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
@@ -1070,7 +1070,7 @@ public class IndexModel : PageModel
 
     // ── Claude ───────────────────────────────────────────────────────────────
 
-    private async Task<(string reply, int tokensIn, int tokensOut)> CallClaudeAsync(
+    private async Task<(string reply, int tokensIn, int tokensOut, string model)> CallClaudeAsync(
         User student, Data.Entities.Academic.Classroom classroom, List<Message> history, string purpose, bool isExamMode = false)
     {
         string systemPrompt;
@@ -1096,18 +1096,35 @@ public class IndexModel : PageModel
             }).ToList();
         }
 
-        var body = JsonSerializer.Serialize(new
-        {
-            model = ClaudeModel,
-            max_tokens = ClaudeApi.MaxTokens(purpose == "compact" ? 512 : 1024),
-            thinking = ClaudeApi.NoThinking,
-            system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } },
-            messages = messagesPayload
-        });
+        var system = new[] { new { type = "text", text = systemPrompt, cache_control = new { type = "ephemeral" } } };
+        var useMath = purpose != "compact" && ClaudeApi.UsesMathModel(classroom.Mode);
+        var body = useMath
+            ? JsonSerializer.Serialize(new
+            {
+                model = ClaudeApi.MathModel,
+                max_tokens = ClaudeApi.MathMaxTokens,
+                thinking = new { type = "adaptive" },
+                output_config = new { effort = ClaudeApi.MathEffort },
+                fallbacks = "default",   // si el filtro de seguridad declina, reintenta con otro modelo
+                system,
+                messages = messagesPayload
+            })
+            : JsonSerializer.Serialize(new
+            {
+                model = ClaudeModel,
+                max_tokens = ClaudeApi.MaxTokens(purpose == "compact" ? 512 : 1024),
+                thinking = ClaudeApi.NoThinking,
+                system,
+                messages = messagesPayload
+            });
 
         var client = _httpClientFactory.CreateClient("anthropic");
-        var response = await client.PostAsync("/v1/messages",
-            new StringContent(body, Encoding.UTF8, "application/json"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/messages")
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+        if (useMath) request.Headers.Add("anthropic-beta", ClaudeApi.FallbackBeta);
+        var response = await client.SendAsync(request);
 
         response.EnsureSuccessStatusCode();
 
@@ -1116,6 +1133,7 @@ public class IndexModel : PageModel
         var reply = ClaudeApi.ExtractText(root, purpose == "compact" ? "" : RefusalReply);
         var tokensIn = root.GetProperty("usage").GetProperty("input_tokens").GetInt32();
         var tokensOut = root.GetProperty("usage").GetProperty("output_tokens").GetInt32();
+        var modelUsed = root.TryGetProperty("model", out var m) ? m.GetString() ?? ClaudeModel : ClaudeModel;
 
         // Red de seguridad anti-insulto en la respuesta visible al alumno (no en la compactación interna).
         if (purpose != "compact")
@@ -1124,10 +1142,10 @@ public class IndexModel : PageModel
             if (insultHit)
                 await _errorLog.LogAsync("InsultFilter",
                     "El tutor emitió un insulto prohibido; fue filtrado antes de mostrarlo al alumno.",
-                    context: $"model={ClaudeModel}");
+                    context: $"model={modelUsed}");
         }
 
-        return (reply, tokensIn, tokensOut);
+        return (reply, tokensIn, tokensOut, modelUsed);
     }
 
     private async Task<(string reply, int tokensIn, int tokensOut)> CallClaudeRawAsync(

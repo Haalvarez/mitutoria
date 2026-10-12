@@ -14,6 +14,29 @@ public static class ClaudeApi
     public const decimal CostPerInputToken  = 0.10m / 1_000_000;
     public const decimal CostPerOutputToken = 0.50m / 1_000_000;
 
+    // Chat de materias de cálculo (modo Resolución: mate, física, química...): acá un error del
+    // tutor no tiene vuelta atrás, así que va Sonnet 5.5 con pensamiento adaptativo.
+    public const string MathModel = "claude-sonnet-5-5";
+    public const string MathEffort = "medium";
+    public const int MathMaxTokens = 8000;   // incluye el pensamiento, no solo la respuesta visible
+    public const string FallbackBeta = "server-side-fallback-2026-07-01";
+
+    public static bool UsesMathModel(Data.Entities.Academic.PedagogicalMode mode)
+        => mode == Data.Entities.Academic.PedagogicalMode.Resolucion;
+
+    /// <summary>Costo en USD según el modelo que efectivamente respondió (campo "model" de la respuesta).</summary>
+    public static decimal Cost(string model, int tokensIn, int tokensOut)
+    {
+        var (inUsd, outUsd) = model switch
+        {
+            var m when m.StartsWith("claude-haiku-5")  => (0.10m, 0.50m),
+            var m when m.StartsWith("claude-sonnet-5") => (2.00m, 10.00m),
+            var m when m.StartsWith("claude-haiku-4")  => (1.00m, 5.00m),
+            _                                          => (4.00m, 20.00m)   // fallback a Opus u otro: conservador
+        };
+        return tokensIn * inUsd / 1_000_000 + tokensOut * outUsd / 1_000_000;
+    }
+
     // Haiku 5.5 piensa por defecto: lo apagamos para mantener la latencia y el comportamiento de antes.
     public static readonly object NoThinking = new { type = "disabled" };
 

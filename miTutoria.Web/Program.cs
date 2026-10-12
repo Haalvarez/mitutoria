@@ -135,8 +135,10 @@ app.MapPost("/api/demo", async (JsonElement body, IHttpClientFactory factory) =>
         var requestBody = JsonSerializer.Serialize(new
         {
             model = miTutoria.Web.Infrastructure.ClaudeApi.Model,
-            max_tokens = miTutoria.Web.Infrastructure.ClaudeApi.MaxTokens(512),
-            thinking = miTutoria.Web.Infrastructure.ClaudeApi.NoThinking,
+            // Los padres prueban el demo con cuentas: pensamiento adaptativo para no errarle (Haiku, por ser público).
+            max_tokens = 4000,
+            thinking = new { type = "adaptive" },
+            output_config = new { effort = "medium" },
             system = systemPrompt,
             messages
         });
