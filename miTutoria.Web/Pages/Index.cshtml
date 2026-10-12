@@ -381,9 +381,19 @@ function addBubble(text, role) {
     const chat = document.getElementById('demo-chat');
     const div = document.createElement('div');
     div.className = `demo-bubble demo-bubble--${role}`;
-    div.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+    div.innerHTML = `<p>${formatDemo(text)}</p>`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
+}
+
+// Escapa HTML y convierte el markdown mínimo que usa el tutor (**negrita**, *cursiva*).
+function formatDemo(text) {
+    return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(\S(?:[^\n]*?\S)??)\*\*/g, '<strong>$1</strong>')
+        // Cursiva solo con *pegado* a la palabra: "2 * 3" o "4*5" quedan como multiplicación.
+        .replace(/(^|[^*\w])\*(\S(?:[^*\n]*?\S)??)\*(?![*\w])/g, '$1<em>$2</em>')
+        .replace(/\n/g, '<br>');
 }
 
 function showLimit() {
