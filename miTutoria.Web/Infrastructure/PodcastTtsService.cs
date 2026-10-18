@@ -49,12 +49,25 @@ public sealed class PodcastTtsService
 
         var ttsModel = await DiscoverTtsModelAsync(client, ct);
 
-        var sb = new StringBuilder("Leé esta conversación en español, con energía natural y tono amable:\n\n");
-        foreach (var t in turns) sb.AppendLine($"{t.Speaker}: {t.Text}");
+        // Los modelos TTS nuevos exigen un part por turno con speech_metadata.speaker
+        // (igual a un speaker de speakerVoiceConfigs); el estilo va en metadata, no en el texto.
+        const string style = "en español, con energía natural y tono amable";
+        var parts = turns
+            .Where(t => !string.IsNullOrWhiteSpace(t.Text))
+            .Select(t => new Dictionary<string, object>
+            {
+                ["text"] = t.Text,
+                ["speech_metadata"] = new
+                {
+                    speaker = string.Equals(t.Speaker.Trim(), hostB, StringComparison.OrdinalIgnoreCase) ? hostB : hostA,
+                    style
+                }
+            })
+            .ToArray();
 
         var body = new
         {
-            contents = new[] { new { parts = new[] { new { text = sb.ToString() } } } },
+            contents = new[] { new { role = "user", parts } },
             generationConfig = new
             {
                 responseModalities = new[] { "AUDIO" },
