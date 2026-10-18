@@ -40,11 +40,20 @@ entra al Dashboard). Avisos suaves que empujan al padre al Dashboard. Corte real
 ## 🟡 Pronto (este mes)
 
 ### 4. Pasar MercadoPago a producción
-- [ ] Cambiar `MP_ACCESS_TOKEN` al token de producción (`APP_USR-...`).
-- [ ] Setear `APP_BASE_URL=https://mitutoria.app` y verificar que `/api/pay/webhook` responde por HTTPS desde afuera.
-- [ ] Habilitar `PayEnabled` en las familias piloto.
-- [ ] Confirmar `CUOTA_ARS`.
-- [ ] Probar un pago real de punta a punta (con importe bajo o promo).
+- [x] Token de producción, `APP_BASE_URL`, webhook HTTPS y `PayEnabled` — funcionando.
+- [x] **Pago real de punta a punta probado (2026-08): link → pago por otro pagador → callback →**
+      **otorgó acceso (`active`, `PaidUntil` +1 mes). Idempotencia OK (promo contó 1 uso, no doble).**
+      No se reembolsa (fue pago intrafamiliar).
+- [x] Comisión medida: bruto $100 → neto $95,70 = 4,3% (inflado por el fijo en monto chico;
+      sobre la cuota real de $30.000 el % efectivo es menor). Recalcular margen sobre $30.000.
+- [ ] Confirmar `CUOTA_ARS` / precio definitivo (probado con promo $30.000 "FAMILIA2026").
+
+### 4b. Gaps detectados en la prueba de pago
+- [ ] **Reembolso/contracargo NO revoca acceso.** El webhook solo actúa con `status="approved"`;
+      un `refunded` espeja el string pero no toca `PaidUntil`. Riesgo: pagar → usar → reembolsar y
+      quedarse con el mes. Manejar `refunded`/`charged_back` revocando/acortando el acceso.
+- [ ] **Fricción de checkout:** a la pagadora le pidió crear cuenta MP en vez de pagar como invitada.
+      Evaluar habilitar pago sin registro en Checkout Pro (conversión de padres).
 
 ### 5. SEO — contenido para búsquedas laterales
 - [ ] 1-2 páginas/artículos que respondan dudas reales de padres
