@@ -188,6 +188,15 @@ public class IndexModel : PageModel
     public record SharedAgendaRow(string Student, string Family, string Token, int Views, int Clicks, DateTime? LastView);
     public List<SharedAgendaRow> SharedAgendas { get; private set; } = [];
 
+    // ── Adopción de funciones: embudo por función + detalle por alumno ──────────
+    // Habilitado → probó → usa de verdad → repite (días distintos). Pensado para sumar más funciones.
+    public record FeatureFunnel(string Feature, int Enabled, int Tried, int Engaged, string EngagedLabel,
+        int Repeat, decimal CostMonthUsd);
+    public record PodcastStudentRow(string Student, string Family, int Episodes, int Played, int Engaged,
+        int MaxPct, int Days, DateTime LastAt, decimal CostMonthUsd);
+    public List<FeatureFunnel> Funnels { get; private set; } = [];
+    public List<PodcastStudentRow> PodcastStudents { get; private set; } = [];
+
     // ── Promos (cupones de descuento) ────────────────────────────────────────────
 
     public record PromoRow(int Id, string Code, string Name, decimal AmountArs,
@@ -394,6 +403,8 @@ public class IndexModel : PageModel
             }).OrderByDescending(r => r.Views).ToList();
         }
 
+        await LoadPodcastAdoptionAsync(monthStart);
+
         // Alumnos (para el dropdown de "borrar agendas")
         AllStudents = (await _db.Users
             .Where(u => u.Role == Data.Entities.Auth.UserRole.Student)
@@ -539,6 +550,53 @@ public class IndexModel : PageModel
 
         MaintResult = $"ok:Reproceso terminado: {total} mensaje(s) procesados.";
         return RedirectToPage(new { token });
+    }
+
+    // Podcast: "usa de verdad" = escuchó más de la mitad de algún episodio.
+    private async Task LoadPodcastAdoptionAsync(DateTime monthStart)
+    {
+        var enabled = await _db.Users.CountAsync(u =>
+            u.Role == UserRole.Student && u.Family.PodcastEnabled);
+
+        var eps = await _db.PodcastEpisodes
+            .Select(e => new
+            {
+                e.StudentId, e.CreatedAt, e.FirstPlayedAt, e.MaxProgressPct,
+                Student = e.Student.Nickname ?? e.Student.FullName,
+                Family = e.Student.Family.Nickname ?? e.Student.Family.Name
+            })
+            .ToListAsync();
+
+        var costByStudent = (await _db.TokenEvents
+            .Where(t => t.CreatedAt >= monthStart && t.UserId != null
+                     && (t.Feature == "podcast_script" || t.Feature == "podcast_tts"))
+            .Select(t => new { t.UserId, t.CostUsd })
+            .ToListAsync())
+            .GroupBy(t => t.UserId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.CostUsd));
+
+        PodcastStudents = eps
+            .GroupBy(e => e.StudentId)
+            .Select(g => new PodcastStudentRow(
+                g.First().Student, g.First().Family ?? "—",
+                Episodes: g.Count(),
+                Played:   g.Count(e => e.FirstPlayedAt != null),
+                Engaged:  g.Count(e => e.MaxProgressPct > 50),
+                MaxPct:   g.Max(e => e.MaxProgressPct),
+                Days:     g.Select(e => e.CreatedAt.AddHours(-3).Date).Distinct().Count(), // días en hora AR
+                LastAt:   g.Max(e => e.CreatedAt),
+                CostMonthUsd: costByStudent.GetValueOrDefault(g.Key)))
+            .OrderByDescending(r => r.LastAt)
+            .ToList();
+
+        Funnels =
+        [
+            new FeatureFunnel("🎧 Podcast", enabled,
+                Tried:   PodcastStudents.Count,
+                Engaged: PodcastStudents.Count(r => r.Engaged > 0), EngagedLabel: "escucha >50%",
+                Repeat:  PodcastStudents.Count(r => r.Days >= 2),
+                CostMonthUsd: costByStudent.Values.Sum())
+        ];
     }
 
     // ── Limpiar el log de errores (una vez revisados/arreglados) ─────────────────

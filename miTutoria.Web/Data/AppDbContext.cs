@@ -288,6 +288,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PodcastEpisode>().Property(x => x.Mime).HasColumnName("mime");
         modelBuilder.Entity<PodcastEpisode>().Property(x => x.DurationSec).HasColumnName("duration_sec");
         modelBuilder.Entity<PodcastEpisode>().Property(x => x.CreatedAt).HasColumnName("created_at");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.FirstPlayedAt).HasColumnName("first_played_at");
+        modelBuilder.Entity<PodcastEpisode>().Property(x => x.MaxProgressPct).HasColumnName("max_progress_pct");
         modelBuilder.Entity<PodcastEpisode>().HasIndex(x => x.StudentId);
 
         // ── Atención dedicada: sesiones de foco del Aula ──

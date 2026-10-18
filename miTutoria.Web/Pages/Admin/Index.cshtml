@@ -294,6 +294,53 @@ th.sortable::after{content:" ↕";color:#bbb;font-size:.7em}
     </form>
 </div>
 
+@* ── Adopción de funciones (embudo por función + detalle por alumno) ──────── *@
+<h2>📊 Adopción de funciones <span class="help" title="Embudo por alumno: habilitado (su familia tiene la función) → probó (generó al menos uno) → la usa de verdad → repite (en 2+ días distintos). La escucha se mide solo cuando escucha el alumno, no el padre, y desde el 18/10/2026.">ⓘ</span></h2>
+<table>
+    <thead><tr><th>Función</th><th>Habilitado</th><th>Probó</th><th>Usa de verdad</th><th>Repite</th><th>Costo del mes</th></tr></thead>
+    <tbody>
+    @foreach (var f in Model.Funnels)
+    {
+        string Pct(int n) => f.Enabled > 0 ? $" ({(int)Math.Round(n * 100.0 / f.Enabled)}%)" : "";
+        <tr>
+            <td>@f.Feature</td>
+            <td><strong>@f.Enabled</strong> alumnos</td>
+            <td><strong>@f.Tried</strong>@Pct(f.Tried)</td>
+            <td><strong>@f.Engaged</strong>@Pct(f.Engaged) <span class="dim">@f.EngagedLabel</span></td>
+            <td><strong>@f.Repeat</strong>@Pct(f.Repeat)</td>
+            <td>$@f.CostMonthUsd.ToString("F2")</td>
+        </tr>
+    }
+    </tbody>
+</table>
+@if (Model.PodcastStudents.Any())
+{
+    <h3 style="margin:1rem 0 .5rem;font-size:1rem;">🎧 Podcast por alumno</h3>
+    <table>
+        <thead><tr><th>Alumno</th><th>Familia</th><th>Generados</th><th>Escuchados</th><th>&gt;50%</th><th>Máx. escuchado</th><th>Días de uso</th><th>Último</th><th>Costo del mes</th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.PodcastStudents)
+        {
+            <tr>
+                <td>@p.Student</td>
+                <td>@p.Family</td>
+                <td><strong>@p.Episodes</strong></td>
+                <td>@p.Played</td>
+                <td>@p.Engaged</td>
+                <td>@(p.Played > 0 ? $"{p.MaxPct}%" : "—")</td>
+                <td>@p.Days</td>
+                <td>@p.LastAt.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                <td>$@p.CostMonthUsd.ToString("F2")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <p style="color:#888;font-size:.9rem;margin-bottom:1.5rem;">Ningún alumno generó un podcast todavía.</p>
+}
+
 @* ── Calendarios públicos compartidos (analítica: visitas → clics a landing) ── *@
 <h2>📅 Calendarios compartidos <span class="help" title="Páginas públicas /agenda/{token} que generó cada familia. Analítica first-party (sin GA). Visitas = abrieron el calendario; Clics = apretaron 'Conocé miTutorIA'.">ⓘ</span></h2>
 @if (Model.SharedAgendas.Any())

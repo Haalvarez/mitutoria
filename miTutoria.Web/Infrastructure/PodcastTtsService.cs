@@ -6,9 +6,10 @@ namespace miTutoria.Web.Infrastructure;
 // Un turno del diálogo: quién habla y qué dice.
 public sealed record PodcastTurn(string Speaker, string Text);
 
-// Resultado del TTS: el WAV listo para guardar, el modelo usado y los caracteres
-// sintetizados (para estimar el costo).
-public sealed record PodcastAudio(byte[] Wav, string Mime, string TtsModel, int Chars, int DurationSec);
+// Resultado del TTS: el WAV listo para guardar, el modelo usado, los caracteres sintetizados
+// y los tokens que factura Gemini (usageMetadata; 0 si no vinieron → se estima por caracteres).
+public sealed record PodcastAudio(byte[] Wav, string Mime, string TtsModel, int Chars, int DurationSec,
+    int TokensIn, int TokensOut);
 
 // Error específico de saldo/cuota agotada (429 RESOURCE_EXHAUSTED / billing).
 // La página lo distingue para avisar por Telegram y decirle al alumno "probá en 30 min".
@@ -23,13 +24,19 @@ public sealed class PodcastTtsService
 {
     private const int SampleRate = 24000; // Gemini TTS: PCM 24 kHz, 16-bit, mono
 
+    // Modelo fijo: si Google saca uno nuevo con otro formato o precio, no nos cambia solo.
+    // GEMINI_TTS_MODEL lo pisa; "auto" vuelve a elegir el más nuevo de la lista.
+    private const string DefaultTtsModel = "gemini-3.8-flash-tts";
+
     private readonly IHttpClientFactory _httpFactory;
     private readonly string? _apiKey;
+    private readonly string _ttsModel;
 
     public PodcastTtsService(IHttpClientFactory httpFactory, IConfiguration config)
     {
         _httpFactory = httpFactory;
         _apiKey = config["GEMINI_API_KEY"];
+        _ttsModel = config["GEMINI_TTS_MODEL"] is { Length: > 0 } m ? m.Trim() : DefaultTtsModel;
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);
@@ -47,7 +54,9 @@ public sealed class PodcastTtsService
         var client = _httpFactory.CreateClient();
         client.Timeout = TimeSpan.FromMinutes(3);
 
-        var ttsModel = await DiscoverTtsModelAsync(client, ct);
+        var ttsModel = _ttsModel.Equals("auto", StringComparison.OrdinalIgnoreCase)
+            ? await DiscoverTtsModelAsync(client, ct)
+            : _ttsModel;
 
         // Los modelos TTS nuevos exigen un part por turno con speech_metadata.speaker
         // (igual a un speaker de speakerVoiceConfigs); el estilo va en metadata, no en el texto.
@@ -100,11 +109,18 @@ public sealed class PodcastTtsService
             .GetProperty("inlineData").GetProperty("data").GetString()
             ?? throw new InvalidOperationException("Gemini TTS no devolvió audio.");
 
+        int tokensIn = 0, tokensOut = 0;
+        if (doc.RootElement.TryGetProperty("usageMetadata", out var usage))
+        {
+            if (usage.TryGetProperty("promptTokenCount", out var pt)) tokensIn = pt.GetInt32();
+            if (usage.TryGetProperty("candidatesTokenCount", out var ctk)) tokensOut = ctk.GetInt32();
+        }
+
         var pcm = Convert.FromBase64String(b64);
         var wav = WrapWav(pcm, SampleRate);
         var chars = turns.Sum(t => t.Text.Length);
         var durationSec = pcm.Length / (SampleRate * 2); // 16-bit mono
-        return new PodcastAudio(wav, "audio/wav", ttsModel, chars, durationSec);
+        return new PodcastAudio(wav, "audio/wav", ttsModel, chars, durationSec, tokensIn, tokensOut);
     }
 
     // Los nombres de modelo de Gemini cambian seguido; preguntamos a la API cuál hay.

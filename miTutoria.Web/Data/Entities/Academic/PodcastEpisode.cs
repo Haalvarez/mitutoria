@@ -17,4 +17,8 @@ public class PodcastEpisode
     public string Mime { get; set; } = "audio/wav";
     public int DurationSec { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Adopción: lo reporta el reproductor. null = nunca le dieron play.
+    public DateTime? FirstPlayedAt { get; set; }
+    public int MaxProgressPct { get; set; } // 0..100, lo más lejos que llegó escuchando
 }

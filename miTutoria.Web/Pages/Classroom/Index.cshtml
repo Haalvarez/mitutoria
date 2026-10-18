@@ -1079,6 +1079,27 @@ const podcastMessages = [
 ];
 let _podcastMsgInterval = null;
 
+// Adopción: avisa al servidor el play y cada 10% nuevo escuchado (el server guarda el máximo).
+function trackPodcastListening(audio, episodeId) {
+    if (!audio || !episodeId) return;
+    let sent = -1;
+    const report = (pct) => {
+        if (pct <= sent) return;
+        sent = pct;
+        fetch(`/Classroom/${studentId}?handler=PodcastProgress`, {
+            method: 'POST', keepalive: true,
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': csrf() },
+            body: new URLSearchParams({ studentId, episodeId, pct })
+        }).catch(() => {});
+    };
+    audio.addEventListener('play', () => report(Math.max(sent, 0)));
+    audio.addEventListener('timeupdate', () => {
+        if (!audio.duration) return;
+        report(Math.floor(audio.currentTime / audio.duration * 10) * 10);
+    });
+    audio.addEventListener('ended', () => report(100));
+}
+
 async function generatePodcast() {
     const formato = document.querySelector('input[name="pc-formato"]:checked')?.value || 'dialogo';
     const largo   = document.querySelector('input[name="pc-largo"]:checked')?.value || 'medio';
@@ -1127,6 +1148,7 @@ async function generatePodcast() {
             const mins = Math.max(1, Math.round((data.durationSec || 0) / 60));
             bubble.innerHTML = `🎧 ${data.title} (~${mins} min)
                 <audio controls preload="none" style="display:block;margin-top:.5rem;width:100%;" src="${data.url}"></audio>`;
+            trackPodcastListening(bubble.querySelector('audio'), data.episodeId);
         } else {
             bubble.textContent = data.reply || data.error || 'No pude generar el podcast.';
         }

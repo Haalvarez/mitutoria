@@ -529,12 +529,19 @@ public class IndexModel : PageModel
                 ModelUsed = ClaudeModel, Feature = "podcast_script",
                 CostUsd = tIn * CostPerInputToken + tOut * CostPerOutputToken, ArsRate = arsRate
             });
-            var ttsUsdPer1k = _config.GetValue<decimal>("PODCAST_USD_PER_1K_CHARS", 0.02m);
+            // Costo real por tokens de Gemini (texto in / audio out). Precios de gemini-3.8-flash-tts
+            // hasta 31/12/2026 (después se duplican: ajustar por config). Sin usageMetadata → estimado por caracteres.
+            var ttsUsdPer1MIn  = _config.GetValue<decimal>("GEMINI_TTS_USD_PER_1M_IN", 0.50m);
+            var ttsUsdPer1MOut = _config.GetValue<decimal>("GEMINI_TTS_USD_PER_1M_OUT", 9.00m);
+            var ttsCost = audio.TokensOut > 0
+                ? audio.TokensIn * ttsUsdPer1MIn / 1_000_000m + audio.TokensOut * ttsUsdPer1MOut / 1_000_000m
+                : (decimal)audio.Chars / 1000m * _config.GetValue<decimal>("PODCAST_USD_PER_1K_CHARS", 0.02m);
             _dbContext.TokenEvents.Add(new TokenEvent
             {
-                FamilyId = student.FamilyId, UserId = student.Id, TokensIn = 0, TokensOut = 0,
+                FamilyId = student.FamilyId, UserId = student.Id,
+                TokensIn = audio.TokensIn, TokensOut = audio.TokensOut,
                 ModelUsed = audio.TtsModel, Feature = "podcast_tts",
-                CostUsd = (decimal)audio.Chars / 1000m * ttsUsdPer1k, ArsRate = arsRate
+                CostUsd = ttsCost, ArsRate = arsRate
             });
             await _dbContext.SaveChangesAsync();
 
@@ -542,6 +549,7 @@ public class IndexModel : PageModel
             {
                 type = "podcast",
                 url = $"/Classroom/{studentId}?handler=PodcastAudio&episodeId={episode.Id}",
+                episodeId = episode.Id,
                 title,
                 durationSec = audio.DurationSec
             });
@@ -578,6 +586,22 @@ public class IndexModel : PageModel
         if (ep is null) return NotFound();
 
         return File(ep.Audio, ep.Mime);
+    }
+
+    // Adopción: el reproductor reporta play y % escuchado. Solo cuenta si escucha el alumno
+    // (el padre probando no infla la métrica). Update directo: no carga el audio (bytea).
+    public async Task<IActionResult> OnPostPodcastProgressAsync(int studentId, int episodeId, int pct)
+    {
+        if (HttpContext.Session.GetInt32("StudentId") != studentId) return new OkResult();
+
+        pct = Math.Clamp(pct, 0, 100);
+        var now = DateTime.UtcNow;
+        await _dbContext.PodcastEpisodes
+            .Where(e => e.Id == episodeId && e.StudentId == studentId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.FirstPlayedAt, e => e.FirstPlayedAt ?? now)
+                .SetProperty(e => e.MaxProgressPct, e => e.MaxProgressPct > pct ? e.MaxProgressPct : pct));
+        return new OkResult();
     }
 
     private async Task<bool> IsPodcastEnabledAsync(int familyId)
