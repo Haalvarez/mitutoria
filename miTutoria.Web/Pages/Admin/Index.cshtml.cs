@@ -343,7 +343,9 @@ public class IndexModel : PageModel
                 return (f.Nickname ?? f.Name, label, expiry);
             }).ToList();
 
+        var errorsSince = DateTime.UtcNow.AddDays(-30);
         RecentErrors = await _db.ErrorLogs
+            .Where(e => e.CreatedAt >= errorsSince)
             .OrderByDescending(e => e.CreatedAt)
             .Take(50)
             .Select(e => new ErrorRow(e.Id, e.CreatedAt, e.Source, e.Message, e.Context))
@@ -536,6 +538,16 @@ public class IndexModel : PageModel
         while (n > 0 && iter < 20);
 
         MaintResult = $"ok:Reproceso terminado: {total} mensaje(s) procesados.";
+        return RedirectToPage(new { token });
+    }
+
+    // ── Limpiar el log de errores (una vez revisados/arreglados) ─────────────────
+    public async Task<IActionResult> OnPostClearErrorsAsync([FromQuery] string? token)
+    {
+        if (!IsAuthorized(token)) return Unauthorized();
+
+        _db.ErrorLogs.RemoveRange(_db.ErrorLogs);
+        await _db.SaveChangesAsync();
         return RedirectToPage(new { token });
     }
 

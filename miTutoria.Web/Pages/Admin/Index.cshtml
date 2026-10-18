@@ -345,7 +345,17 @@ else
 }
 
 @* ── Error log ────────────────────────────────────────────────────────── *@
-<h2>🔴 Errores recientes (@Model.RecentErrors.Count)</h2>
+<h2>🔴 Errores recientes (@Model.RecentErrors.Count)
+    <span class="help" title="Últimos 30 días. Limpiar borra todo el log; si un error sigue pasando, vuelve a aparecer.">ⓘ</span>
+    @if (Model.RecentErrors.Count > 0)
+    {
+        <form method="post" asp-page-handler="ClearErrors" asp-route-token="@token" style="display:inline;margin:0 0 0 .4rem;"
+              onsubmit="return confirm('¿Borrar todos los errores del log? No se puede deshacer.');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn-mini" title="Borrar todos los errores (ya revisados/arreglados)">🗑 Limpiar</button>
+        </form>
+    }
+</h2>
 @if (Model.RecentErrors.Count == 0)
 {
     <p style="color:#888;margin-bottom:1.5rem;">Sin errores registrados. 🟢</p>
